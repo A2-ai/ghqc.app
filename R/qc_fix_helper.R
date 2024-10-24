@@ -163,7 +163,6 @@ format_diff_section <- function(diff_lines) {
 }
 
 get_script_contents <- function(file_path, reference, comparator) {
-  browser()
   temp_dir <- tempdir()
   file_diff_dir <- file.path(temp_dir, "file_diff_dir")
   fs::dir_create(file_diff_dir)
