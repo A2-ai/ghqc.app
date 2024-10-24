@@ -110,22 +110,27 @@ get_script_contents <- function(file_path, reference, comparator) {
   temp_dir <- tempdir()
   file_diff_dir <- file.path(temp_dir, "file_diff_dir")
   fs::dir_create(file_diff_dir)
-  withr::defer_parent({
+  withr::defer({
     if (dir.exists(file_diff_dir)) {
       fs::dir_delete(file_diff_dir)
     }
-  }) #, envir = globalenv()
+  })
 
   # name the files the contents will be redirected to
-  file_at_reference <- file.path(file_diff_dir, "reference")
-  file_at_comparator <- file.path(file_diff_dir, "comparator")
+  file_at_reference <- tempfile(tmpdir = file_diff_dir)
+  file_at_comparator <- tempfile(tmpdir = file_diff_dir)
 
   # get reference file contents
   command_ref <- glue::glue("git show {reference}:{file_path} > {file_at_reference}")
   result_ref <- processx::run("sh", c("-c", command_ref), error_on_status = FALSE)
 
   if (result_ref$status != 0) {
-    stop(result_ref$stderr)
+    rlang::abort(message = glue::glue(
+    "status: {result_ref$status}
+    stdout: {result_ref$stdout}
+    stderr: {result_ref$stderr}
+    timeout: {result_ref$timeout}")
+    )
   }
 
   # get reference file contents
@@ -133,7 +138,12 @@ get_script_contents <- function(file_path, reference, comparator) {
   result_comp <- processx::run("sh", c("-c", command_comp), error_on_status = FALSE)
 
   if (result_comp$status != 0) {
-    stop(result_comp$stderr)
+    rlang::abort(message = glue::glue(
+      "status: {result_comp$status}
+      stdout: {result_comp$stdout}
+      stderr: {result_comp$stderr}
+      timeout: {result_comp$timeout}")
+    )
   }
 
   # read file contents

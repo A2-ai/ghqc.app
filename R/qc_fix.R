@@ -65,9 +65,13 @@ create_comment_body <- function(owner,
                                 comparator_commit = "current") {
 
   issue <- get_issue(owner, repo, issue_number)
+  ## check if file exists locally
+  if (!fs::file_exists(issue$title)) {
+    rlang::abort(glue::glue("Error: {issue$title} does not exist in local project repo"))
+  }
 
   # log
-  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number} in {owner}/{repo}"))
+  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
   assignees_list <- create_assignees_list(issue$assignees)
