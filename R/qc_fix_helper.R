@@ -7,52 +7,6 @@ untracked_changes <- function(qc_file) {
 
 }
 
-name_file_copy <- function(file_path) {
-  dir_name <- dirname(file_path)
-  file_name <- basename(file_path)
-  file_extension <- tools::file_ext(file_name)
-  file_base_name <- tools::file_path_sans_ext(file_name)
-
-  file_copy_name <- paste0(file_base_name, "_copy_for_ghqc.", file_extension)
-  file.path(dir_name, file_copy_name)
-}
-
-rename_file_copy <- function(file_path) {
-  file.rename(file_path, stringr::str_remove(file_path, "_copy_for_ghqc"))
-}
-
-#' @importFrom log4r warn error info debug
-read_file_at_commit <- function(commit_sha, file_path) {
-  args <- c("checkout", commit_sha, "--", file_path)
-  result <- processx::run("git", args, error_on_status = FALSE)
-
-  if (result$status != 0) {
-    stop(result$stderr)
-  }
-
-  #tryCatch({
-    file_content <- suppressWarnings(readLines(file_path))
-  # }, error = function(e) {
-  #   if (stringr::str_detect(e$message, "incomplete final line")) {
-  #     # add a newline
-  #     con <- file(file_path, open = "a")
-  #     writeLines("\n", con)
-  #     close(con)
-  #
-  #     # read file
-  #     file_content <- suppressWarnings(readLines(file_path))
-  #
-  #     # remove newline
-  #     if (length(lines) > 0 && lines[length(lines)] == "") {
-  #       lines <- lines[-length(lines)]
-  #     }
-  #     writeLines(lines, file_path)
-  #   } # if incomplete final line
-  # })
-
-  return(file_content)
-}
-
 extract_line_numbers <- function(text) {
   match <- stringr::str_match(text, "@@ ([^@]+) @@")[2]
   first_set <- stringr::str_match(match, "^\\s*(\\d+)(?:,(\\d+))?")[,2:3]
@@ -115,17 +69,7 @@ add_line_numbers <- function(text) {
   glue::glue_collapse(new_lines, sep = "\n")
 }
 
-clean_up <- function(file_path, copied_file) {
-  # delete copy at previous commits
-  fs::file_delete(file_path)
-  # rename file to original name
-  rename_file_copy(copied_file)
 
-  # finally, just read the file at the most recent commit to avoid
-  # having untracked changes
-  most_recent_commit <- gert::git_log(max = 1)$commit
-  read_file_at_commit(most_recent_commit, file_path)
-}
 
 format_diff_section <- function(diff_lines) {
   diff_lines <- strsplit(diff_lines, "\n")[[1]]
