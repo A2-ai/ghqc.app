@@ -7,52 +7,6 @@ untracked_changes <- function(qc_file) {
 
 }
 
-name_file_copy <- function(file_path) {
-  dir_name <- dirname(file_path)
-  file_name <- basename(file_path)
-  file_extension <- tools::file_ext(file_name)
-  file_base_name <- tools::file_path_sans_ext(file_name)
-
-  file_copy_name <- paste0(file_base_name, "_copy_for_ghqc.", file_extension)
-  file.path(dir_name, file_copy_name)
-}
-
-rename_file_copy <- function(file_path) {
-  file.rename(file_path, stringr::str_remove(file_path, "_copy_for_ghqc"))
-}
-
-#' @importFrom log4r warn error info debug
-read_file_at_commit <- function(commit_sha, file_path) {
-  args <- c("checkout", commit_sha, "--", file_path)
-  result <- processx::run("git", args, error_on_status = FALSE)
-
-  if (result$status != 0) {
-    stop(result$stderr)
-  }
-
-  #tryCatch({
-    file_content <- suppressWarnings(readLines(file_path))
-  # }, error = function(e) {
-  #   if (stringr::str_detect(e$message, "incomplete final line")) {
-  #     # add a newline
-  #     con <- file(file_path, open = "a")
-  #     writeLines("\n", con)
-  #     close(con)
-  #
-  #     # read file
-  #     file_content <- suppressWarnings(readLines(file_path))
-  #
-  #     # remove newline
-  #     if (length(lines) > 0 && lines[length(lines)] == "") {
-  #       lines <- lines[-length(lines)]
-  #     }
-  #     writeLines(lines, file_path)
-  #   } # if incomplete final line
-  # })
-
-  return(file_content)
-}
-
 extract_line_numbers <- function(text) {
   match <- stringr::str_match(text, "@@ ([^@]+) @@")[2]
   first_set <- stringr::str_match(match, "^\\s*(\\d+)(?:,(\\d+))?")[,2:3]
@@ -115,17 +69,7 @@ add_line_numbers <- function(text) {
   glue::glue_collapse(new_lines, sep = "\n")
 }
 
-clean_up <- function(file_path, copied_file) {
-  # delete copy at previous commits
-  fs::file_delete(file_path)
-  # rename file to original name
-  rename_file_copy(copied_file)
 
-  # finally, just read the file at the most recent commit to avoid
-  # having untracked changes
-  most_recent_commit <- gert::git_log(max = 1)$commit
-  read_file_at_commit(most_recent_commit, file_path)
-}
 
 format_diff_section <- function(diff_lines) {
   diff_lines <- strsplit(diff_lines, "\n")[[1]]
@@ -163,16 +107,48 @@ format_diff_section <- function(diff_lines) {
 }
 
 get_script_contents <- function(file_path, reference, comparator) {
-  # create copy
-  copied_file <- name_file_copy(file_path)
-  file.copy(file_path, copied_file)
-  withr::defer_parent(
-    clean_up(file_path, copied_file)
-  )
+  temp_dir <- tempdir()
+  file_diff_dir <- file.path(temp_dir, "file_diff_dir")
+  fs::dir_create(file_diff_dir)
+  withr::defer({
+    if (dir.exists(file_diff_dir)) {
+      fs::dir_delete(file_diff_dir)
+    }
+  })
 
-  # get file contents at the specified commits
-  reference_script <- read_file_at_commit(reference, file_path)
-  comparator_script <- read_file_at_commit(comparator, file_path)
+  # name the files the contents will be redirected to
+  file_at_reference <- tempfile(tmpdir = file_diff_dir)
+  file_at_comparator <- tempfile(tmpdir = file_diff_dir)
+
+  # get reference file contents
+  command_ref <- glue::glue("git show {reference}:{file_path} > {file_at_reference}")
+  result_ref <- processx::run("sh", c("-c", command_ref), error_on_status = FALSE)
+
+  if (result_ref$status != 0) {
+    rlang::abort(message = glue::glue(
+    "status: {result_ref$status}
+    stdout: {result_ref$stdout}
+    stderr: {result_ref$stderr}
+    timeout: {result_ref$timeout}")
+    )
+  }
+
+  # get reference file contents
+  command_comp <- glue::glue("git show {comparator}:{file_path} > {file_at_comparator}")
+  result_comp <- processx::run("sh", c("-c", command_comp), error_on_status = FALSE)
+
+  if (result_comp$status != 0) {
+    rlang::abort(message = glue::glue(
+      "status: {result_comp$status}
+      stdout: {result_comp$stdout}
+      stderr: {result_comp$stderr}
+      timeout: {result_comp$timeout}")
+    )
+  }
+
+  # read file contents
+  reference_script <- suppressWarnings(readLines(file_at_reference))
+  comparator_script <- suppressWarnings(readLines(file_at_comparator))
 
   list(reference_script = reference_script, comparator_script = comparator_script)
 }
@@ -222,35 +198,3 @@ get_comments <- function(owner, repo, issue_number) {
   )
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
-
-# returns true if the user can check "compare to most recent qc fix"
-# false otherwise
-# check_if_there_are_update_comments <- function(owner, repo, issue_number) {
-#   comments <- get_comments(owner, repo, issue_number)
-#   if (length(comments) == 0) return(FALSE)
-#   most_recent_qc_commit <- get_commit_from_most_recent_update_comment(comments)
-#   if (is.na(most_recent_qc_commit)) return(FALSE)
-#   else return(TRUE)
-# }
-
-# gets the most recent qc update commit from the comments in the issue
-# if there are no update comments from the author, it returns NA
-# get_commit_from_most_recent_update_comment <- function(comments_df) {
-#   # sort by descending creation time
-#   comments_df <- comments_df %>% dplyr::arrange(dplyr::desc(created_at))
-#
-#   # loop through comments, grab the first one
-#   for (i in seq_len(nrow(comments_df))) {
-#     comment <- comments_df[i, ]
-#     commit_from_comment <- get_current_commit_from_comment(comment$body)
-#     if (!is.na(commit_from_comment)) {
-#       return(commit_from_comment)
-#     }
-#   }
-#
-#   return(NA)
-# }
-
-# get_current_commit_from_comment <- function(body) {
-#   stringr::str_match(body, "\\* current QC request commit: ([a-f0-9]+)")[,2]
-# }
