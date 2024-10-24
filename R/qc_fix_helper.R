@@ -163,16 +163,36 @@ format_diff_section <- function(diff_lines) {
 }
 
 get_script_contents <- function(file_path, reference, comparator) {
-  # create copy
-  copied_file <- name_file_copy(file_path)
-  file.copy(file_path, copied_file)
-  withr::defer_parent(
-    clean_up(file_path, copied_file)
-  )
+  temp_dir <- tempdir()
+  withr::defer({
+    if (dir.exists(temp_dir)) {
+      fs::dir_delete(temp_dir)
+    }
+  })
 
-  # get file contents at the specified commits
-  reference_script <- read_file_at_commit(reference, file_path)
-  comparator_script <- read_file_at_commit(comparator, file_path)
+  # name the files the contents will be redirected to
+  file_at_reference <- file.path(temp_dir, "reference")
+  file_at_comparator <- file.path(temp_dir, "comparator")
+
+  # get reference file contents
+  command_ref <- glue::glue("git show {reference}:{file_path} > {file_at_reference}")
+  result_ref <- processx::run("sh", c("-c", command), error_on_status = FALSE)
+
+  if (result_ref$status != 0) {
+    stop(result$stderr)
+  }
+
+  # get reference file contents
+  command_comp <- glue::glue("git show {comparator}:{file_path} > {file_at_comparator}")
+  result_comp <- processx::run("sh", c("-c", command), error_on_status = FALSE)
+
+  if (result_comp$status != 0) {
+    stop(result$stderr)
+  }
+
+  # read file contents
+  reference_script <- suppressWarnings(readLines(file_at_reference))
+  comparator_script <- suppressWarnings(readLines(file_at_comparator))
 
   list(reference_script = reference_script, comparator_script = comparator_script)
 }
