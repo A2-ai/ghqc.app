@@ -1,0 +1,49 @@
+Package: ghqc.app
+Title: Create QC Checklists in Github Issues
+Version: 0.1.0
+Authors@R: c(
+    person("Jenna", "Johnson", email = "jenna@a2-ai.com", role = c("aut", "cre")),
+    person("Anne", "Zheng", email = "anne@a2-ai.com", role = c("aut")),
+    person("Janelle", "Lennie", email = "janelle.l.lennie@gsk.com", role = c("ctb")),
+    person("Devin", "Pastoor", email = "devin@a2-ai.com", role = c("aut")),
+    person("Wes", "Cummings", email = "wes@a2-ai.com", role = c("aut")))
+Description: A QC tool with 3 major functions: creation and management of QC log, creation and management of QC record, perform semi-automated QC tasks.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports: 
+    fs (>= 1.6.3),
+    gert (>= 2.0.1),
+    gh (>= 1.4.0),
+    glue (>= 1.6.2),
+    httr2 (>= 1.0.0),
+    miniUI (>= 0.1.1.1),
+    kableExtra (>= 1.3.4),
+    purrr (>= 1.0.2),
+    rlang (>= 1.1.3),
+    shiny (>= 1.8.0),
+    stringr (>= 1.5.1),
+    waiter (>= 0.2.5),
+    withr (>= 3.0.0),
+    yaml (>= 2.3.7),
+    shinyjs (>= 2.1.0),
+    dplyr (>= 1.1.4),
+    diffobj (>= 0.3.5),
+    processx (>= 3.8.3),
+    rmarkdown (>= 2.24),
+    rvest (>= 1.0.3),
+    digest (>= 0.6.34),
+    readr (>= 2.1.4),
+    jsTreeR (>= 2.5.0),
+    log4r (>= 0.4.3),
+    rprojroot (>= 2.0.3),
+    gitcreds (>= 0.1.2),
+    shinyvalidate,
+    xml2
+Suggests: 
+    testthat (>= 3.0.0),
+    httptest,
+    knitr,
+    shinytest2
+Config/testthat/edition: 3
