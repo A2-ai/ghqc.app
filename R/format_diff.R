@@ -69,13 +69,6 @@ add_line_numbers <- function(text) {
   glue::glue_collapse(new_lines, sep = "\n")
 }
 
-clean_up <- function(file_path, copied_file) {
-  # delete copy at previous commits
-  fs::file_delete(file_path)
-  # rename file to original name
-  rename_file_copy(copied_file)
-}
-
 format_diff_section <- function(diff_lines) {
   diff_lines <- strsplit(diff_lines, "\n")[[1]]
   # extract the line numbers
