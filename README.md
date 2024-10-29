@@ -44,6 +44,8 @@ library(ghqc.app)
 
 ## Assign file(s) for QC
 
+https://github.com/user-attachments/assets/1e796136-681b-4650-88c0-b93a5d680fbc
+
 `ghqc_assign_app` provides an interface to assign one or more files for
 QC in the form of a GitHub Issue(s) within a GitHub Milestone, with
 options to assign a repository collaborator as the QCer and/or generate
@@ -83,6 +85,8 @@ At any time, the user can:
   items in a its selected checklist.
 
 ## Resolve QC finding(s)
+
+https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b
 
 `ghqc_resolve_app` allows a user to insert a comment into a ghqc GitHub
 Issue that displays changes in the version control information for the
