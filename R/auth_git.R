@@ -68,6 +68,7 @@ get_env_url <- function() {
   env_url <- gsub("/$", "", env_url)
   env_url <- stringr::str_remove(env_url, "/api/v3$")
   if (!stringr::str_starts(env_url, "https://")) env_url <- paste0("https://", env_url)
+  env_url
 }
 
 #' @importFrom log4r warn error info debug
