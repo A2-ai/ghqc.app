@@ -10,8 +10,8 @@ ghqc_set_info_repo <- function(repo_path = file.path("~/.local/share/ghqc", info
 }
 
 info_repo_files_not_found <- function(not_files, repo_path) {
-  error(.le$logger, glue::glue("{paste(not_files, collapse = ' and ')} are not found in {repo_path}. Please ensure files are present before continuing"))
-  rlang::abort(glue::glue("{paste(not_files, collapse = ' and ')} are not found in {repo_path}. Please ensure files are present before continuing"))
+  error(.le$logger, glue::glue("{paste(not_files, collapse = ' and ')} not found in {repo_path}. Please ensure file(s) are present before continuing"))
+  rlang::abort(glue::glue("{paste(not_files, collapse = ' and ')} not found in {repo_path}. Please ensure file(s) are present before continuing"))
 }
 
 check_ghqc_info_repo_exists <- function() {
