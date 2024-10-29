@@ -1,3 +1,15 @@
+
+# ghqc.app (beta version)
+
+# ghqc.app 0.1.1
+
+# Minor bug fixes
+
+- In the case when someone sets the standard gh environment variable GITHUB_API_URL, each app checks if this URL matches the actual set remote URL. The function that gets the GITHUB_API_URL did not explicitly return a value.
+
+- Small grammar fix in error message from apps in the case that the checklists directory isn't in the cloned info repo.
+
+
 # ghqc.app (development version)
 
 # ghqc.app 0.0.0.9011
