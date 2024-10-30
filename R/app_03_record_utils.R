@@ -1,6 +1,7 @@
 #' @importFrom log4r warn error info debug
 generate_html_list_with_hyperlink <- function(items) {
-  paste("<li><a href='", items$url, "' target='_blank'>", items$title, "</a></li>", collapse = "")
+  html <- paste("<li><a href='", items$url, "' target='_blank'>", items$title, "</a></li>", collapse = "")
+  html
 }
 
 generate_tiered_html_list_with_hyperlink <- function(items) {
@@ -8,7 +9,7 @@ generate_tiered_html_list_with_hyperlink <- function(items) {
 
   milestone_sections <- lapply(names(milestone_dfs), function(milestone_name) {
     milestone_url <- milestone_dfs[[milestone_name]]$milestone_url[1]
-    milestone_heading <- glue::glue("<a href='{milestone_url}'>{milestone_name}</a>:")
+    milestone_heading <- glue::glue("<a href='{milestone_url}' target='_blank'>{milestone_name}</a>:")
 
     milestone_list_items <- paste(
       "<li><a href='",
