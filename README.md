@@ -44,8 +44,6 @@ library(ghqc.app)
 
 ## Assign file(s) for QC
 
-https://github.com/user-attachments/assets/1e796136-681b-4650-88c0-b93a5d680fbc
-
 `ghqc_assign_app` provides an interface to assign one or more files for
 QC in the form of a GitHub Issue(s) within a GitHub Milestone, with
 options to assign a repository collaborator as the QCer and/or generate
@@ -53,6 +51,8 @@ a checklist of suggested review tasks during QC.
 
 Each Issue created corresponds to a single file assigned to be reviewed
 for QC. Issues are organized into Milestones as designated by the user.
+
+https://github.com/user-attachments/assets/1e796136-681b-4650-88c0-b93a5d680fbc
 
 #### To Assign QC
 
@@ -86,8 +86,6 @@ At any time, the user can:
 
 ## Resolve QC finding(s)
 
-https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b
-
 `ghqc_resolve_app` allows a user to insert a comment into a ghqc GitHub
 Issue that displays changes in the version control information for the
 Issue’s corresponding file.
@@ -98,7 +96,10 @@ comment can optionally display the file difference (“diff”) between the
 current and previous versions. These changes will likely be
 implementations of QC feedback.
 
-To use this app, first initialize one or more Issues with .
+To use this app, first initialize one or more Issues with `ghqc_assign_app()`.
+
+https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b
+
 
 #### To comment in an Issue
 
@@ -124,6 +125,15 @@ To use this app, first initialize one or more Issues with .
 
 `ghqc_record_app` allows the user to generate a QC Record for one or
 more Milestones created with `ghqc_assign_app`.
+
+
+
+
+https://github.com/user-attachments/assets/7c3aa961-b3e7-466d-b273-2ef500d10313
+
+
+
+
 
 #### To Generate a QC Record
 
