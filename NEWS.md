@@ -1,6 +1,11 @@
 
 # ghqc.app (beta version)
 
+# ghqc.app 0.1.2
+
+- Fixes bug in record app warning modal pop-up for unclosed milestones/issues/checklist items: Milestone link wasn't clickable
+- Improves "No closed milestones" modal pop-up warning in record app. Language change to "It is recommended to close milestones" and adds a reset link to modal for users to click after closing milestones.
+
 # ghqc.app 0.1.1
 
 # Minor bug fixes
