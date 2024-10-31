@@ -1,6 +1,10 @@
 
 # ghqc.app (beta version)
 
+# ghqc.app 0.1.4
+
+- Fixes bug in resolve app for previewing markdown files
+
 # ghqc.app 0.1.3
 
 - Changes "No Existing Milestones"" to "No Open Milestones" in ghqc_assign_app() Existing Milestones dropdown menu
