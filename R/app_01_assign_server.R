@@ -4,7 +4,7 @@
 #' @importFrom log4r warn error info debug
 #' @importFrom shinyjs enable disable addClass removeClass delay
 #' @importFrom waiter Waiter spin_1 spin_2 waiter_hide
-#' @importFrom gert git_ahead_behind git_status
+#' @importFrom gert git_status
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
@@ -256,7 +256,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
         {
           file_names <- sapply(qc_items(), function(x) x$name)
           uncommitted_git_files <- git_status()$file
-          git_sync_status <- git_ahead_behind()
+          git_sync_status <- check_ahead_behind()
           untracked_selected_files <- Filter(function(file) check_if_qc_file_untracked(file), file_names)
 
           issues_in_milestone <- tryCatch(
