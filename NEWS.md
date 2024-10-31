@@ -1,6 +1,10 @@
 
 # ghqc.app (beta version)
 
+# ghqc.app 0.1.3
+
+- Changes "No Existing Milestones"" to "No Open Milestones" in ghqc_assign_app() Existing Milestones dropdown menu
+
 # ghqc.app 0.1.2
 
 - Fixes bug in record app warning modal pop-up for unclosed milestones/issues/checklist items: Milestone link wasn't clickable

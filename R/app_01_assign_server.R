@@ -44,7 +44,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       updateSelectizeInput(
         session,
         "milestone_existing",
-        options = list(placeholder = "No Existing Milestones")
+        options = list(placeholder = "No Open Milestones")
       )
     }
 
