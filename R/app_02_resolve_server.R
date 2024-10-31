@@ -3,7 +3,7 @@
 #' @importFrom dplyr %>%
 #' @importFrom log4r warn error info debug
 #' @importFrom purrr map_df
-#' @importFrom gert git_status git_ahead_behind
+#' @importFrom gert git_status
 NULL
 
 ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
@@ -143,7 +143,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
         {
           req(issue_parts()$issue_title)
           uncommitted_git_files <- git_status()$file
-          git_sync_status <- git_ahead_behind()
+          git_sync_status <- check_ahead_behind()
           untracked_selected_files <- Filter(function(file) check_if_qc_file_untracked(file), issue_parts()$issue_title)
           commit_update_status <- check_if_updates_since_init(all_commits())
         },

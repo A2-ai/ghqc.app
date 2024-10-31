@@ -1,5 +1,6 @@
+# ghqc.app 0.1.5
 
-# ghqc.app (beta version)
+- Fixes bug in assign and resolve apps - error checking did not catch remote changes to the directory because checks did not git fetch first
 
 # ghqc.app 0.1.4
 
@@ -16,24 +17,15 @@
 
 # ghqc.app 0.1.1
 
-# Minor bug fixes
-
 - In the case when someone sets the standard gh environment variable GITHUB_API_URL, each app checks if this URL matches the actual set remote URL. The function that gets the GITHUB_API_URL did not explicitly return a value.
 
 - Small grammar fix in error message from apps in the case that the checklists directory isn't in the cloned info repo.
 
-
-# ghqc.app (development version)
-
 # ghqc.app 0.0.0.9011
-
-## Minor improvements
 
 - rename ghqc to ghqc.app and ghqc.launcher to ghqc
 
 # ghqc 0.0.0.9010
-
-## Minor improvements
 
 - terminology changed to match GitHub terminology like "Issue" and "Milestone"
 

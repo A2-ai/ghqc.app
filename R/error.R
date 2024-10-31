@@ -57,3 +57,9 @@ check_if_updates_since_init <- function(commits_df) {
     rlang::abort(e$message)
   })
 }
+
+#' @importFrom gert git_ahead_behind git_fetch
+check_ahead_behind <- function() {
+  fetch <- git_fetch(prune = TRUE) # need to fetch first to see if there are changes to be pulled (behind = 0)
+  git_ahead_behind()
+}
