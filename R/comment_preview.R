@@ -1,16 +1,15 @@
 create_gfm_file <- function(comment_body) {
+  # this is so that the global knitr options recognize this as a code chunk and don't render code in md files
   intro <- glue::glue(
-    "---
-  output:
-    github_document:
-      toc: false
-  ---\n
-  ")
+    "```{{r setup, include=FALSE}}\nknitr::opts_chunk$set(eval = FALSE)\n```\n\n")
 
   rmd_content <- paste0(
     intro,
     comment_body
   )
+
+  # this is so that the global knitr options recognize this as a code chunk and don't render code in md files
+  rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
 
   rmd_path <- tempfile(fileext = ".Rmd")
   fs::file_create(rmd_path)
@@ -20,7 +19,10 @@ create_gfm_file <- function(comment_body) {
 
   html_path <- stringr::str_replace(rmd_path, "\\.Rmd$", ".html")
   md_path <- stringr::str_replace(rmd_path, "\\.Rmd$", ".md")
-  rmarkdown::render(rmd_path, output_format = "github_document", clean = TRUE, quiet = TRUE)
+  suppressWarnings({
+    rmarkdown::render(rmd_path, output_format = "github_document", clean = TRUE, quiet = TRUE)
+  })
+
   # withr::defer_parent(fs::file_delete(rmd_path))
   withr::defer(fs::file_delete(html_path))
   withr::defer(fs::file_delete(md_path))
