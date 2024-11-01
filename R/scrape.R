@@ -375,7 +375,7 @@ create_intro <- function(repo, milestone_names) {
   - \\newcolumntype{{R}}[1]{{>{{\\raggedright\\arraybackslash}}p{{#1}}}}
   - \\newcommand{{\\blandscape}}{{\\begin{{landscape}}}}
   - \\newcommand{{\\elandscape}}{{\\end{{landscape}}}}
-  - \\fancyhead[R]{{\\includegraphics[width=2cm]{{{image_path}}}}}
+  - \\fancyhead[R]{{\\includegraphics[width=2cm, height=1.5cm, keepaspectratio]{{{image_path}}}}}
   - \\fancyhead[C]{{}}
   - \\fancyhead[L]{{}}
   - \\setlength{{\\headheight}}{{30pt}}
@@ -383,7 +383,7 @@ create_intro <- function(repo, milestone_names) {
   - \\usepackage{{lastpage}}
   - \\lstset{{breaklines=true}}
   - \"\\\\fancypagestyle{{plain}}{{\"
-  - \"\\\\fancyhead[R]{{\\\\includegraphics[width=2cm]{{{image_path}}}}}\"
+  - \"\\\\fancyhead[R]{{\\\\includegraphics[width=2cm, height=1.5cm, keepaspectratio]{{{image_path}}}}}\"
   - \"\\\\renewcommand{{\\\\headrulewidth}}{{0.4pt}}\"
   - \"}}\"
   output:

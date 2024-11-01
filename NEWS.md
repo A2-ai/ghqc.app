@@ -1,3 +1,7 @@
+# ghqc.app 0.1.7
+
+- Fixes bug in rendered reports in which a maximum height for logos wasn't set to prevent overlapping header lines and header text.
+
 # ghqc.app 0.1.6
 
 - Fixes bug in record app for previewing markdown files (same bug and solution as in 0.1.4)
