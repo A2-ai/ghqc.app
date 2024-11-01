@@ -208,6 +208,9 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
   debug(.le$logger, glue::glue("Rmd location: {rmd}"))
   # delete temporary rmd when it's time
  #suppressMessages({withr::defer_parent(fs::file_delete(rmd))})
+
+  # for parsing rmds, need this so quarto setup global options chunk works
+  rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
   writeLines(rmd_content, con = rmd)
 
   # create pdf from rmd

@@ -1,3 +1,7 @@
+# ghqc.app 0.1.6
+
+- Fixes bug in record app for previewing markdown files (same bug and solution as in 0.1.4)
+
 # ghqc.app 0.1.5
 
 - Fixes bug in assign and resolve apps - error checking did not catch remote changes to the directory because checks did not git fetch first
