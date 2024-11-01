@@ -6,3 +6,4 @@
 .quarto
 r_lib/
 inst/header.tex
+docs

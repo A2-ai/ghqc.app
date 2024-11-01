@@ -47,3 +47,4 @@ Suggests:
     knitr,
     shinytest2
 Config/testthat/edition: 3
+URL: https://a2-ai.github.io/ghqc.app/
