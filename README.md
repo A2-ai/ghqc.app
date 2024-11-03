@@ -52,7 +52,9 @@ a checklist of suggested review tasks during QC.
 Each Issue created corresponds to a single file assigned to be reviewed
 for QC. Issues are organized into Milestones as designated by the user.
 
-https://github.com/user-attachments/assets/1e796136-681b-4650-88c0-b93a5d680fbc
+<video controls="controls" name="ghqc assign app" height="600">
+  <source src="https://github.com/user-attachments/assets/1e796136-681b-4650-88c0-b93a5d680fbc">
+</video>
 
 #### To Assign QC
 
@@ -98,7 +100,9 @@ implementations of QC feedback.
 
 To use this app, first initialize one or more Issues with `ghqc_assign_app()`.
 
-https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b
+<video controls="controls" name="ghqc assign app resolution" height="600">
+  <source src="https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b">
+</video>
 
 
 #### To comment in an Issue
@@ -126,14 +130,9 @@ https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b
 `ghqc_record_app` allows the user to generate a QC Record for one or
 more Milestones created with `ghqc_assign_app`.
 
-
-
-
-https://github.com/user-attachments/assets/7c3aa961-b3e7-466d-b273-2ef500d10313
-
-
-
-
+<video controls="controls" name="ghqc record app" height="600">
+  <source src="https://github.com/user-attachments/assets/7c3aa961-b3e7-466d-b273-2ef500d10313">
+</video>
 
 #### To Generate a QC Record
 
