@@ -33,16 +33,16 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
               modalDialog(
                 title = tags$div(
                   tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;"),
-                  actionButton(ns("return"), "Return", class = "btn-sm"),
-                  actionButton(ns("reset"), "Reset", class = "btn-sm"),
-                  style = "overflow: hidden; text-align: right;"
+                  tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+                  #actionButton(ns("return"), "Return", class = "btn-sm"),
+                  style = "#overflow: hidden; text-align: right;"
                 ),
 
                 HTML(warn_icon_html, glue::glue("There were no closed Milestones found in {org}/{repo}.<br>
                                              It is recommended to close relevant Milestones on GitHub to indicate finished QC.<div style=\"margin-bottom: 9px;\"></div>")),
                 tags$span(
                   tags$a(href = milestone_list_url, target = "_blank", HTML("Click here to close Milestones on GitHub.")),
-                  "Next, click \"Reset\" to refresh the app."
+                  "Next, click \"Reset\" in the top right corner of the app."
                 ),
                 easyClose = TRUE,
                 footer = NULL
