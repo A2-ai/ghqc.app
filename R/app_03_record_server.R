@@ -26,30 +26,6 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
       tryCatch(
         {
           closed_milestones <- get_closed_milestone_names(org = org, repo = repo)
-          milestone_list_url <- get_milestone_list_url()
-          if (length(closed_milestones) == 0) {
-            warn_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
-            showModal(
-              modalDialog(
-                title = tags$div(
-                  tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;"),
-                  actionButton(ns("return"), "Return", class = "btn-sm"),
-                  actionButton(ns("reset"), "Reset", class = "btn-sm"),
-                  style = "overflow: hidden; text-align: right;"
-                ),
-
-                HTML(warn_icon_html, glue::glue("There were no closed Milestones found in {org}/{repo}.<br>
-                                             It is recommended to close relevant Milestones on GitHub to indicate finished QC.<div style=\"margin-bottom: 9px;\"></div>")),
-                tags$span(
-                  tags$a(href = milestone_list_url, target = "_blank", HTML("Click here to close Milestones on GitHub.")),
-                  "Next, click \"Reset\" to refresh the app."
-                ),
-                #easyClose = TRUE,
-                footer = NULL
-              )
-            )
-            warn(.le$logger, glue::glue("There were no closed Milestones found in {org}/{repo}. Close relevant Milestones on GitHub to indicate finished QC."))
-          } # length(closed_milestones) == 0
           rev(closed_milestones)
         },
         error = function(e) {
@@ -58,6 +34,35 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
         }
       )
     })
+
+    milestone_list_url <- reactive({
+      req(org, repo)
+      get_milestone_list_url()
+    })
+
+    observe({
+      if (length(closed_milestones()) == 0) {
+      warn_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
+      showModal(
+        modalDialog(
+          title = tags$div(
+            tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;"),
+            actionButton(ns("return"), "Return", class = "btn-sm"),
+            actionButton(ns("reset"), "Reset", class = "btn-sm"),
+            style = "overflow: hidden; text-align: right;"
+          ),
+
+          HTML(warn_icon_html, glue::glue("There were no closed Milestones found in {org}/{repo}.<br>
+                                             It is recommended to close relevant Milestones on GitHub to indicate finished QC.<div style=\"margin-bottom: 9px;\"></div>")),
+          tags$span(
+            tags$a(href = milestone_list_url(), target = "_blank", HTML("Click here to close Milestones on GitHub.")),
+            "Next, click \"Reset\" to refresh the app."
+          ),
+          footer = NULL
+        )
+      )
+      warn(.le$logger, glue::glue("There were no closed Milestones found in {org}/{repo}. Close relevant Milestones on GitHub to indicate finished QC."))
+    }})
 
 
     observeEvent(input$closed_only, {
