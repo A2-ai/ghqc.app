@@ -44,7 +44,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
                   tags$a(href = milestone_list_url, target = "_blank", HTML("Click here to close Milestones on GitHub.")),
                   "Next, click \"Reset\" to refresh the app."
                 ),
-                easyClose = TRUE,
+                #easyClose = TRUE,
                 footer = NULL
               )
             )
