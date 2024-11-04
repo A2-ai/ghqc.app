@@ -170,14 +170,14 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
         showModal(
           modalDialog(
             title = tags$div(
-            tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px;"),
-            modalButton("Dismiss"),
-            style = "overflow: hidden; text-align: right;"
-          ),
-          HTML(error_icon_html, e$message, "<br>"),
-          easyClose = TRUE,
-          footer = NULL
-        ))
+              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px;"),
+              modalButton("Dismiss"),
+              style = "overflow: hidden; text-align: right;"
+            ),
+            HTML(error_icon_html, e$message, "<br>"),
+            easyClose = TRUE,
+            footer = NULL
+          ))
       }) # tryCatch
     })
 
