@@ -1,3 +1,7 @@
+# ghqc.app 0.1.8 
+
+- Removes reset button in record app modal for users to click after closing milestones when no closed milestones exist (was buggy in viewer panel)
+
 # ghqc.app 0.1.7
 
 - Fixes bug in rendered reports in which a maximum height for logos wasn't set to prevent overlapping header lines and header text.
