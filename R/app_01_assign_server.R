@@ -291,7 +291,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
           showModal(modalDialog(
             title = tags$div(
               tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-              actionButton(ns("proceed_post"), "Proceed Anyway"),
+              actionButton(ns("proceed"), "Proceed Anyway"),
               actionButton(ns("return"), "Return"),
               style = "text-align: right;"
             ),
@@ -313,10 +313,9 @@ return "<div><strong>" + escape(item.username) + "</div>"
             easyClose = TRUE
           ))
         }
-
-        else {
-          qc_trigger(TRUE)
-        }
+      }
+      else {
+        qc_trigger(TRUE)
       }
     })
 

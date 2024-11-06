@@ -34,7 +34,6 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
                 title = tags$div(
                   tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
                   tags$div(modalButton("Dismiss"), style = "text-align: right;"),
-                  #actionButton(ns("return"), "Return", class = "btn-sm"),
                   style = "#overflow: hidden; text-align: right;"
                 ),
 
@@ -110,32 +109,32 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
 
     observeEvent(input$generate_report, {
       req(modal_check())
-
       if (!is.null(modal_check()$message)) {
-        showModal(modalDialog(
-          title = tags$div(tagList(
-            if (modal_check()$state == "warning") {
-              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;")
-              actionButton(ns("proceed"), "Proceed Anyway")
-            },
-            actionButton(ns("return"), "Return")
-          ), style = "text-align: right;"),
-          HTML(paste("It is recommended that relevant GitHub Issues and Milestones are closed upon completion of QC, and checklists within GitHub Issues are checked to indicate QCed items.<br><br> You may want to double check the following items for outstanding QC progress:<br><br>", modal_check()$message)),
-          tags$style(HTML("
+        if (modal_check()$state == "warning") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("proceed"), "Proceed Anyway"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(paste("It is recommended that relevant GitHub Issues and Milestones are closed upon completion of QC, and checklists within GitHub Issues are checked to indicate QCed items.<br><br> You may want to double check the following items for outstanding QC progress:<br><br>", modal_check()$message)),
+            tags$style(HTML("
         .modal-content {
           word-wrap: break-word; /* Allows long text to break into new lines */
           overflow-wrap: break-word;
           max-width: 100%; /* Ensures content fits within the modal */
         }
       ")),
-          footer = NULL,
-          easyClose = TRUE
-        ))
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
       }
       else {
         report_trigger(TRUE)
       }
-    })
+     })
 
     observe({
       req(report_trigger())
