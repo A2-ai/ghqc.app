@@ -87,10 +87,22 @@ determine_modal_message <- function(selected_files,
   existing_issues <- selected_files[selected_files %in% issue_titles]
 
   messages <- c()
-  messages <- c(messages, generate_sync_message(git_sync_status, error_icon_html))
-  messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
+
+  # Errors
+  sync_message <- generate_sync_message(git_sync_status, error_icon_html)
+  messages <- c(messages, sync_message)
+  if (length(sync_message) == 0) {
+    # In the case that there are remote changes, saying that there are no new commits just isn't accurate
+    # (there are no new local commits, but there are remote commits in this case)
+    # So only give the no new commits message if there aren't any unsynced commits
+    messages <- c(messages, generate_commit_update_message(commit_update_status, error_icon_html))
+  }
   messages <- c(messages, generate_existing_issue_message(existing_issues, error_icon_html))
-  messages <- c(messages, generate_commit_update_message(commit_update_status, error_icon_html))
+
+  # Errors and Warnings
+  messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
+
+
 
   log_string <- glue::glue("Modal Check Inputs:
     - Selected Files: {glue::glue_collapse(selected_files, sep = ', ')}
