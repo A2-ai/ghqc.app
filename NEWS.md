@@ -1,3 +1,7 @@
+# ghqc.app 0.1.9
+
+- Clarifies language in Warning and Error modals for all three apps
+
 # ghqc.app 0.1.8 
 
 - Removes reset button in record app modal for users to click after closing milestones when no closed milestones exist (was buggy in viewer panel)
