@@ -26,7 +26,7 @@ generate_uncommitted_message <- function(uncommitted_files, error_icon_html, war
   }
   if (length(uncommitted_files$general) > 0 && length(uncommitted_files$selected) == 0) {
     messages <- c(messages, sprintf(
-      "%s There are local files, which are not in the selected QC items, that have uncommitted changes:<ul>%s</ul><br>",
+      "%s The following local files have uncommitted changes, but are not selected:<ul>%s</ul><br>",
       warning_icon_html, generate_html_list(uncommitted_files$general)
     ))
   }
