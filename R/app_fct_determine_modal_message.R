@@ -20,7 +20,7 @@ generate_uncommitted_message <- function(uncommitted_files, error_icon_html, war
   messages <- c()
   if (length(uncommitted_files$selected) > 0) {
     messages <- c(messages, sprintf(
-      "%s All files to be QCed must have any local changes committed before proceeding. The following selected local files have uncommitted changes:<br><br><ul>%s</ul><br>",
+      "%s All selected files must have local changes committed before proceeding. The following selected files have local uncommitted changes:<br><br><ul>%s</ul><br>",
       error_icon_html, generate_html_list(uncommitted_files$selected)
     ))
   }

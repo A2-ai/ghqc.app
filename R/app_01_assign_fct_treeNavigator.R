@@ -9,7 +9,7 @@ NULL
 #' Generate Excluded File Message
 #'
 #' This function generates an HTML formatted message indicating which files are excluded
-#' from selection as QC items in a directory.
+#' from selection as Issues in a directory.
 #'
 #' @param excluded_files A character vector of file paths that are excluded from selection.
 #'
