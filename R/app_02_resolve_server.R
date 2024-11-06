@@ -182,16 +182,22 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
     })
 
     observeEvent(input$post, {
+      browser()
       req(modal_check())
-
       if (!is.null(modal_check()$message)) {
         showModal(modalDialog(
-          title = tags$div(tagList(
+          title = tags$div(
             if (modal_check()$state == "warning") {
-              actionButton(ns("proceed_post"), "Proceed Anyway")
+              tagList(
+                tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;"),
+                actionButton(ns("proceed_post"), "Proceed Anyway")
+              )
+            } else if (modal_check()$state == "error") {
+              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px;")
             },
-            actionButton(ns("return"), "Return")
-          ), style = "text-align: right;"),
+            actionButton(ns("return"), "Return"),
+            style = "text-align: right;"),
+
           HTML(modal_check()$message),
           footer = NULL,
           easyClose = TRUE

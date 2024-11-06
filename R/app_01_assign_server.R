@@ -437,7 +437,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Create QC items action returned and modal removed."))
+      debug(.le$logger, glue::glue("Assign action returned and modal removed."))
       removeModal()
     })
 

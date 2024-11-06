@@ -20,7 +20,7 @@ generate_uncommitted_message <- function(uncommitted_files, error_icon_html, war
   messages <- c()
   if (length(uncommitted_files$selected) > 0) {
     messages <- c(messages, sprintf(
-      "%s All files to be QCed must have any local changes committed before proceeding. The following selected local files have uncommitted changes:<ul>%s</ul><br>",
+      "%s All files to be QCed must have any local changes committed before proceeding. The following selected local files have uncommitted changes:<br><br><ul>%s</ul><br>",
       error_icon_html, generate_html_list(uncommitted_files$selected)
     ))
   }
@@ -50,7 +50,7 @@ generate_commit_update_message <- function(commit_update_status, error_icon_html
   messages <- c()
 
   if (!commit_update_status) {
-    messages <- c(messages, paste(error_icon_html, "There are no update commits on the QC item since QC initialization.<br>"))
+    messages <- c(messages, paste(error_icon_html, "There are no new commits since QC initialization.<br>"))
   }
 
   return(messages)

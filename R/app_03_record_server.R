@@ -197,13 +197,13 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
     })
 
     observeEvent(input$proceed, {
-      debug(.le$logger, glue::glue("Report QC items action proceeded and modal removed."))
+      debug(.le$logger, glue::glue("Generate QC Record action proceeded and modal removed."))
       removeModal()
       report_trigger(TRUE)
     })
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Report QC items action returned and modal removed."))
+      debug(.le$logger, glue::glue("Generate QC Record action returned and modal removed."))
       removeModal()
     })
 
