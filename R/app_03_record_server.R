@@ -32,7 +32,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
             showModal(
               modalDialog(
                 title = tags$div(
-                  tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;"),
+                  tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
                   tags$div(modalButton("Dismiss"), style = "text-align: right;"),
                   #actionButton(ns("return"), "Return", class = "btn-sm"),
                   style = "#overflow: hidden; text-align: right;"
@@ -115,7 +115,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
         showModal(modalDialog(
           title = tags$div(tagList(
             if (modal_check()$state == "warning") {
-              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px;")
+              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;")
               actionButton(ns("proceed"), "Proceed Anyway")
             },
             actionButton(ns("return"), "Return")
