@@ -10,7 +10,7 @@ generate_sync_message <- function(git_sync_status, error_icon_html) {
     sync_messages <- c()
     if (git_sync_status$ahead > 0) sync_messages <- c(sync_messages, "push changes to the remote repository")
     if (git_sync_status$behind > 0) sync_messages <- c(sync_messages, "pull updates from the remote repository")
-    messages <- paste(error_icon_html, "There are local changes that need to be synchronized. Please", paste(sync_messages, collapse = " and "), "<br>")
+    messages <- paste(error_icon_html, "There are repository changes that need to be synchronized. Please", paste(sync_messages, collapse = " and "), "<br>")
   }
   return(messages)
 }
@@ -20,13 +20,13 @@ generate_uncommitted_message <- function(uncommitted_files, error_icon_html, war
   messages <- c()
   if (length(uncommitted_files$selected) > 0) {
     messages <- c(messages, sprintf(
-      "%s All files to be QC'd must have any local changes committed before proceeding. The following selected local files have uncommitted changes:<ul>%s</ul><br>",
+      "%s All selected files must have local changes committed before proceeding. The following selected files have local uncommitted changes:<br><br><ul>%s</ul><br>",
       error_icon_html, generate_html_list(uncommitted_files$selected)
     ))
   }
   if (length(uncommitted_files$general) > 0 && length(uncommitted_files$selected) == 0) {
     messages <- c(messages, sprintf(
-      "%s There are local files, which are not in the selected QC items, that have uncommitted changes:<ul>%s</ul><br>",
+      "%s The following local files have uncommitted changes, but are not selected:<ul>%s</ul><br>",
       warning_icon_html, generate_html_list(uncommitted_files$general)
     ))
   }
@@ -50,7 +50,7 @@ generate_commit_update_message <- function(commit_update_status, error_icon_html
   messages <- c()
 
   if (!commit_update_status) {
-    messages <- c(messages, paste(error_icon_html, "There are no update commits on the QC item since QC initialization.<br>"))
+    messages <- c(messages, paste(error_icon_html, "There are no new commits since QC initialization.<br>"))
   }
 
   return(messages)
@@ -87,10 +87,22 @@ determine_modal_message <- function(selected_files,
   existing_issues <- selected_files[selected_files %in% issue_titles]
 
   messages <- c()
-  messages <- c(messages, generate_sync_message(git_sync_status, error_icon_html))
-  messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
+
+  # Errors
+  sync_message <- generate_sync_message(git_sync_status, error_icon_html)
+  messages <- c(messages, sync_message)
+  if (length(sync_message) == 0) {
+    # In the case that there are remote changes, saying that there are no new commits just isn't accurate
+    # (there are no new local commits, but there are remote commits in this case)
+    # So only give the no new commits message if there aren't any unsynced commits
+    messages <- c(messages, generate_commit_update_message(commit_update_status, error_icon_html))
+  }
   messages <- c(messages, generate_existing_issue_message(existing_issues, error_icon_html))
-  messages <- c(messages, generate_commit_update_message(commit_update_status, error_icon_html))
+
+  # Errors and Warnings
+  messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
+
+
 
   log_string <- glue::glue("Modal Check Inputs:
     - Selected Files: {glue::glue_collapse(selected_files, sep = ', ')}

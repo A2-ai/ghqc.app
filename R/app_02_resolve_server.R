@@ -163,40 +163,71 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     observeEvent(input$preview, {
       req(modal_check())
-
+      req(modal_check())
       if (!is.null(modal_check()$message)) {
-        showModal(modalDialog(
-          title = tags$div(tagList(
-            if (modal_check()$state == "warning") {
-              actionButton(ns("proceed_preview"), "Proceed Anyway")
-            },
-            actionButton(ns("return"), "Return")
-          ), style = "text-align: right;"),
-          HTML(modal_check()$message),
-          footer = NULL,
-          easyClose = TRUE
-        ))
-      } else {
+
+        if (modal_check()$state == "warning") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("proceed_preview"), "Proceed Anyway"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+        else if (modal_check()$state == "error") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+      }
+      else {
         preview_trigger(TRUE)
       }
     })
 
     observeEvent(input$post, {
       req(modal_check())
-
       if (!is.null(modal_check()$message)) {
-        showModal(modalDialog(
-          title = tags$div(tagList(
-            if (modal_check()$state == "warning") {
-              actionButton(ns("proceed_post"), "Proceed Anyway")
-            },
-            actionButton(ns("return"), "Return")
-          ), style = "text-align: right;"),
-          HTML(modal_check()$message),
-          footer = NULL,
-          easyClose = TRUE
-        ))
-      } else {
+        if (modal_check()$state == "warning") {
+          showModal(modalDialog(
+            title = tags$div(
+                  tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                  actionButton(ns("proceed_post"), "Proceed Anyway"),
+                  actionButton(ns("return"), "Return"),
+                  style = "text-align: right;"
+                  ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+
+        else if (modal_check()$state == "error") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+      }
+      else {
         post_trigger(TRUE)
       }
     })

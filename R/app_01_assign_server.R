@@ -286,20 +286,35 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     observeEvent(input$create_qc_items, {
       req(modal_check())
-
       if (!is.null(modal_check()$message)) {
-        showModal(modalDialog(
-          title = tags$div(tagList(
-            if (modal_check()$state == "warning") {
-              actionButton(ns("proceed"), "Proceed Anyway")
-            },
-            actionButton(ns("return"), "Return")
-          ), style = "text-align: right;"),
-          HTML(modal_check()$message),
-          footer = NULL,
-          easyClose = TRUE
-        ))
-      } else {
+        if (modal_check()$state == "warning") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("proceed"), "Proceed Anyway"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+
+        else if (modal_check()$state == "error") {
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("return"), "Return"),
+              style = "text-align: right;"
+            ),
+            HTML(modal_check()$message),
+            footer = NULL,
+            easyClose = TRUE
+          ))
+        }
+      }
+      else {
         qc_trigger(TRUE)
       }
     })
@@ -437,7 +452,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Create QC items action returned and modal removed."))
+      debug(.le$logger, glue::glue("Assign action returned and modal removed."))
       removeModal()
     })
 
