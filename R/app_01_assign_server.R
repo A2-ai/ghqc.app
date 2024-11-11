@@ -205,7 +205,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
       div(
         style = "display: flex; justify-content: flex-end; padding-bottom: 20px;",
         actionButton(ns("file_info"),
-                     label = HTML("<span style='font-size:2.0em;'>Preview all available checklists</span>"),
+                     label = HTML("<span style='font-size:2.0em;'>Preview all available QC assessment lists</span>"),
                      class = "preview-button",
                      style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;"
         ) #actionButton

@@ -60,7 +60,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           choices = c("", checklist_choices), #select checklist (required)
           width = "100%",
           selected = NULL,  # Ensures no default selection
-          options = list(placeholder = "Checklist")
+          options = list(placeholder = "QC assessment list")
         )
 
         button_input <- actionButton(
@@ -73,7 +73,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
         preview_input <- actionButton(
           ns(preview_input_id),
-          label = HTML("<span>Preview<br>checklist</span>"),
+          label = HTML("<span>Preview QC<br>assessment list</span>"),
           style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
           #style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;",
           #class = "checklist-preview-button"
