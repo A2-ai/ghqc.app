@@ -19,6 +19,14 @@ create_issue <- function(file, issue_params) {
   issue <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/issues", issue_params))
   debug(.le$logger, glue::glue("Created Issue {issue_params$title}"))
 
+  debug(.le$logger, glue::glue("Adding 'ghqc' label to {issue_params$title}"))
+  label_params <- list(owner = issue_params$owner,
+                       repo = issue_params$repo,
+                       issue_number = issue$number,
+                       labels = array("ghqc"))
+  label <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/issues/{issue_number}/labels", label_params))
+  debug(.le$logger, glue::glue("Label 'ghqc' added to {issue_params$title}"))
+
   # return the issue number
   list(number = issue$number, assignees = issue_params$assignees)
 } # create_issue
@@ -71,11 +79,31 @@ create_issues <- function(data) {
   info(.le$logger, glue::glue("Created checklist(s) for file(s): {file_names}"))
 } # create_issues
 
+ghqc_label_exists <- function(data) {
+  labels <- do.call(gh::gh, c("GET /repos/{owner}/{repo}/labels",
+                              list(owner = data$owner,
+                                   repo = data$repo
+                                   )))
+  "ghqc" %in% sapply(labels, function(x) x$name)
+}
+
+create_ghqc_label <- function(data) {
+  issue_params <- list(
+    owner = data$owner,
+    repo = data$repo,
+    name = "ghqc",
+    color = "FFCB05",
+    description = "Issue created by the ghqc package"
+  )
+  do.call(gh::gh, c("POST /repos/{owner}/{repo}/labels", issue_params))
+}
+
 
 # test with "test_yamls/checklist.yaml"
 #' @importFrom log4r warn error info debug
 create_checklists <- function(yaml_path) {
   data <- read_and_validate_yaml(yaml_path)
+  if (!ghqc_label_exists(data)) labels <- create_ghqc_label(data)
   create_issues(data)
 }
 
