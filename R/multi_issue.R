@@ -23,7 +23,8 @@ create_issue <- function(file, issue_params) {
   label_params <- list(owner = issue_params$owner,
                        repo = issue_params$repo,
                        issue_number = issue$number,
-                       labels = array("ghqc"))
+                       labels = array("ghqc"),
+                       .api_url = .le$github_api_url)
   label <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/issues/{issue_number}/labels", label_params))
   debug(.le$logger, glue::glue("Label 'ghqc' added to {issue_params$title}"))
 
@@ -83,7 +84,8 @@ create_issues <- function(data) {
 ghqc_label_exists <- function(data) {
   labels <- do.call(gh::gh, c("GET /repos/{owner}/{repo}/labels",
                               list(owner = data$owner,
-                                   repo = data$repo
+                                   repo = data$repo,
+                                   .api_url = .le$github_api_url
                                    )))
   "ghqc" %in% sapply(labels, function(x) x$name)
 }
@@ -95,7 +97,8 @@ create_ghqc_label <- function(data) {
     repo = data$repo,
     name = "ghqc",
     color = "FFCB05",
-    description = "Issue created by the ghqc package"
+    description = "Issue created by the ghqc package",
+    .api_url = .le$github_api_url
   )
   do.call(gh::gh, c("POST /repos/{owner}/{repo}/labels", issue_params))
 }

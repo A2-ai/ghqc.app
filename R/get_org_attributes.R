@@ -36,7 +36,7 @@ filter_for_non_empty_milestones <- function(milestones) {
 }
 
 filter_for_ghqc_milestones <- function(owner, repo, milestones) {
-  labels <- sapply(milestones, function(x) gh::gh("GET /repos/:owner/:repo/milestones/:milestone_number/labels", owner = owner, repo = repo, milestone_number = x$number))
+  labels <- sapply(milestones, function(x) gh::gh("GET /repos/:owner/:repo/milestones/:milestone_number/labels", owner = owner, repo = repo, milestone_number = x$number), .api_url = .le$github_api_url)
   milestones[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y$name))]
 }
 
