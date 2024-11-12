@@ -1,3 +1,7 @@
+# ghqc.app 0.1.10
+
+- Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
+
 # ghqc.app 0.1.9
 
 - Clarifies language in Warning and Error modals for all three apps
