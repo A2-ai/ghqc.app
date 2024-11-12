@@ -79,6 +79,7 @@ create_issues <- function(data) {
   info(.le$logger, glue::glue("Created checklist(s) for file(s): {file_names}"))
 } # create_issues
 
+#' @importFrom gh gh
 ghqc_label_exists <- function(data) {
   labels <- do.call(gh::gh, c("GET /repos/{owner}/{repo}/labels",
                               list(owner = data$owner,
@@ -87,6 +88,7 @@ ghqc_label_exists <- function(data) {
   "ghqc" %in% sapply(labels, function(x) x$name)
 }
 
+#' @importFrom gh gh
 create_ghqc_label <- function(data) {
   issue_params <- list(
     owner = data$owner,
