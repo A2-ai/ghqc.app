@@ -334,7 +334,7 @@ get_all_issues_in_repo <- function(owner, repo) {
 
 get_only_ghqc_issues <- function(issues) {
   labels <- sapply(issues, function(x) x$labels)
-  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) unlist(y)["name"]))]
+  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
 # sort by open/closed
@@ -395,6 +395,7 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
     page <- page + 1
   }
 
+  browser()
   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
   return(issues)
