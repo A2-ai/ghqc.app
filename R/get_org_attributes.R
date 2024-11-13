@@ -394,8 +394,7 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
     # next page
     page <- page + 1
   }
-
-  browser()
+  
   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
   return(issues)
