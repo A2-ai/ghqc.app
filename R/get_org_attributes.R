@@ -334,7 +334,7 @@ get_all_issues_in_repo <- function(owner, repo) {
 
 get_only_ghqc_issues <- function(issues) {
   labels <- sapply(issues, function(x) x$labels)
-  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y$name))]
+  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) unlist(y)["name"]))]
 }
 
 # sort by open/closed
