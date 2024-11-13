@@ -103,7 +103,7 @@ format_metadata <- function(checklist_type, file_path) {
   file_history_url_section <- glue::glue("* file history: {file_history_url}")
 
   file_contents_url <- get_file_contents_url(file_path, git_sha)
-  file_content_url_section <- glue::glue("* file contents at start of QC: {file_contents_url}")
+  file_content_url_section <- glue::glue("* file contents at initial qc commit: {file_contents_url}")
 
   script_hash <- digest::digest(file = file_path)
   script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
