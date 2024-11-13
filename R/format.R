@@ -93,27 +93,27 @@ format_metadata <- function(checklist_type, file_path) {
   qc_type <- checklist_type
   qc_type_section <- glue::glue("* qc type: {qc_type}")
 
-  script_hash <- digest::digest(file = file_path)
-  script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
-
-  git_branch <- get_branch_url()
-  git_branch_section <- glue::glue("* git branch: {git_branch}")
-
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
+
+  git_branch <- get_branch_url(git_sha)
+  git_branch_section <- glue::glue("* git branch: {git_branch}")
 
   file_history_url <- get_file_history_url(file_path)
   file_history_url_section <- glue::glue("* file history: {file_history_url}")
 
-  file_contents_url <- get_file_contents_url(file_path)
-  file_content_url_section <- glue::glue("* file content: {file_contents_url}")
+  file_contents_url <- get_file_contents_url(file_path, git_sha)
+  file_content_url_section <- glue::glue("* file contents at start of QC: {file_contents_url}")
+
+  script_hash <- digest::digest(file = file_path)
+  script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
 
   metadata <- c(git_sha_section, git_branch_section, metadata, qc_type_section, script_hash_section, file_history_url_section, file_content_url_section)
 
   glue::glue_collapse(metadata, "\n")
 }
 
-get_branch_url <- function() {
+get_branch_url <- function(git_sha) {
   branch <- gert::git_branch()
 
   # get remote url (assume first row)
@@ -131,7 +131,7 @@ get_branch_url <- function() {
   # take out .git at the end
   https_url <- sub(".git$", "", remote_url)
 
-  glue::glue("[{branch}]({https_url}/tree/{branch})")
+  glue::glue("[{branch}]({https_url}/tree/{git_sha})")
 }
 
 get_file_history_url <- function(file_path) {
@@ -159,8 +159,8 @@ get_file_history_url <- function(file_path) {
   file_history_url <- glue::glue("{https_url}/commits/{branch}/{file_path}")
 }
 
-get_file_contents_url <- function(file_path) {
-  branch <- gert::git_branch()
+get_file_contents_url <- function(file_path, git_sha) {
+  # branch <- gert::git_branch()
   remote_url <-  gert::git_remote_list()$url[1]
 
   if (grepl("^git@", remote_url)) {
@@ -176,7 +176,8 @@ get_file_contents_url <- function(file_path) {
 
   file_path <- gsub(" ", "%20", file_path)
 
-  file.path(https_url, "blob", branch, file_path)
+  # file.path(https_url, "blob", branch, file_path)
+  file.path(https_url, "blob", substr(git_sha, 1, 6), file_path)
 }
 
 format_note <- function() {
