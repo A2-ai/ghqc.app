@@ -96,15 +96,42 @@ format_metadata <- function(checklist_type, file_path) {
   script_hash <- digest::digest(file = file_path)
   script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
 
+  git_branch <- get_branch_url()
+  git_branch_section <- glue::glue("* git branch: {git_branch}")
+
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
 
   file_history_url <- get_file_history_url(file_path)
   file_history_url_section <- glue::glue("* file history: {file_history_url}")
 
-  metadata <- c(git_sha_section, metadata, qc_type_section, script_hash_section, file_history_url_section)
+  file_contents_url <- get_file_contents_url(file_path)
+  file_content_url_section <- glue::glue("* file content: {file_contents_url}")
+
+  metadata <- c(git_sha_section, git_branch_section, metadata, qc_type_section, script_hash_section, file_history_url_section, file_content_url_section)
 
   glue::glue_collapse(metadata, "\n")
+}
+
+get_branch_url <- function() {
+  branch <- gert::git_branch()
+
+  # get remote url (assume first row)
+  remote_url <- gert::git_remote_list()$url[1]
+
+  # if it's an ssh, construct manually
+  if (grepl("^git@", remote_url)) {
+    # get the domain and repo
+    domain <- sub("git@(.*):.*", "\\1", remote_url)
+    repo_path <- sub("git@.*:(.*)", "\\1", remote_url)
+
+    remote_url <- glue::glue("https://{domain}/{repo_path}")
+  }
+
+  # take out .git at the end
+  https_url <- sub(".git$", "", remote_url)
+
+  glue::glue("[{branch}]({https_url}/tree/{branch})")
 }
 
 get_file_history_url <- function(file_path) {
@@ -126,8 +153,30 @@ get_file_history_url <- function(file_path) {
   # take out .git at the end
   https_url <- sub(".git$", "", remote_url)
 
+  file_path <- gsub(" ", "%20", file_path)
+
   # get something like https://github.com/A2-ai/project_x/commits/main/scripts/DA.R
   file_history_url <- glue::glue("{https_url}/commits/{branch}/{file_path}")
+}
+
+get_file_contents_url <- function(file_path) {
+  branch <- gert::git_branch()
+  remote_url <-  gert::git_remote_list()$url[1]
+
+  if (grepl("^git@", remote_url)) {
+    # get the domain and repo
+    domain <- sub("git@(.*):.*", "\\1", remote_url)
+    repo_path <- sub("git@.*:(.*)", "\\1", remote_url)
+
+    remote_url <- glue::glue("https://{domain}/{repo_path}")
+  }
+
+  # take out .git at the end
+  https_url <- sub(".git$", "", remote_url)
+
+  file_path <- gsub(" ", "%20", file_path)
+
+  file.path(https_url, "blob", branch, file_path)
 }
 
 format_note <- function() {
