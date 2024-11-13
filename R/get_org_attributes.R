@@ -36,8 +36,9 @@ filter_for_non_empty_milestones <- function(milestones) {
 }
 
 filter_for_ghqc_milestones <- function(owner, repo, milestones) {
+  if (length(milestones) == 0) return(milestones)
   labels <- sapply(milestones, function(x) gh::gh("GET /repos/:owner/:repo/milestones/:milestone_number/labels", owner = owner, repo = repo, milestone_number = x$number, .api_url = .le$github_api_url))
-  milestones[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y$name))]
+  milestones[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
 #' @importFrom log4r warn error info debug
@@ -333,7 +334,9 @@ get_all_issues_in_repo <- function(owner, repo) {
 }
 
 get_only_ghqc_issues <- function(issues) {
+  if (length(issues) == 0) return(issues)
   labels <- sapply(issues, function(x) x$labels)
+  if (length(labels) == 0) return(c(list(), list()))
   issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
