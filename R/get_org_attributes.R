@@ -35,13 +35,21 @@ filter_for_non_empty_milestones <- function(milestones) {
   return(non_empty_milestones)
 }
 
+filter_for_ghqc_milestones <- function(owner, repo, milestones) {
+  if (length(milestones) == 0) return(milestones)
+  labels <- sapply(milestones, function(x) gh::gh("GET /repos/:owner/:repo/milestones/:milestone_number/labels", owner = owner, repo = repo, milestone_number = x$number, .api_url = .le$github_api_url))
+  milestones[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
+}
+
 #' @importFrom log4r warn error info debug
 get_open_milestone_objects <- function(owner, repo) {
   debug(.le$logger, glue::glue("Retrieving open Milestone(s) in organization {owner}, repo {repo}..."))
 
   milestones <- gh::gh("GET /repos/:owner/:repo/milestones", .api_url = .le$github_api_url, owner = owner, repo = repo, state = "open", .limit = Inf)
-  info(.le$logger, glue::glue("Retrieved {length(milestones)} open Milestone(s) in repo {repo}"))
-  non_empty_milestones <- filter_for_non_empty_milestones(milestones)
+  debug(.le$logger, glue::glue("Retrieved {length(milestones)} open Milestone(s) in repo {repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(owner, repo, milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} open ghqc Milestone(s) in repo {repo}"))
+  non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
 }
 
 #' @importFrom log4r warn error info debug
@@ -49,8 +57,10 @@ get_closed_milestone_objects <- function(owner, repo) {
   debug(.le$logger, glue::glue("Retrieving closed Milestone(s) in organization {owner}, repo {repo}..."))
 
   milestones <- gh::gh("GET /repos/:owner/:repo/milestones", .api_url = .le$github_api_url, owner = owner, repo = repo, state = "closed", .limit = Inf)
-  info(.le$logger, glue::glue("Retrieved {length(milestones)} closed Milestone(s) in repo {repo}"))
-  non_empty_milestones <- filter_for_non_empty_milestones(milestones)
+  debug(.le$logger, glue::glue("Retrieved {length(milestones)} closed Milestone(s) in repo {repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(owner, repo, milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} closed ghqc Milestone(s) in repo {repo}"))
+  non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
 }
 
 #' @importFrom log4r warn error info debug
@@ -86,8 +96,10 @@ list_milestones <- function(org, repo) {
   debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {org}, repo {repo}..."))
   milestones <- get_all_milestone_objects(org, repo)
   info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {repo}"))
-  non_empty_milestones <- filter_for_non_empty_milestones(milestones)
-  info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty Milestone(s) in repo {repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(org, repo, milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {repo}"))
+  non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
+  info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty ghqc Milestone(s) in repo {repo}"))
   res <- purrr::map_chr(non_empty_milestones, "title")
   return(res)
 }
@@ -314,11 +326,18 @@ get_all_issues_in_repo <- function(owner, repo) {
     page <- page + 1
   }
 
-  issues <- c(open_issues, closed_issues)
+  issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   num_issues <- length(issues)
   info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {repo}"))
   return(issues)
 
+}
+
+get_only_ghqc_issues <- function(issues) {
+  if (length(issues) == 0) return(issues)
+  labels <- sapply(issues, function(x) x$labels)
+  if (length(labels) == 0) return(c(list(), list()))
+  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
 # sort by open/closed
@@ -378,9 +397,9 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
     # next page
     page <- page + 1
   }
-
-  issues <- c(open_issues, closed_issues)
-  info(.le$logger, glue::glue("Retrieved {length(issues)} Issue(s) from Milestone: {milestone_name}"))
+  
+  issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
+  info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
   return(issues)
 }
 
