@@ -1,3 +1,11 @@
+# ghqc.app 0.2.0
+
+Inclusive of 0.1.9, 0.1.10, 0.1.11 changes:
+
+- Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
+- Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
+- Clarifies language in Warning and Error modals for all three apps
+
 # ghqc.app 0.1.11
 
 - Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
