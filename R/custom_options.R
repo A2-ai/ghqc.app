@@ -17,6 +17,22 @@ get_checklist_display_name_var <- function(capitalized = FALSE, plural = FALSE) 
   return(checklist_display_name_var)
 }
 
+get_prepended_checklist_note <- function() {
+  prepended_checklist_note <- .le$prepended_checklist_note
+
+  # if not given, make the empty string
+  if (is.null(prepended_checklist_note)) {
+    prepended_checklist_note <- ""
+  }
+
+  # if given, append with a newline
+  else {
+    prepended_checklist_note <- paste0(prepended_checklist_note, "\n")
+  }
+
+  return(prepended_checklist_note)
+}
+
 # get_dne_var <- function(capitalized = FALSE) {
 #   dne_var <- .le$dne_var
 #

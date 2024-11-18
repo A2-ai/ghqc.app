@@ -4,7 +4,7 @@ format_issue_body <- function(checklist_type, file_path) {
   file_items <- checklists[[checklist_type]]
   qc_checklist <- format_checklist_items(file_items)
   metadata <- format_metadata(checklist_type, file_path)
-  note <- format_note()
+  note <- get_prepended_checklist_note()
 
   issue_body_content <- format_body_content(metadata = metadata,
                                             checklist_type = checklist_type,
@@ -178,23 +178,6 @@ get_file_contents_url <- function(file_path, git_sha) {
 
   # file.path(https_url, "blob", branch, file_path)
   file.path(https_url, "blob", substr(git_sha, 1, 6), file_path)
-}
-
-format_note <- function() {
-  note <- {
-    if (file.exists(file.path(.le$info_repo_path, "note"))) {
-      custom_note <- readr::read_file(file.path(.le$info_repo_path, "note"))
-      if (stringr::str_sub(custom_note, start =-2) != "\n") {
-        custom_note <- paste0(custom_note,"\n")
-      }
-      custom_note
-    }
-    else {
-      ""
-    }
-  }
-
-  return(note)
 }
 
 format_body_content <- function(metadata, checklist_type, note, qc_checklist) {
