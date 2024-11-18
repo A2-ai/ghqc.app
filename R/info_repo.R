@@ -38,3 +38,5 @@ info_repo_not_found <- function() {
   error(.le$logger, "GHQC_INFO_REPO not found. Please set in ~/.Renviron")
   rlang::abort(message = "GHQC_INFO_REPO not found. Please set in ~/.Renviron")
 }
+
+
