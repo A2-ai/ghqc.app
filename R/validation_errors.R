@@ -86,13 +86,5 @@ err_if_not_list_of_lists <- function(files) {
   }
 }
 
-err_if_invalid_checklist_type <- function(checklist_type, file_name) {
-  valid_checklist_types <- c("R", "mod", "cpp", "vpc")
 
-  if (!checklist_type %in% valid_checklist_types) {
-    rlang::abort(message = glue::glue("{checklist_type} not a valid checklist type for file {file_name}"),
-                 class = "input_error",
-                 x = checklist_type)
-  }
-}
 

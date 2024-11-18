@@ -205,7 +205,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
       div(
         style = "display: flex; justify-content: flex-end; padding-bottom: 20px;",
         actionButton(ns("file_info"),
-                     label = HTML("<span style='font-size:2.0em;'>Preview all available checklists</span>"),
+                     label = HTML(glue::glue("<span style='font-size:2.0em;'>Preview all available {get_checklist_display_name_var(plural = TRUE)}</span>")),
                      class = "preview-button",
                      style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;"
         ) #actionButton
@@ -354,7 +354,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
       }
       success_note <- {
         if (custom_checklist_selected()) {
-          HTML("Issue(s) created successfully.<br><b>Remember to manually edit Custom QC checklists on GitHub.</b>")
+          HTML(glue::glue("Issue(s) created successfully.<br><b>Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.</b>"))
         }
         else {
           "Issue(s) created successfully."
@@ -382,7 +382,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
           title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
           footer = NULL,
           easyClose = TRUE,
-          "Each file input will require a checklist type. Each checklist type will have its own items associated with it.",
+          glue::glue("Each selected file will require a {get_checklist_display_name_var()} type. Each {get_checklist_display_name_var()} type will have its own items associated with it."),
           "See below for a reference of all types and their items.",
           br(),
           br(),
@@ -402,7 +402,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
             title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
             footer = NULL,
             easyClose = TRUE,
-            "Each file input will require a checklist type. Each checklist type will have its own items associated with it.",
+            glue::glue("Each selected file will require a {get_checklist_display_name_var()} type. Each {get_checklist_display_name_var()} type will have its own items associated with it."),
             "See below for a reference of all types and their items.",
             br(),
             br(),
@@ -416,12 +416,12 @@ return "<div><strong>" + escape(item.username) + "</div>"
     output$file_info_panel <- renderUI({
       req(checklists)
       req(input$checklist_info)
-      debug(.le$logger, glue::glue("Checklist selected for review: {input$checklist_info}"))
+      debug(.le$logger, glue::glue("{get_checklist_display_name_var(capitalized = TRUE)} selected for review: {input$checklist_info}"))
 
       info <- checklists[[input$checklist_info]]
 
       log_string <- glue::glue_collapse(info, sep = "\n")
-      debug(.le$logger, glue::glue("Items found in the checklist: \n{log_string}"))
+      debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
 
       list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
 
