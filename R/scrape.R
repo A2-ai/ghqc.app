@@ -356,7 +356,7 @@ create_intro <- function(repo, milestone_names) {
   date <- format(Sys.Date(), '%B %d, %Y')
   milestone_names_list <- glue::glue_collapse(milestone_names, sep = ", ")
   #
-  image_path <- file.path(.le$info_repo_path, "logo.png")
+  image_path <- file.path(.le$config_repo_path, "logo.png")
   intro <- glue::glue(
     "---
   title: \"QC Record: {milestone_names_list}\"

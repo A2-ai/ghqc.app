@@ -3,7 +3,7 @@
 export(ghqc_assign_app)
 export(ghqc_record_app)
 export(ghqc_resolve_app)
-export(ghqc_set_info_repo)
+export(ghqc_set_config_repo)
 import(shiny)
 importFrom(dplyr,"%>%")
 importFrom(dplyr,case_when)

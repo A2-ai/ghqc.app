@@ -12,7 +12,7 @@
 #' @importFrom log4r warn error info debug
 #' @export
 ghqc_resolve_app <- function() {
-  if (!exists("info_repo_path", .le)) ghqc_set_info_repo()
+  if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
   get_options()
 
   # error handling before starting app

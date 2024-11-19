@@ -33,7 +33,7 @@ get_prepended_checklist_note <- function() {
 }
 
 get_options <- function() {
-  options_yaml <- file.path(.le$info_repo_path, "options.yaml")
+  options_yaml <- file.path(.le$config_repo_path, "options.yaml")
   options <- yaml::read_yaml(options_yaml)
 
   lapply(names(options), function(option_key) {

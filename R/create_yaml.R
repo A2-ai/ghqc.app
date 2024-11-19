@@ -1,5 +1,5 @@
 get_checklists <- function() {
-  checklists_path <- file.path(.le$info_repo_path, "checklists")
+  checklists_path <- file.path(.le$config_repo_path, "checklists")
   yaml_checklists <- list.files(checklists_path, pattern = "\\.ya?ml$", full.names = TRUE)
   custom_checklist <- system.file("default_checklist", "custom.yaml", package = "ghqc.app")
   yaml_checklists <- c(yaml_checklists, custom_checklist)
