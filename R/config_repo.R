@@ -4,7 +4,8 @@
 ghqc_set_config_repo <- function(repo_path = file.path("~/.local/share/ghqc", config_repo_name())) {
   not_files <- NULL
   if (!file.exists(file.path(repo_path, "checklists"))) not_files <- append(not_files, "Checklists directory")
-  if (!file.exists(file.path(repo_path, "logo.png"))) not_files <- append(not_files, "logo.png")
+  # allow the logo to be optional
+  #if (!file.exists(file.path(repo_path, "logo.png"))) not_files <- append(not_files, "logo.png")
   if (!is.null(not_files)) config_repo_files_not_found(not_files, repo_path)
   assign("config_repo_path", repo_path, envir = .le)
 }
