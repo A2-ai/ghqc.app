@@ -140,8 +140,10 @@ div[id$="-main_container"] {
 .grid-items {
   display: grid;
   column-gap: 10px;
-  grid-template-columns: 67px minmax(100px, 1fr) minmax(125px, 1fr) 50px; /*minmax(100px, auto) */
+  grid-template-columns: 67px minmax(100px, 1fr) minmax(125px, 1fr) minmax(50px, auto); /*minmax(100px, auto) */
   margin-bottom: 15px;
+  width: 100%;
+  transition: 0.5s;
 }
 
 /*

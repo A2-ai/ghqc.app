@@ -49,7 +49,7 @@ export function adjust_grid(ns) {
     rows.forEach((row, index) => {
       if (row) {
         row.style.transition = 'all 0.5s ease';
-        row.style.gridTemplateColumns = `67px minmax(125px, 1fr) minmax(125px, 1fr) 50px`; //minmax(100px, ${maxWidth}px)
+        //row.style.gridTemplateColumns = `67px minmax(125px, 1fr) minmax(125px, 1fr) minmax(50px, auto)`; // ${maxWidth}px
       } else {
         console.warn(`Row ${index} is undefined`);
       }
