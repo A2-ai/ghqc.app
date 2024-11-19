@@ -10,7 +10,7 @@
 #' @export
 ghqc_assign_app <- function() {
   if (!exists("info_repo_path", .le)) ghqc_set_info_repo()
-  get_custom_options()
+  get_options()
 
   # error handling before starting app
   root_dir <- rproj_root_dir()

@@ -1,5 +1,4 @@
 get_checklist_display_name_var <- function(capitalized = FALSE, plural = FALSE) {
-  #browser()
   checklist_display_name_var <- .le$checklist_display_name_var
 
   if (is.null(checklist_display_name_var)) {
@@ -33,19 +32,12 @@ get_prepended_checklist_note <- function() {
   return(prepended_checklist_note)
 }
 
-# get_dne_var <- function(capitalized = FALSE) {
-#   dne_var <- .le$dne_var
-#
-# }
+get_options <- function() {
+  options_yaml <- file.path(.le$info_repo_path, "options.yaml")
+  options <- yaml::read_yaml(options_yaml)
 
-
-get_custom_options <- function() {
-  custom_options_yaml <- file.path(.le$info_repo_path, "custom_options.yaml")
-  custom_options <- yaml::read_yaml(custom_options_yaml)
-  custom_options
-
-  lapply(names(custom_options), function(option_key) {
-    option_value <- custom_options[[option_key]]
+  lapply(names(options), function(option_key) {
+    option_value <- options[[option_key]]
     assign(option_key, option_value, envir = .le)
   })
 }
