@@ -11,7 +11,6 @@ NULL
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
   iv <- shinyvalidate::InputValidator$new()
 
-
   observe({
     req(remote, root_dir)
       waiter_hide()
@@ -207,7 +206,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
         actionButton(ns("file_info"),
                      label = HTML(glue::glue("<span style='font-size:2.0em;'>Preview all available {get_checklist_display_name_var(plural = TRUE)}</span>")),
                      class = "preview-button",
-                     style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;"
+                     style = "min-width: auto; display: inline-block; text-align: right; line-height: 2em; height: 2em;"
         ) #actionButton
       ) #div
 

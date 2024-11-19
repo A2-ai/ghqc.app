@@ -146,11 +146,14 @@ div[id$="-main_container"] {
   transition: 0.5s;
 }
 
-/*
-.item-a {
-  white-space: nowrap;
+
+.item-c {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-wrap: break-word;
 }
-*/
+
 
 .flex-container {
     display: flex;
