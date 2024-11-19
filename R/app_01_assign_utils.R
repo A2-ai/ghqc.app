@@ -60,7 +60,8 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           choices = c("", checklist_choices), #select checklist (required)
           width = "100%",
           selected = NULL,  # Ensures no default selection
-          options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
+          options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE)),
+          style = "white-space: normal; overflow: visible; text-overflow: clip; word-wrap: break-word;"
         )
 
         button_input <- actionButton(
