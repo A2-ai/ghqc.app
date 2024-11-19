@@ -147,13 +147,9 @@ div[id$="-main_container"] {
 }
 
 
-.item-c {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  word-wrap: break-word;
+.item-b {
+  white-space: nowrap;
 }
-
 
 .flex-container {
     display: flex;
