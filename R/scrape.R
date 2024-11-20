@@ -355,8 +355,27 @@ create_intro <- function(repo, milestone_names) {
   author <- Sys.info()[["user"]]
   date <- format(Sys.Date(), '%B %d, %Y')
   milestone_names_list <- glue::glue_collapse(milestone_names, sep = ", ")
-  #
+
   image_path <- file.path(.le$config_repo_path, "logo.png")
+
+  logo_exists_extra_header <- {
+    if (fs::file_exists(image_path)) {
+    glue::glue("
+  - \\fancyhead[R]{{\\includegraphics[width=2cm, height=1.5cm, keepaspectratio]{{{image_path}}}}}
+  - \\fancyhead[C]{{}}
+  - \\fancyhead[L]{{}}
+  - \"\\\\fancypagestyle{{plain}}{{\"
+  - \"\\\\renewcommand{{\\\\headrulewidth}}{{0.4pt}}\"
+  - \"}}\"", .trim = FALSE)
+    }
+    else {
+      glue::glue("
+  - \\fancyhead[R]{{}}
+  - \\fancyhead[C]{{}}
+  - \\fancyhead[L]{{}}", .trim = FALSE)
+    }
+  }
+
   intro <- glue::glue(
     "---
   title: \"QC Record: {milestone_names_list}\"
@@ -375,17 +394,10 @@ create_intro <- function(repo, milestone_names) {
   - \\newcolumntype{{R}}[1]{{>{{\\raggedright\\arraybackslash}}p{{#1}}}}
   - \\newcommand{{\\blandscape}}{{\\begin{{landscape}}}}
   - \\newcommand{{\\elandscape}}{{\\end{{landscape}}}}
-  - \\fancyhead[R]{{\\includegraphics[width=2cm, height=1.5cm, keepaspectratio]{{{image_path}}}}}
-  - \\fancyhead[C]{{}}
-  - \\fancyhead[L]{{}}
   - \\setlength{{\\headheight}}{{30pt}}
   - \\fancyfoot[C]{{Page \\thepage\\ of \\pageref{{LastPage}}}}
   - \\usepackage{{lastpage}}
-  - \\lstset{{breaklines=true}}
-  - \"\\\\fancypagestyle{{plain}}{{\"
-  - \"\\\\fancyhead[R]{{\\\\includegraphics[width=2cm, height=1.5cm, keepaspectratio]{{{image_path}}}}}\"
-  - \"\\\\renewcommand{{\\\\headrulewidth}}{{0.4pt}}\"
-  - \"}}\"
+  - \\lstset{{breaklines=true}}{logo_exists_extra_header}
   output:
     pdf_document:
       latex_engine: xelatex
@@ -398,6 +410,8 @@ create_intro <- function(repo, milestone_names) {
   \\newpage
 
   ")
+
+  return(intro)
 }
 
 
