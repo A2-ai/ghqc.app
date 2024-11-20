@@ -3,16 +3,23 @@
 #' @export
 ghqc_set_config_repo <- function(repo_path = file.path("~/.local/share/ghqc", config_repo_name())) {
   not_files <- NULL
-  if (!file.exists(file.path(repo_path, "checklists"))) not_files <- append(not_files, "Checklists directory")
-  # allow the logo to be optional
-  #if (!file.exists(file.path(repo_path, "logo.png"))) not_files <- append(not_files, "logo.png")
-  if (!is.null(not_files)) config_repo_files_not_found(not_files, repo_path)
-  assign("config_repo_path", repo_path, envir = .le)
-}
+  if (!file.exists(file.path(repo_path, "checklists"))) {
+    error(.le$logger, glue::glue("The 'checklists' directory is not found in {repo_path}. Please ensure the directory is present before continuing"))
+    rlang::abort(glue::glue("The 'checklists' directory is not found in {repo_path}. Please ensure the directory is present before continuing"))
+  }
 
-config_repo_files_not_found <- function(not_files, repo_path) {
-  error(.le$logger, glue::glue("{paste(not_files, collapse = ' and ')} not found in {repo_path}. Please ensure file(s) are present before continuing"))
-  rlang::abort(glue::glue("{paste(not_files, collapse = ' and ')} not found in {repo_path}. Please ensure file(s) are present before continuing"))
+  checklist_content <- fs::dir_ls(file.path(repo_path, "checklists"), regexp = "[.]yaml$")
+  if (length(checklist_content) == 0) {
+    error(.le$logger, glue::glue("The 'checklists' directory in {repo_path} has no .yaml files. Please ensure the directory is populated before continuing"))
+    rlang::abort(glue::glue("The 'checklists' directory in {repo_path} has no .yaml files. Please ensure the directory is populated before continuing"))
+  }
+
+  if (all(grepl("INVALID - ", basename(checklist_content)))) {
+    error(.le$logger, glue::glue("The 'checklists' directory in {repo_path} has no valid checklists. Please ensure the checklists are properly formatted before continuing"))
+    rlang::abort(glue::glue("The 'checklists' directory in {repo_path} has no valid checklists. Please ensure the checklists are properly formatted before continuing"))
+  }
+
+  assign("config_repo_path", repo_path, envir = .le)
 }
 
 check_ghqc_config_repo_exists <- function() {
