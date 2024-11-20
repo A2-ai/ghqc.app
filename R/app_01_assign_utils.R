@@ -55,13 +55,14 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         )
 
         checklist_input <- selectizeInput(
-          ns(checklist_input_id),
-          label = NULL,
-          choices = c("", checklist_choices), #select checklist (required)
-          width = "100%",
-          selected = NULL,  # Ensures no default selection
-          options = list(placeholder = "Checklist")
+            ns(checklist_input_id),
+            label = NULL,
+            choices = c("", checklist_choices),
+            width = "100%",
+            selected = NULL,
+            options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
+
 
         button_input <- actionButton(
           ns(button_input_id),
@@ -73,7 +74,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
         preview_input <- actionButton(
           ns(preview_input_id),
-          label = HTML("<span>Preview<br>checklist</span>"),
+          label = HTML(glue::glue("<span>Preview<br>{get_checklist_display_name_var()}</span>")),
           style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
           #style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;",
           #class = "checklist-preview-button"
@@ -226,8 +227,8 @@ convert_list_to_ui <- function(checklists, parent_name = NULL, is_first = TRUE) 
       first_child <- FALSE
     }
   } else {
-    error(.le$logger, glue::glue("Checklist not supported: {checklists}"))
-    rlang::abort("Unsupported type of checklist")
+    error(.le$logger, glue::glue("{get_checklist_display_name_var(capitalized = TRUE)} not supported: {checklists}"))
+    rlang::abort(glue::glue("Unsupported type of {get_checklist_display_name_var()}"))
   }
   debug(.le$logger, "Converted list to UI successfully")
   return(ui_elements)
@@ -308,7 +309,7 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
               footer = NULL,
               easyClose = TRUE,
               renderUI({
-                "Select a checklist to preview in the Checklist dropdown."
+                glue::glue("Select a {get_checklist_display_name_var()} to preview in the {get_checklist_display_name_var(capitalized = TRUE)} dropdown.")
               })
             )
           )

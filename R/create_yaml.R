@@ -1,5 +1,5 @@
 get_checklists <- function() {
-  checklists_path <- file.path(.le$info_repo_path, "checklists")
+  checklists_path <- file.path(.le$config_repo_path, "checklists")
   yaml_checklists <- list.files(checklists_path, pattern = "\\.ya?ml$", full.names = TRUE)
   custom_checklist <- system.file("default_checklist", "custom.yaml", package = "ghqc.app")
   yaml_checklists <- c(yaml_checklists, custom_checklist)
@@ -11,7 +11,7 @@ get_checklists <- function() {
       basename(invalid_checklist) %>% stringr::str_remove("\\.ya?ml$") %>% stringr::str_remove("INVALID - ")
     })
     invalid_checklist_names_col <- glue::glue_collapse(invalid_checklist_names, sep = ", ", last = " and ")
-    warn(.le$logger, glue::glue("The following checklist(s) are invalid and will therefore not be selectable in the app: {invalid_checklist_names_col}. Run check_ghqc_configuration() for guidance."))
+    warn(.le$logger, glue::glue("The following {get_checklist_display_name_var()}(s) are invalid and will therefore not be selectable in the app: {invalid_checklist_names_col}. Run check_ghqc_configuration() for guidance."))
 
     # remove bad checklists
     yaml_checklists <- yaml_checklists[!invalid_search]

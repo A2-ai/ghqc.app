@@ -1,109 +1,117 @@
+# ghqc.app 0.3.0
+
+-   Updated the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:
+    -   The "note" file within the custom configuration repository is now `prepended_checklist_note` within "options.yaml"
+    -   `checklist_display_name_var` in "options.yaml" provides option to change the name in which the QC checklists are referred to as.
+
 # ghqc.app 0.2.0
 
 Inclusive of 0.1.9, 0.1.10, 0.1.11 changes:
 
-- Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
-- Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
-- Clarifies language in Warning and Error modals for all three apps
+-   Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
+-   Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
+-   Clarifies language in Warning and Error modals for all three apps
 
 # ghqc.app 0.1.11
 
-- Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
+-   Adding the branch and a link to the file contents at the start of QC to the Metadata section of Issues created by the Assign app. Also added links to the file contents at the previous and current commits in the metadata section of the resolve app comments.
 
 # ghqc.app 0.1.10
 
-- Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
+-   Adds "ghqc" label to all GitHub Issues created by ghqc. Only Issues with this label, and the Milestones containing them, will be viewable/selectable in the apps. This change is NOT backward compatible with Issues/Milestones created in previous versions
 
 # ghqc.app 0.1.9
 
-- Clarifies language in Warning and Error modals for all three apps
+-   Clarifies language in Warning and Error modals for all three apps
 
-# ghqc.app 0.1.8 
+# ghqc.app 0.1.8
 
-- Removes reset button in record app modal for users to click after closing milestones when no closed milestones exist (was buggy in viewer panel)
+-   Removes reset button in record app modal for users to click after closing milestones when no closed milestones exist (was buggy in viewer panel)
 
 # ghqc.app 0.1.7
 
-- Fixes bug in rendered reports in which a maximum height for logos wasn't set to prevent overlapping header lines and header text.
+-   Fixes bug in rendered reports in which a maximum height for logos wasn't set to prevent overlapping header lines and header text.
 
 # ghqc.app 0.1.6
 
-- Fixes bug in record app for previewing markdown files (same bug and solution as in 0.1.4)
+-   Fixes bug in record app for previewing markdown files (same bug and solution as in 0.1.4)
 
 # ghqc.app 0.1.5
 
-- Fixes bug in assign and resolve apps - error checking did not catch remote changes to the directory because checks did not git fetch first
+-   Fixes bug in assign and resolve apps - error checking did not catch remote changes to the directory because checks did not git fetch first
 
 # ghqc.app 0.1.4
 
-- Fixes bug in resolve app for previewing markdown files
+-   Fixes bug in resolve app for previewing markdown files
 
 # ghqc.app 0.1.3
 
-- Changes "No Existing Milestones"" to "No Open Milestones" in ghqc_assign_app() Existing Milestones dropdown menu
+-   Changes "No Existing Milestones"" to "No Open Milestones" in ghqc_assign_app() Existing Milestones dropdown menu
 
 # ghqc.app 0.1.2
 
-- Fixes bug in record app warning modal pop-up for unclosed milestones/issues/checklist items: Milestone link wasn't clickable
-- Improves "No closed milestones" modal pop-up warning in record app. Language change to "It is recommended to close milestones" and adds a reset link to modal for users to click after closing milestones.
+-   Fixes bug in record app warning modal pop-up for unclosed milestones/issues/checklist items: Milestone link wasn't clickable
+-   Improves "No closed milestones" modal pop-up warning in record app. Language change to "It is recommended to close milestones" and adds a reset link to modal for users to click after closing milestones.
 
 # ghqc.app 0.1.1
 
-- In the case when someone sets the standard gh environment variable GITHUB_API_URL, each app checks if this URL matches the actual set remote URL. The function that gets the GITHUB_API_URL did not explicitly return a value.
+-   In the case when someone sets the standard gh environment variable GITHUB_API_URL, each app checks if this URL matches the actual set remote URL. The function that gets the GITHUB_API_URL did not explicitly return a value.
 
-- Small grammar fix in error message from apps in the case that the checklists directory isn't in the cloned info repo.
+-   Small grammar fix in error message from apps in the case that the checklists directory isn't in the cloned info repo.
 
 # ghqc.app 0.0.0.9011
 
-- rename ghqc to ghqc.app and ghqc.launcher to ghqc
+-   rename ghqc to ghqc.app and ghqc.launcher to ghqc
 
 # ghqc 0.0.0.9010
 
-- terminology changed to match GitHub terminology like "Issue" and "Milestone"
+-   terminology changed to match GitHub terminology like "Issue" and "Milestone"
 
-- git commit terminology changed from "reference" and "comparator" to "previous" and "current", respectively
+-   git commit terminology changed from "reference" and "comparator" to "previous" and "current", respectively
 
-- current commit moved to top of metadata section
+-   current commit moved to top of metadata section
 
-- metadata sections moved to top of issue/comment bodies
+-   metadata sections moved to top of issue/comment bodies
 
-- "Create" app renamed to "Assign" app
+-   "Create" app renamed to "Assign" app
 
-- "git sha" in metadata renamed to "initial qc commit" and moved to top of metadata section
+-   "git sha" in metadata renamed to "initial qc commit" and moved to top of metadata section
 
 # ghqc 0.0.0.9009
 
 ## New features
 
-- ghqc pulls client-specific information from a pre-existing repo using the environment variable `GIT_CLIENT_URL`, which is set equal to the https code link to the relevant github repo.
+-   ghqc pulls client-specific information from a pre-existing repo using the environment variable `GIT_CLIENT_URL`, which is set equal to the https code link to the relevant github repo.
 
 # ghqc 0.0.0.9008
 
 ## New features
 
-- ghqcLauncher is now ghqc.launcher to comply with standardized helper package naming conventions.
+-   ghqcLauncher is now ghqc.launcher to comply with standardized helper package naming conventions.
 
-- The report function is now a shiny app that can run in ghqc.launcher
+-   The report function is now a shiny app that can run in ghqc.launcher
 
-- The git credential authentication function is more robust in each case when
-    1) Git is already authenticated,
-    2) Git isn't already authenticated, and
-    3) Git is mis-authenticated.
+-   The git credential authentication function is more robust in each case when
 
-- Error handling for the git repo and Rproject is now more robust
+    1)  Git is already authenticated,
+    2)  Git isn't already authenticated, and
+    3)  Git is mis-authenticated.
 
-- The sidebar in `ghqc_create_app()` now scrolls for easy reading of long file and directory names
+-   Error handling for the git repo and Rproject is now more robust
 
-- ghqc can function with multiple remotes set for a given repo, and the app selects the remote in the following hierarchy:
-   1) If a single remote exists, it selects it
-  
-   2) Else, if multiple remotes exist:
-  
-  - if the environment variable GHQC_REMOTE_NAME exists, it selects the one with that name
+-   The sidebar in `ghqc_create_app()` now scrolls for easy reading of long file and directory names
 
-  - else, if a remote named "origin" exists, it selects it
+-   ghqc can function with multiple remotes set for a given repo, and the app selects the remote in the following hierarchy:
 
-  - else, it uses the first remote in the list of remotes
+    1)  If a single remote exists, it selects it
+
+    2)  Else, if multiple remotes exist:
+
+    -   if the environment variable GHQC_REMOTE_NAME exists, it selects the one with that name
+
+    -   else, if a remote named "origin" exists, it selects it
+
+    -   else, it uses the first remote in the list of remotes
 
 # ghqc 0.0.0.9007
 

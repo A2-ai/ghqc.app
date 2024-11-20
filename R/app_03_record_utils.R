@@ -55,8 +55,8 @@ generate_open_issue_message <- function(open_issues, warning_icon_html) {
 generate_open_checklist_message <- function(issues_with_open_checklists, warning_icon_html) {
   messages <- c()
   if (length(issues_with_open_checklists) > 0) {
-    messages <- c(messages, sprintf(
-      "%s The selected Milestones contain the following Issues with open checklist items:<ul>%s</ul><br>",
+    messages <- c(messages, sprintf(glue::glue(
+      "%s The selected Milestones contain the following Issues with open {get_checklist_display_name_var()} items:<ul>%s</ul><br>"),
       warning_icon_html, generate_tiered_html_list_with_hyperlink(issues_with_open_checklists)
     ))
   }
@@ -79,7 +79,7 @@ determine_modal_message_report <- function(owner, repo, milestone_names) {
   log_string <- glue::glue("Modal Check Inputs:
     - Open Milestones: {glue::glue_collapse(open_milestones, sep = ', ')}
     - Open Issues: {glue::glue_collapse(open_issues, sep = ', ')}
-    - Issues with unchecked checklist items: {glue::glue_collapse(open_checklists, sep = ', ')}
+    - Issues with unchecked {get_checklist_display_name_var()} items: {glue::glue_collapse(open_checklists, sep = ', ')}
   ")
 
   log4r::debug(.le$logger, log_string)

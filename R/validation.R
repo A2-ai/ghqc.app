@@ -55,7 +55,7 @@ validate_description <- function(description) {
 } # validate description
 
 validate_checklist_type <- function(checklist_type, file_name) {
-  #err_if_invalid_checklist_type(checklist_type, file_name)
+
 }
 
 validate_items <- function(items) {
