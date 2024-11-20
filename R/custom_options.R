@@ -34,18 +34,19 @@ get_prepended_checklist_note <- function() {
 
 get_options <- function() {
   # put in tryCatch because file may not exist
+  options_yaml <- file.path(.le$config_repo_path, "options.yaml")
+  if (!fs::file_exists(options_yaml)) return()
   tryCatch({
-    options_yaml <- file.path(.le$config_repo_path, "options.yaml")
-    options <- yaml::read_yaml(options_yaml)
+    options <- unlist(yaml::read_yaml(options_yaml))
 
     lapply(names(options), function(option_key) {
       option_value <- options[[option_key]]
       assign(option_key, option_value, envir = .le)
     })
   }, error = function(e) {
-    return()
+    error("option.yaml could not be read")
+    rlang::abort(parent = e$parent)
   })
-
 }
 
 capitalize <- function(word) {
