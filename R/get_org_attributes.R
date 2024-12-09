@@ -111,16 +111,18 @@ get_remote_name <- function(remote_url) {
   return(remote_repo_name)
 }
 
-#' @importFrom log4r info
+#' @importFrom log4r info debug
 parse_remote_url <- function(remote_url) {
   api_url <- {
     # if ssh
     if (stringr::str_detect(remote_url, "@")) {
+      debug(.le$logger, glue::glue("Detected ssh remote URL: {remote_url}"))
       url <- stringr::str_extract(remote_url, "(?<=@)[^:]+")
       glue::glue("https://{url}")
     }
     # else if https
     else if (stringr::str_detect(remote_url, "^https://")) {
+      debug(.le$logger, glue::glue("Detected https remote URL: {remote_url}"))
       dirname(dirname(remote_url))
     }
     else {
