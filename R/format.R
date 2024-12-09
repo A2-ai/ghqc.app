@@ -90,8 +90,8 @@ format_metadata <- function(checklist_type, file_path) {
     metadata <- c(metadata, collaborators_section)
   }
 
-  qc_type <- checklist_type
-  qc_type_section <- glue::glue("* qc type: {qc_type}")
+  # qc_type <- checklist_type
+  # qc_type_section <- glue::glue("* qc type: {qc_type}")
 
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
@@ -99,8 +99,8 @@ format_metadata <- function(checklist_type, file_path) {
   git_branch <- get_branch_url(git_sha)
   git_branch_section <- glue::glue("* git branch: {git_branch}")
 
-  file_history_url <- get_file_history_url(file_path)
-  file_history_url_section <- glue::glue("* file history: {file_history_url}")
+  # file_history_url <- get_file_history_url(file_path)
+  # file_history_url_section <- glue::glue("* file history: {file_history_url}")
 
   file_contents_url <- get_file_contents_url(file_path, git_sha)
   file_content_url_section <- glue::glue("* file contents at initial qc commit: {file_contents_url}")
@@ -108,7 +108,7 @@ format_metadata <- function(checklist_type, file_path) {
   script_hash <- digest::digest(file = file_path)
   script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
 
-  metadata <- c(git_sha_section, git_branch_section, metadata, qc_type_section, script_hash_section, file_history_url_section, file_content_url_section)
+  metadata <- c(git_sha_section, git_branch_section, metadata, script_hash_section, file_content_url_section)
 
   glue::glue_collapse(metadata, "\n")
 }
