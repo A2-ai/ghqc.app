@@ -142,7 +142,7 @@ create_comment_body <- function(owner,
 }
 
 
-post_comment <- function(owner, repo, issue_number, body) {
+post_resolve_comment <- function(owner, repo, issue_number, body) {
   debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {owner}/{repo}..."))
 
   comment <- gh::gh("POST /repos/:owner/:repo/issues/:issue_number/comments",
@@ -155,6 +155,7 @@ post_comment <- function(owner, repo, issue_number, body) {
 
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
 }
+
 
 add_fix_comment <- function(owner,
                             repo,

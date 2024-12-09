@@ -1,3 +1,7 @@
+# ghqc.app 0.3.9003
+
+- removes "Preview Comment" button from `ghqc_resolve_app()` and instead displays comment preview in modal pop-up upon selecting "Post Comment".
+
 # ghqc.app 0.3.9002
 
 - simplifies metadata in ghqc Issues by removing file history and qc type
