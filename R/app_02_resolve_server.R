@@ -137,6 +137,10 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       updateSelectizeInput(session, "comp_commits", choices = comp_commits())
     })
 
+    preview_comment_modal <- eventReactive(input$post, {
+
+    })
+
     # https://stackoverflow.com/questions/34731975/how-to-listen-for-more-than-one-event-expression-within-a-shiny-eventreactive-ha
     modal_check <- eventReactive(c(input$preview, input$post), {
       tryCatch(
@@ -162,7 +166,6 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
     })
 
     observeEvent(input$preview, {
-      req(modal_check())
       req(modal_check())
       if (!is.null(modal_check()$message)) {
 
@@ -199,12 +202,13 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     observeEvent(input$post, {
       req(modal_check())
+      #HERE
       if (!is.null(modal_check()$message)) {
         if (modal_check()$state == "warning") {
           showModal(modalDialog(
             title = tags$div(
                   tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-                  actionButton(ns("proceed_post"), "Proceed Anyway"),
+                  actionButton(ns("proceed_preview"), "Proceed Anyway"), #HERE
                   actionButton(ns("return"), "Return"),
                   style = "text-align: right;"
                   ),
@@ -228,13 +232,12 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
         }
       }
       else {
-        post_trigger(TRUE)
+        #post_trigger(TRUE)
+        preview_trigger(TRUE)
       }
     })
 
-    preview_comment <- reactive({
-      req(preview_trigger())
-      preview_trigger(FALSE)
+    comment_body_string <- reactive({
       tryCatch(
         {
           commits_for_compare <- case_when(
@@ -250,7 +253,31 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
                                               comparator_commit = commits_for_compare$comparator_commit,
                                               reference_commit = commits_for_compare$reference_commit
           )
-          html_file_path <- create_gfm_file(comment_body)
+        },
+        error = function(e) {
+          log_string <- glue::glue(
+            "There was an error creating preview comment for Issue {issue_parts()$issue_number} in repository {org}/{repo}.\n",
+            "Input Parameters:\n",
+            "- Message: {input$message}\n",
+            "- Show Diff: {input$show_diff}\n",
+            "- Compare Type: {input$compare}\n",
+            "- Comparator Commit: {commits_for_compare$comparator_commit}\n",
+            "- Reference Commit: {commits_for_compare$reference_commit}\n",
+            "Error Message: {e$message}"
+          )
+          error(.le$logger, log_string)
+          rlang::abort(e$message)
+        }
+      )
+    })
+
+    preview_comment <- reactive({
+      req(preview_trigger())
+      req(comment_body_string())
+      preview_trigger(FALSE)
+      tryCatch(
+        {
+          html_file_path <- create_gfm_file(comment_body_string())
           custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
         },
         error = function(e) {
@@ -272,13 +299,13 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     observe({
       # req preview_comment causes modal not to show
+      req(preview_comment)
       showModal(modalDialog(
         title = tags$div(
-          style = "display: flex;
-          justify-content: space-between;
-          align-items: center;",
-          "Comment Preview",
-          modalButton("Dismiss")
+          tags$span("Comment Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("proceed_post"), "Post Comment"),
+          actionButton(ns("return"), "Return"),
+          style = "text-align: right;"
         ),
         footer = NULL,
         easyClose = TRUE,
@@ -288,24 +315,19 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     post_comment <- reactive({
       req(post_trigger())
+      req(comment_body_string())
       post_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Posting comment...")
+      w_pc$show()
+      on.exit(w_pc$hide())
 
       tryCatch(
         {
-          commits_for_compare <- case_when(
-            input$compare == "init" ~ list(comparator_commit = "current", reference_commit = "original"),
-            input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
-          )
-
-          add_fix_comment(
-            org,
-            repo,
-            message = input$message,
-            issue_number = issue_parts()$issue_number,
-            diff = input$show_diff,
-            reference_commit = commits_for_compare$reference_commit,
-            comparator_commit = commits_for_compare$comparator_commit
-          )
+          post_resolve_comment(owner = org,
+                       repo = repo,
+                       issue_number = issue_parts()$issue_number,
+                       body = comment_body_string())
 
           issue <- get_issue(org, repo, issue_parts()$issue_number)
           issue_url <- issue$html_url
@@ -356,6 +378,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
         addClass("post", "enabled-btn")
       }
     })
+
+
 
     observeEvent(input$proceed_preview, {
       debug(.le$logger, glue::glue("preview comment button proceeded and modal removed."))
