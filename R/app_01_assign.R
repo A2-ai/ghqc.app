@@ -16,7 +16,7 @@ ghqc_assign_app <- function() {
   root_dir <- rproj_root_dir()
   remote <- check_github_credentials()
   checklists <- get_valid_checklists()
-  org <- get_org_errors()
+  org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)
   members <- get_members_errors(org = org,
                                 repo = repo)
