@@ -1,3 +1,7 @@
+# ghqc.app 0.3.9002
+
+- simplifies metadata in ghqc Issues by removing file history and qc type
+
 # ghqc.app 0.3.9001
 
 - ghqc remote ssh compatibility implemented
