@@ -201,7 +201,7 @@ get_remote <- function() {
 }
 
 #' @importFrom log4r warn error info debug
-get_current_repo <- function(remote = get_remote()) {
+get_current_repo <- function(remote) {
   tryCatch({
   debug(.le$logger, glue::glue("Connecting to repository..."))
 
@@ -242,8 +242,6 @@ get_organization_name_from_url <- function(remote_url) {
 get_organization <- function(remote) {
   tryCatch({
   debug(.le$logger, glue::glue("Connecting to organization..."))
-
-  #remote <- get_remote()
 
   # remote url
   debug(.le$logger, glue::glue("Retrieving remote url..."))
@@ -434,7 +432,6 @@ get_milestone_url <- function(owner, repo, milestone_name) {
 #' @importFrom log4r warn error info debug
 get_milestone_list_url <- function(repo) {
   remote_url <- parse_remote_url(get_remote()$url)
-  # remote_repo <- get_current_repo()
   # will look something like:
   # https://ghe-experiments.dev.a2-ai.cloud/gsk-cpmsprojects/test_ghqc_9005/milestones
   milestones_url <- file.path(remote, repo, "milestones")
