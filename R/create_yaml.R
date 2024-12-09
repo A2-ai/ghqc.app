@@ -93,8 +93,6 @@ create_yaml <- function(name,
                         milestone = NULL,
                         description = NULL
                         ) {
-  # hard code owner
-  #owner <- get_organization() #"a2-ai-tech-training"
 
   data <- list(
     owner = org,

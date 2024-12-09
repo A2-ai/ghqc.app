@@ -27,10 +27,10 @@ get_valid_checklists <- function() {
 } # get_valid_checklists
 
 
-get_org_errors <- function() {
+get_org_errors <- function(remote) {
   tryCatch(
     {
-      get_organization()
+      get_organization(remote)
     },
     error = function(e) {
       error(.le$logger, glue::glue("There was an error retrieving organization: {e$message}"))

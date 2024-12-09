@@ -112,14 +112,29 @@ get_remote_name <- function(remote_url) {
 }
 
 #' @importFrom log4r info
-get_remote_url <- function(remote) {
-  api_url <- dirname(dirname(remote$url))
+parse_remote_url <- function(remote_url) {
+  api_url <- {
+    # if ssh
+    if (stringr::str_detect(remote_url, "@")) {
+      url <- stringr::str_extract(remote_url, "(?<=@)[^:]+")
+      glue::glue("https://{url}")
+    }
+    # else if https
+    else if (stringr::str_detect(remote_url, "^https://")) {
+      dirname(dirname(remote_url))
+    }
+    else {
+      error(.le$logger, glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
+      rlang::abort(glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
+    }
+  }
+
   info(.le$logger, glue::glue("Connected to remote repository url: {api_url}"))
   api_url
 }
 
 #' @importFrom log4r warn error info debug
-get_remote <- function(remote_list) {
+get_remote <- function() {
 
   debug(.le$logger, glue::glue("Retrieving local repo path..."))
   repo_path <- gert::git_find()
@@ -224,11 +239,11 @@ get_organization_name_from_url <- function(remote_url) {
 } # get_organization_name_from_url
 
 #' @importFrom log4r warn error info debug
-get_organization <- function() {
+get_organization <- function(remote) {
   tryCatch({
   debug(.le$logger, glue::glue("Connecting to organization..."))
 
-  remote <- get_remote()
+  #remote <- get_remote()
 
   # remote url
   debug(.le$logger, glue::glue("Retrieving remote url..."))
@@ -238,7 +253,7 @@ get_organization <- function() {
   # org name
   debug(.le$logger, glue::glue("Retrieving organization name from remote url..."))
 
-  org_name <- get_organization_name_from_url(remote_url)
+  org_name <- get_organization_name_from_url(remote$url)
 
   info(.le$logger, glue::glue("Connected to organization: {org_name}"))
 
@@ -397,7 +412,7 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
     # next page
     page <- page + 1
   }
-  
+
   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
   return(issues)
@@ -417,23 +432,24 @@ get_milestone_url <- function(owner, repo, milestone_name) {
 }
 
 #' @importFrom log4r warn error info debug
-get_milestone_list_url <- function() {
-  remote_url <- dirname(get_remote()$url)
-  remote_repo <- get_current_repo()
+get_milestone_list_url <- function(repo) {
+  remote_url <- parse_remote_url(get_remote()$url)
+  # remote_repo <- get_current_repo()
   # will look something like:
   # https://ghe-experiments.dev.a2-ai.cloud/gsk-cpmsprojects/test_ghqc_9005/milestones
-  milestones_url <- file.path(remote_url, remote_repo, "milestones")
+  milestones_url <- file.path(remote, repo, "milestones")
 }
 
 #' @importFrom log4r warn error info debug
-get_collaborators <- function(owner = get_organization(), repo = get_current_repo()) {
+get_collaborators <- function(owner, repo) {
   tryCatch({
+    browser()
     query <- gh::gh("GET /repos/{owner}/{repo}/collaborators", .api_url = .le$github_api_url, .limit = Inf, owner = owner, repo = repo)
     members_list <- purrr::map(query, ~ get_names_and_usernames(.x$login))
     members_df <- purrr::map_df(members_list, ~ as.data.frame(t(.x), stringsAsFactors = FALSE))
     return(members_df)
   }, error = function(e) {
-    error(.le$logger, glue::glue("No collaborators found from: {owner} and {repo}"))
+    error(.le$logger, glue::glue("No collaborators found in {owner}/{repo}"))
     rlang::abort(e$message)
   })
 }

@@ -111,7 +111,8 @@ get_gh_token <- function(url) {
 try_api_call <- function(url, token) {
   tryCatch({
     debug(.le$logger, glue::glue("Attempting test api call..."))
-    gh::gh("GET /user", .api_url = get_gh_api_url(url), .token = token)
+    browser()
+    gh::gh("GET /user", .api_url = get_gh_api_url(url)) # , .token = token
     info(.le$logger, glue::glue("Successful test api call to {get_gh_api_url(url)}"))
   }, error = function(e) {
     pat_substr <- paste0(substr(token, 1, 4), strrep("*", nchar(token)-4))
@@ -127,7 +128,7 @@ check_github_credentials <- function() {
   check_remote_set()
 
   remote <- get_remote()
-  remote_url <- get_remote_url(remote)
+  remote_url <- parse_remote_url(remote$url)
   check_upstream_set(remote$name)
 
   # api_url <- get_gh_api_url(remote_url)

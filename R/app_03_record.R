@@ -12,7 +12,7 @@ ghqc_record_app <- function() {
 
   # error handling before starting app
   remote <- check_github_credentials()
-  org <- get_org_errors()
+  org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)
   all_milestones <- get_all_milestone_list_errors(org = org, repo = repo)
 
