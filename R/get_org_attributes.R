@@ -443,7 +443,6 @@ get_milestone_list_url <- function(repo) {
 #' @importFrom log4r warn error info debug
 get_collaborators <- function(owner, repo) {
   tryCatch({
-    browser()
     query <- gh::gh("GET /repos/{owner}/{repo}/collaborators", .api_url = .le$github_api_url, .limit = Inf, owner = owner, repo = repo)
     members_list <- purrr::map(query, ~ get_names_and_usernames(.x$login))
     members_df <- purrr::map_df(members_list, ~ as.data.frame(t(.x), stringsAsFactors = FALSE))

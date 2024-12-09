@@ -111,7 +111,6 @@ get_gh_token <- function(url) {
 try_api_call <- function(url, token) {
   tryCatch({
     debug(.le$logger, glue::glue("Attempting test api call..."))
-    browser()
     gh::gh("GET /user", .api_url = get_gh_api_url(url)) # , .token = token
     info(.le$logger, glue::glue("Successful test api call to {get_gh_api_url(url)}"))
   }, error = function(e) {
