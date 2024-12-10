@@ -95,8 +95,12 @@ div[id$="-main_container"] {
 
 
 .logo-img {
-  margin-right: -15px !important;
+  margin-right: -20px !important;
   background-color: transparent; /* modal ui changes workaround: https://stackoverflow.com/questions/63938194/r-shiny-app-width-shrinks-after-i-close-the-modal */
+  position: relative;
+  left: -18px;
+  top: -2px;
+  height: 46px;
 }
 
 
