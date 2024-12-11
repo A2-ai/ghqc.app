@@ -10,6 +10,8 @@
 
 - ghqc remote ssh compatibility implemented
 
+- stops apps on error using advice from this slack overflow: https://stackoverflow.com/questions/70841568/why-do-i-have-to-terminate-r-in-between-every-shiny-app-run
+
 # ghqc.app 0.3.0
 
 -   Updated the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:

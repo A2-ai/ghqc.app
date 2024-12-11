@@ -9,6 +9,8 @@
 NULL
 
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
+  session$onSessionEnded(function() { stopApp() })
+
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
