@@ -8,9 +8,7 @@ NULL
 
 ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
   moduleServer(id, function(input, output, session) {
-    on.exit({
-      stopApp()
-    })
+    session$onSessionEnded(function() { stopApp() })
 
     ns <- session$ns
     preview_trigger <- reactiveVal(FALSE)

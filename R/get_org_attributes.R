@@ -432,11 +432,11 @@ get_milestone_url <- function(owner, repo, milestone_name) {
 }
 
 #' @importFrom log4r warn error info debug
-get_milestone_list_url <- function(repo) {
+get_milestone_list_url <- function(org, repo) {
   remote_url <- parse_remote_url(get_remote()$url)
   # will look something like:
   # https://ghe-experiments.dev.a2-ai.cloud/gsk-cpmsprojects/test_ghqc_9005/milestones
-  milestones_url <- file.path(remote, repo, "milestones")
+  milestones_url <- file.path(remote_url, org, repo, "milestones")
 }
 
 #' @importFrom log4r warn error info debug
