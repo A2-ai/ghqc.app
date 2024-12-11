@@ -23,10 +23,10 @@ ghqc_resolve_ui <- function(id) {
       id = ns("main_container"),
       gadgetTitleBar(
         title = div(
-          style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
+          style = "display: inline-flex",
           div(
-            style = "position: relative;",  # Keep this div centered
-            tags$img(src = "ghqc.app/ghqc_hex.png", height = 46, class = "logo-img", style = "position: relative; left: -18px; margin-right: 10px; top: -2px;")
+            style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
+            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img")
           ),
           div("Resolve QC finding(s)", style = "white-space: nowrap;")
         ),
