@@ -20,7 +20,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     req(root_dir)
     if (getwd() != root_dir) {
       setwd(root_dir)
-      info(.le$logger, glue::glue("Directory changed to project root: {root_dir)}"))
+      info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
     }
   })
 
