@@ -1,3 +1,7 @@
+# ghqc.app 0.3.1
+
+- fixes a bug in parsing a glue component
+
 # ghqc.app 0.3.0
 
 -   Updated the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:
