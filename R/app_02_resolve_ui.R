@@ -25,8 +25,8 @@ ghqc_resolve_ui <- function(id) {
         title = div(
           style = "display: inline-flex",
           div(
-            style = "position: relative; flex-shrink: 0; width: 30px; height: 50px;",
-            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img")
+            style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
+            tags$img(src = "ghqc.app/ghqc_hex.png", style = "margin-right: -30px !important; background-color: transparent; position: relative; left: -18px; top: -2px; height: 46px;") # class = "logo-img"
           ),
           div("Resolve QC finding(s)", style = "white-space: nowrap;")
         ),
