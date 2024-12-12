@@ -41,10 +41,14 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
       ul <- div(class = paste("grid-container", "depth", depth, sep = "-")) # if i remove depth, it won't take styles anymore
 
       for (name in items) {
+        # no css only way to set line breaks on certain chr; used <wbr> to designate non-alphanumeric values as wbr (https://stackoverflow.com/a/24489931)
+        modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", generate_input_id(name = name))
+
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
-        button_input_id <- generate_input_id("button", name)
+        file_preview_id <- generate_input_id("button", name)
         preview_input_id <- generate_input_id("preview", name)
+        associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
         assignee_input <- selectizeInput(
           ns(assignee_input_id),
@@ -63,32 +67,33 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
             options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
 
-
-        button_input <- actionButton(
-          ns(button_input_id),
-          label = HTML("<span>Preview file<br>contents</span>"),
-          style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
-          #style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;",
+        file_preview <- actionButton(
+          ns(file_preview_id),
+          label = HTML(modified_name),
+          style = "font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
           class = "file-preview-button"
+        )
+
+        associate_relevant_files <- actionButton(
+          ns(associate_relevant_files_id),
+          label = HTML("<span>Associate<br>relevant files</span>"),
+          style = "height: 34px !important;font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
+          class = "associate-relevant-files-button"
         )
 
         preview_input <- actionButton(
           ns(preview_input_id),
           label = HTML(glue::glue("<span>Preview<br>{get_checklist_display_name_var()}</span>")),
           style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
-          #style = "min-width: auto; display: inline-block; text-align: center; line-height: 2em; height: 2em;",
-          #class = "checklist-preview-button"
+          class = "checklist-preview-button"
         )
 
-        # no css only way to set line breaks on certain chr; used <wbr> to designate non-alphanumeric values as wbr (https://stackoverflow.com/a/24489931)
-        modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", generate_input_id(name = name))
-
-        ul <- tagAppendChild(ul, div(HTML(modified_name), style = "padding-bottom: 5px;"))
+        ul <- tagAppendChild(ul, div(class = "item-a", file_preview, style = "padding-bottom: 5px;"))
 
         ul <- tagAppendChild(ul,
                              div(
                                class = "grid-items",
-                               div(class = "item-a", button_input),
+                               div(class = "item-a", associate_relevant_files),
                                div(class = "item-b", assignee_input),
                                div(class = "item-c", checklist_input),
                                div(class = "item-d", preview_input)
@@ -99,8 +104,12 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
       ul
     },
     error = function(e) {
-      log4r::error(glue::glue("Error rendering selected {items}: {e$message}"))
-      rlang::abort(e$message)
+      items <- glue::glue_collapse(items, sep = ", ")
+
+      error_message <- glue::glue("Error rendering selected {items}: {e$message}")
+      log4r::error(.le$logger, error_message)
+      #rlang::abort(error_message)
+      shiny::stopApp()
     }
   )
 }
@@ -247,11 +256,12 @@ convert_list_to_ui <- function(checklists, parent_name = NULL, is_first = TRUE) 
 create_button_preview_event <- function(input, name) {
   tryCatch(
     {
-      button_input_id <- generate_input_id("button", name)
+      file_preview_id <- generate_input_id("button", name)
       clean_name <- generate_input_id(name = name)
 
-      observeEvent(input[[button_input_id]], # input[[checklist_id_specific to file]]
+      observeEvent(input[[file_preview_id]], # input[[checklist_id_specific to file]]
         {
+          browser()
           showModal(
             modalDialog(
               title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
@@ -279,8 +289,6 @@ create_button_preview_event <- function(input, name) {
 #' @importFrom log4r warn error info debug
 #' @importFrom shinyjs enable disable addClass removeClass delay
 create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
-
-
   tryCatch(
     {
       preview_input_id <- generate_input_id("preview", name)
@@ -340,6 +348,53 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
     },
     error = function(e) {
       log4r::error(glue::glue("Error creating observe event for item {name}: {e$message}"))
+      rlang::abort(e$message)
+    }
+  )
+}
+
+
+#' Associate Relevant Files Event
+#'
+#'
+#' @param input A reactive list of inputs from a Shiny session.
+#' @param name A character string representing the name of the item associated with the button.
+#'
+#' @return A list of files selected with name, path, and note
+#' @noRd
+associate_relevant_files_button_event <- function(input, output, name, ns) {
+  tryCatch(
+    {
+      associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
+      clean_name <- generate_input_id(name = name)
+
+      observeEvent(input[[associate_relevant_files_id]], {
+         showModal(
+           modalDialog(
+             title = tags$div(
+               tags$span("Associate relevant files", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+               tags$div(modalButton("Dismiss"), style = "text-align: right;")
+             ),
+             footer = tagList(
+               actionButton("add_files", "Add Selected Files")
+             ),
+             easyClose = TRUE,
+             uiOutput(ns("modal_tree_ui"))
+           )
+         )
+       },
+       ignoreInit = TRUE
+      )
+
+      output$modal_tree_ui <- renderUI({
+        browser()
+        treeNavigatorUI(ns("associate_files"))
+      })
+
+      debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
+    },
+    error = function(e) {
+      log4r::error(glue::glue("Error creating associate relevant files event for item {name}: {e$message}"))
       rlang::abort(e$message)
     }
   )

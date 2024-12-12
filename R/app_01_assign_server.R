@@ -9,8 +9,6 @@
 NULL
 
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
-  session$onSessionEnded(function() { stopApp() })
-
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -22,7 +20,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     req(root_dir)
     if (getwd() != root_dir) {
       setwd(root_dir)
-      info(.le$logger, glue::glue("Directory changed to project root: {root_dir)}"))
+      info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
     }
   })
 
@@ -39,6 +37,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
   )
 
   moduleServer(id, function(input, output, session) {
+    session$onSessionEnded(function() { stopApp() })
+
     ns <- session$ns
 
     if (length(milestone_list) == 0) {
@@ -215,17 +215,18 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     output$main_panel_dynamic <- renderUI({
-      validate(need(length(selected_items()) > 0, "No files selected"))
-      w_load_items$show()
+      req(selected_items())
+        validate(need(length(selected_items()) > 0, "No files selected"))
+        w_load_items$show()
 
-      log_string <- glue::glue_collapse(selected_items(), sep = ", ")
-      debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
+        log_string <- glue::glue_collapse(selected_items(), sep = ", ")
+        debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
 
-      list <- render_selected_list(input, ns, iv, items = selected_items(), checklist_choices = checklists)
-      isolate_rendered_list(input, session, selected_items())
+        list <- render_selected_list(input, ns, iv, items = selected_items(), checklist_choices = checklists)
+        isolate_rendered_list(input, session, selected_items())
 
-      session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
-      return(list)
+        session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
+        return(list)
     })
 
     observe({
@@ -241,6 +242,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
         tryCatch(
           {
             create_button_preview_event(input, name = name)
+            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
