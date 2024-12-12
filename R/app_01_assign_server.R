@@ -33,7 +33,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     rootFolder = root_dir_reactive,
     search = FALSE,
     pattern = exclude_patterns(),
-    all.files = FALSE
+    all.files = FALSE,
+    output_id = "treeNavigator"
   )
 
   moduleServer(id, function(input, output, session) {
@@ -242,7 +243,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
         tryCatch(
           {
             create_button_preview_event(input, name = name)
-            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns)
+            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))

@@ -362,13 +362,37 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
 #'
 #' @return A list of files selected with name, path, and note
 #' @noRd
-associate_relevant_files_button_event <- function(input, output, name, ns) {
+associate_relevant_files_button_event <- function(input, output, name, ns, root_dir) {
   tryCatch(
     {
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
       clean_name <- generate_input_id(name = name)
 
+      root_dir_reactive <- reactive({
+        req(root_dir)
+        root_dir
+      })
+
+      #browser()
+      associated_items <- treeNavigatorServer(
+        id = "associate_relevant_files",
+        #id = "ghqc_assign_app",
+        rootFolder = root_dir_reactive,
+        search = FALSE,
+        pattern = exclude_patterns(),
+        all.files = FALSE,
+        output_id = "associated_files"
+      )
+
       observeEvent(input[[associate_relevant_files_id]], {
+        output$modal_tree_ui <- renderUI({
+          #treeNavigatorUIAssociate(ns("associated_files"))
+          browser()
+          treeNavigatorUIAssociate("associate_relevant_files-associated_files")
+          #treeNavigatorUIAssociate(ns("treeNavigator"))
+        })
+
+        #req(associated_items())
          showModal(
            modalDialog(
              title = tags$div(
@@ -386,10 +410,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns) {
        ignoreInit = TRUE
       )
 
-      output$modal_tree_ui <- renderUI({
-        browser()
-        treeNavigatorUI(ns("associate_files"))
-      })
 
       debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
     },
