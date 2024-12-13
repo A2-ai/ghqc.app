@@ -33,10 +33,11 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0) {
+render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
+
       checklist_choices <- stats::setNames(names(checklist_choices), names(checklist_choices))
       ul <- div(class = paste("grid-container", "depth", depth, sep = "-")) # if i remove depth, it won't take styles anymore
 
@@ -59,12 +60,12 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         )
 
         checklist_input <- selectizeInput(
-            ns(checklist_input_id),
-            label = NULL,
-            choices = c("", checklist_choices),
-            width = "100%",
-            selected = NULL,
-            options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
+          ns(checklist_input_id),
+          label = NULL,
+          choices = c("", checklist_choices),
+          width = "100%",
+          selected = NULL,
+          options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
 
         file_preview <- actionButton(
@@ -99,6 +100,16 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
                                div(class = "item-d", preview_input)
                              )
         )
+
+        # Add relevant files section
+        if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
+          relevant_files_list <- tags$ul(
+            lapply(relevant_files[[name]], function(file) {
+              tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
+            })
+          )
+          ul <- tagAppendChild(ul, div(class = "relevant-files-section", tags$strong("Relevant Files:"), relevant_files_list))
+        }
       }
       debug(.le$logger, "Rendered selected list successfully")
       ul
@@ -113,6 +124,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
     }
   )
 }
+
 
 #' Update Selectize Inputs for Checklists and Assignees
 #'
@@ -373,43 +385,57 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         root_dir
       })
 
-      #browser()
-      associated_items <- treeNavigatorServer(
-        id = "associate_relevant_files",
-        #id = "ghqc_assign_app",
-        rootFolder = root_dir_reactive,
-        search = FALSE,
-        pattern = exclude_patterns(),
-        all.files = FALSE,
-        output_id = "associated_files"
-      )
+      #TODO: need to filter per tree files
+      filter_files <- function(dir) {
+        all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
+        filtered_files <- all_files[!grepl("renv", all_files)]
+        return(filtered_files)
+      }
+
+      filtered_files <- reactive({
+        filter_files(root_dir_reactive())
+      })
 
       observeEvent(input[[associate_relevant_files_id]], {
-        output$modal_tree_ui <- renderUI({
-          #treeNavigatorUIAssociate(ns("associated_files"))
-          browser()
-          treeNavigatorUIAssociate("associate_relevant_files-associated_files")
-          #treeNavigatorUIAssociate(ns("treeNavigator"))
+        filtered_file_selector_id <- paste0("filtered_file_selector_", name)
+
+        output[[filtered_file_selector_id]] <- renderUI({
+          selectInput(
+            ns(filtered_file_selector_id),
+            label = glue::glue("Select Files for {name}:"),
+            choices = filtered_files(),
+            multiple = TRUE
+          )
         })
 
-        #req(associated_items())
-         showModal(
-           modalDialog(
-             title = tags$div(
-               tags$span("Associate relevant files", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-               tags$div(modalButton("Dismiss"), style = "text-align: right;")
-             ),
-             footer = tagList(
-               actionButton("add_files", "Add Selected Files")
-             ),
-             easyClose = TRUE,
-             uiOutput(ns("modal_tree_ui"))
-           )
-         )
-       },
-       ignoreInit = TRUE
-      )
+        showModal(
+          modalDialog(
+            title = tags$div(
+              tags$span("Associate Relevant Files",
+                        style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              tags$div(modalButton("Dismiss"), style = "text-align: right;")
+            ),
+            footer = tagList(
+              actionButton(ns("add_files"), "Add Selected Files")
+            ),
+            easyClose = TRUE,
+            uiOutput(ns(filtered_file_selector_id))
+          )
+        )
 
+        #TODO: might be better to take this out and put it in server so rv isn't set globally but for now this works
+        observeEvent(input$add_files, {
+          req(input[[filtered_file_selector_id]])
+
+          updated_relevant_files <- relevant_files()
+          updated_relevant_files[[name]] <- input[[filtered_file_selector_id]]
+          relevant_files(updated_relevant_files)
+
+          debug(.le$logger, glue::glue("Files associated for {name}: {paste(input[[ns(filtered_file_selector_id)]], collapse = ', ')}"))
+
+          removeModal()
+        })
+      }, ignoreInit = TRUE)
 
       debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
     },

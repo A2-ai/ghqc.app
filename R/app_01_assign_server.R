@@ -215,6 +215,10 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     })
 
+    # TODO: need to now link this to some portion of the issue. links are absolute path,
+    # feel free to clean
+    relevant_files <<- reactiveVal(list())
+
     output$main_panel_dynamic <- renderUI({
       req(selected_items())
         validate(need(length(selected_items()) > 0, "No files selected"))
@@ -223,12 +227,26 @@ return "<div><strong>" + escape(item.username) + "</div>"
         log_string <- glue::glue_collapse(selected_items(), sep = ", ")
         debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
 
-        list <- render_selected_list(input, ns, iv, items = selected_items(), checklist_choices = checklists)
+        relevant_files_list <- tryCatch({
+          relevant_files()
+        }, error = function(e){
+          NULL
+        })
+
+        list <- render_selected_list(
+          input = input,
+          ns = ns,
+          iv = iv,
+          items = selected_items(),
+          checklist_choices = checklists,
+          relevant_files = relevant_files_list
+        )
         isolate_rendered_list(input, session, selected_items())
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)
     })
+
 
     observe({
       req(input$adjust_grid_finished) # retrieve msg through js when adjust grid is done
