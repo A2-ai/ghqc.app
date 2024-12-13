@@ -385,6 +385,8 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
       clean_name <- generate_input_id(name = name)
 
+      filtered_file_selector_id <- paste0("filtered_file_selector_", name)
+
       #TODO: need to filter per tree files
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
@@ -398,20 +400,78 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         filter_files(root_dir)
       })
 
+      observeEvent(input$add_files, ignoreInit = FALSE, {
+        #browser()
+        #req(input[[filtered_file_selector_id]])
+        #browser()
+        debug <- ns(filtered_file_selector_id)
+
+        selected_files <- input[[filtered_file_selector_id]]
+        valid_files <- intersect(selected_files, filtered_files())
+
+        updated_relevant_files <- relevant_files()
+
+        if (is.null(valid_files)) {
+          updated_relevant_files[[name]] <- NULL
+        }
+
+        else {
+          updated_relevant_files[[name]] <- selected_files
+        }
+
+        relevant_files(updated_relevant_files)
+
+
+        debug(.le$logger, glue::glue("Files associated for {name}: {paste({selected_files}, collapse = ', ')}"))
+
+        removeModal()
+      })
+
+      # observeEvent(input[[filtered_file_selector_id]], ignoreNULL = FALSE, {
+      #   selected_files <- input[[filtered_file_selector_id]]
+      #
+      #   # Handle case where "None" is selected or no selection is made
+      #   if (is.null(selected_files) || length(selected_files) == 0) {
+      #     # Clear the relevant files if "None" is selected
+      #     updated_relevant_files <- relevant_files()
+      #     updated_relevant_files[[name]] <- NULL
+      #     relevant_files(updated_relevant_files)
+      #     debug(.le$logger, glue::glue("No files associated for {name}"))
+      #   } else {
+      #     # Validate and update selected files
+      #     valid_files <- intersect(selected_files, filtered_files())
+      #     updated_relevant_files <- relevant_files()
+      #     updated_relevant_files[[name]] <- valid_files
+      #     relevant_files(updated_relevant_files)
+      #     debug(.le$logger, glue::glue("Files associated for {name}: {paste(valid_files, collapse = ', ')}"))
+      #   }
+      # })
+
+
+
       observeEvent(input[[associate_relevant_files_id]], {
         removeModal()
-
-        filtered_file_selector_id <- paste0("filtered_file_selector_", name)
 
         output[[filtered_file_selector_id]] <- renderUI({
           current_files <- relevant_files()[[name]]
 
+          available_files <- filtered_files()
+          choices <- c("None" = "", available_files)
+
+          valid_selected_files <- intersect(current_files, available_files)
+
+          #browser()
+          updated_relevant_files <- relevant_files()
+          updated_relevant_files[[name]] <- valid_selected_files
+          relevant_files(updated_relevant_files)
+
+
           selectInput(
             ns(filtered_file_selector_id),
             label = glue::glue("Associate relevant files to {name}:"),
-            choices = filtered_files(),
-            selected = current_files,
-            multiple = TRUE
+            choices = choices,
+            selected = if (length(valid_selected_files) == 0) "" else valid_selected_files,
+            multiple = TRUE,
           )
         })
 
@@ -433,17 +493,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         )
 
         #TODO: might be better to take this out and put it in server so rv isn't set globally but for now this works
-        observeEvent(input$add_files, {
-          req(input[[filtered_file_selector_id]])
 
-          updated_relevant_files <- relevant_files()
-          updated_relevant_files[[name]] <- input[[filtered_file_selector_id]]
-          relevant_files(updated_relevant_files)
-
-          debug(.le$logger, glue::glue("Files associated for {name}: {paste(input[[ns(filtered_file_selector_id)]], collapse = ', ')}"))
-
-          removeModal()
-        })
       }, ignoreInit = TRUE)
 
       debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
