@@ -108,7 +108,11 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
               tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
             })
           )
-          ul <- tagAppendChild(ul, div(class = "relevant-files-section", tags$strong("Relevant Files:"), relevant_files_list))
+          ul <- tagAppendChild(ul, div(
+            class = "relevant-files-section",
+            style = "padding-bottom: 15px;",
+            tags$strong("Relevant files:"), relevant_files_list)
+            )
         }
       }
       debug(.le$logger, "Rendered selected list successfully")
@@ -273,7 +277,6 @@ create_button_preview_event <- function(input, name) {
 
       observeEvent(input[[file_preview_id]], # input[[checklist_id_specific to file]]
         {
-          browser()
           showModal(
             modalDialog(
               title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
@@ -366,6 +369,8 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
 }
 
 
+
+
 #' Associate Relevant Files Event
 #'
 #'
@@ -384,7 +389,9 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
         filtered_files <- all_files[!grepl("renv", all_files)]
-        return(filtered_files)
+        relative_paths <- fs::path_rel(filtered_files, root_dir)
+        files_without_qc_file <- relative_paths[relative_paths != clean_name]
+        return(files_without_qc_file)
       }
 
       filtered_files <- reactive({
@@ -392,13 +399,18 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       })
 
       observeEvent(input[[associate_relevant_files_id]], {
+        removeModal()
+
         filtered_file_selector_id <- paste0("filtered_file_selector_", name)
 
         output[[filtered_file_selector_id]] <- renderUI({
+          current_files <- relevant_files()[[name]]
+
           selectInput(
             ns(filtered_file_selector_id),
-            label = glue::glue("Select Files for {name}:"),
+            label = glue::glue("Associate relevant files to {name}:"),
             choices = filtered_files(),
+            selected = current_files,
             multiple = TRUE
           )
         })
@@ -408,11 +420,13 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
             title = tags$div(
               tags$span("Associate Relevant Files",
                         style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-              tags$div(modalButton("Dismiss"), style = "text-align: right;")
+              tags$div(
+                style = "text-align: right;",
+                actionButton(ns("add_files"), "Associate files", style = "margin-right: 10px;"),
+                modalButton("Dismiss")
+              )
             ),
-            footer = tagList(
-              actionButton(ns("add_files"), "Add Selected Files")
-            ),
+            footer = NULL,
             easyClose = TRUE,
             uiOutput(ns(filtered_file_selector_id))
           )
