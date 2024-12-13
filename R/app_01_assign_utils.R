@@ -380,11 +380,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
       clean_name <- generate_input_id(name = name)
 
-      root_dir_reactive <- reactive({
-        req(root_dir)
-        root_dir
-      })
-
       #TODO: need to filter per tree files
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
@@ -393,7 +388,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       }
 
       filtered_files <- reactive({
-        filter_files(root_dir_reactive())
+        filter_files(root_dir)
       })
 
       observeEvent(input[[associate_relevant_files_id]], {
