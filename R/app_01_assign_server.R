@@ -239,7 +239,8 @@ return "<div><strong>" + escape(item.username) + "</div>"
           iv = iv,
           items = selected_items(),
           checklist_choices = checklists,
-          relevant_files = relevant_files_list
+          relevant_files = relevant_files_list,
+          output = output
         )
         isolate_rendered_list(input, session, selected_items())
 
@@ -254,6 +255,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     observeEvent(selected_items(), {
+      req(checklists)
       items <- selected_items()
       for (name in items) {
         log_string <- glue::glue_collapse(items, sep = ", ")
@@ -262,6 +264,9 @@ return "<div><strong>" + escape(item.username) + "</div>"
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir)
+            create_checklist_preview_event(input = input, iv = iv, ns = ns, name = name, checklists = checklists)
+
+
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
@@ -488,7 +493,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
       session$reload()
     })
 
-    #HERE
     observeEvent(selected_items(), {
       req(checklists)
       items <- selected_items()
@@ -506,6 +510,30 @@ return "<div><strong>" + escape(item.username) + "</div>"
         )
       }
     })
+
+    # observe({
+    #   req(selected_items)
+    #   items <- selected_items()
+    #   for (name in items) {
+    #     tryCatch(
+    #       {
+    #         #create_checklist_preview_event(input, iv, ns, name = name, checklists)
+    #         checklist_input_id <- generate_input_id("checklist", name)
+    #
+    #         if (checklist_input == "") {
+    #           addClass(checklist_input_id, "input-error")
+    #         } else {
+    #           removeClass(checklist_input_id, "input-error")
+    #         }
+    #
+    #       },
+    #       error = function(e) {
+    #         error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
+    #         rlang::abort(e$message)
+    #       }
+    #     )
+    #   }
+    # })
 
     iv$enable()
     return(input)

@@ -33,7 +33,7 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL) {
+render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
@@ -68,6 +68,8 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
 
+        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+
         file_preview <- actionButton(
           ns(file_preview_id),
           label = HTML(modified_name),
@@ -101,6 +103,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
                              )
         )
 
+        #browser()
         # Add relevant files section
         if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
           relevant_files_list <- tags$ul(
@@ -108,13 +111,43 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
               tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
             })
           )
-          ul <- tagAppendChild(ul, div(
+
+          relevant_files_section <- div(
             class = "relevant-files-section",
             style = "padding-bottom: 15px;",
-            tags$strong("Relevant files:"), relevant_files_list)
-            )
-        }
+            tags$strong("Relevant files:"),
+            relevant_files_list
+          )
+
+          output[[paste0("relevant_files_section_", name)]] <- renderUI({
+            relevant_files_section
+          })
+
+          ul <- tagAppendChild(ul, uiOutput(ns(paste0("relevant_files_section_", name))))
+          # ul <- tagAppendChild(ul, div(
+          #   class = "relevant-files-section",
+          #   style = "padding-bottom: 15px;",
+          #   tags$strong("Relevant files:"), relevant_files_list)
+          #   )
+
+        } # if relevant files
+
+        # browser()
+        # checklist_input <- input[[checklist_input_id]]
+        # if (is.null(checklist_input)) {
+        #   addClass(checklist_input_id, "input-error")
+        #   #iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+        # }
+        # else {
+        #   if (checklist_input == "") {
+        #     addClass(checklist_input_id, "input-error")
+        #   } else {
+        #     removeClass(checklist_input_id, "input-error")
+        #   }
+        # }
       }
+
+
       debug(.le$logger, "Rendered selected list successfully")
       ul
     },
@@ -123,8 +156,8 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
       error_message <- glue::glue("Error rendering selected {items}: {e$message}")
       log4r::error(.le$logger, error_message)
-      #rlang::abort(error_message)
-      shiny::stopApp()
+      stopApp()
+      rlang::abort(error_message)
     }
   )
 }
@@ -200,8 +233,6 @@ extract_file_data <- function(input, items) {
         if (!isTruthy(checklist_input_value) || checklist_input_value == "") {
           return(NULL)
         }
-
-
 
         file_data <- append(file_data, list(create_file_data_structure(file_name = generate_input_id(name = name), assignees = assignee_input_value, checklist_type = checklist_input_value)))
       }
@@ -387,7 +418,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
 
       filtered_file_selector_id <- paste0("filtered_file_selector_", name)
 
-      #TODO: need to filter per tree files
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
         filtered_files <- all_files[!grepl("renv", all_files)]
@@ -429,6 +459,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       observeEvent(input[[associate_relevant_files_id]], {
         removeModal()
 
+        # Render the left pane: File selection
         output[[filtered_file_selector_id]] <- renderUI({
           current_files <- relevant_files()[[name]]
 
@@ -444,11 +475,48 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
 
           selectInput(
             ns(filtered_file_selector_id),
-            label = glue::glue("Associate relevant files to {name}:"),
+            label = tags$div(
+              style = "word-wrap: break-word; word-break: break-word; white-space: normal;",
+              glue::glue("Associate relevant files to {name}:")
+            ),
             choices = choices,
             selected = if (length(valid_selected_files) == 0) "" else valid_selected_files,
             multiple = TRUE,
           )
+        })
+
+        # Render the right pane: Selected files with input boxes
+        output[[paste0(filtered_file_selector_id, "_selected")]] <- renderUI({
+          selected_files <- input[[filtered_file_selector_id]] %||% character(0)  # Default to empty
+
+          if (length(selected_files) == 0) {
+            return(tags$div("No files selected.", style = "font-size: 14px; color: #999;"))
+          }
+
+          # Generate input boxes for each selected file
+          do.call(tagList, lapply(selected_files, function(file) {
+            tags$div(
+              style = "margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;",
+              #tags$strong(file),  # File name
+              tags$div(
+                style = "padding-bottom: 7px; font-weight: bold; word-wrap: break-word; word-break: break-word; white-space: normal; overflow-wrap: break-word;",
+                file  # File name (will wrap if too long)
+              ),
+              textInput(
+                ns(paste0("name_", file)),
+                label = "Name",
+                value = basename(file),
+                placeholder = "(optional)"
+              ),
+              textAreaInput(
+                ns(paste0("note_", file)),
+                label = "Note",
+                value = "",
+                rows = 2,
+                placeholder = "(optional)"
+                )
+            )
+          }))
         })
 
         showModal(
@@ -464,11 +532,14 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
             ),
             footer = NULL,
             easyClose = TRUE,
-            uiOutput(ns(filtered_file_selector_id))
+            fluidRow(
+              column(6, uiOutput(ns(filtered_file_selector_id))),  # Left pane
+              column(6, uiOutput(ns(paste0(filtered_file_selector_id, "_selected"))))  # Right pane
+            )
           )
         )
 
-        #TODO: might be better to take this out and put it in server so rv isn't set globally but for now this works
+        #iv$enable()
 
       }, ignoreInit = TRUE)
 
