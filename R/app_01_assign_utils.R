@@ -401,9 +401,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       })
 
       observeEvent(input$add_files, ignoreInit = FALSE, {
-        #browser()
-        #req(input[[filtered_file_selector_id]])
-        #browser()
         debug <- ns(filtered_file_selector_id)
 
         selected_files <- input[[filtered_file_selector_id]]
@@ -427,26 +424,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         removeModal()
       })
 
-      # observeEvent(input[[filtered_file_selector_id]], ignoreNULL = FALSE, {
-      #   selected_files <- input[[filtered_file_selector_id]]
-      #
-      #   # Handle case where "None" is selected or no selection is made
-      #   if (is.null(selected_files) || length(selected_files) == 0) {
-      #     # Clear the relevant files if "None" is selected
-      #     updated_relevant_files <- relevant_files()
-      #     updated_relevant_files[[name]] <- NULL
-      #     relevant_files(updated_relevant_files)
-      #     debug(.le$logger, glue::glue("No files associated for {name}"))
-      #   } else {
-      #     # Validate and update selected files
-      #     valid_files <- intersect(selected_files, filtered_files())
-      #     updated_relevant_files <- relevant_files()
-      #     updated_relevant_files[[name]] <- valid_files
-      #     relevant_files(updated_relevant_files)
-      #     debug(.le$logger, glue::glue("Files associated for {name}: {paste(valid_files, collapse = ', ')}"))
-      #   }
-      # })
-
 
 
       observeEvent(input[[associate_relevant_files_id]], {
@@ -460,7 +437,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
 
           valid_selected_files <- intersect(current_files, available_files)
 
-          #browser()
           updated_relevant_files <- relevant_files()
           updated_relevant_files[[name]] <- valid_selected_files
           relevant_files(updated_relevant_files)
@@ -478,7 +454,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         showModal(
           modalDialog(
             title = tags$div(
-              tags$span("Associate Relevant Files",
+              tags$span("Associate relevant files",
                         style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
               tags$div(
                 style = "text-align: right;",
