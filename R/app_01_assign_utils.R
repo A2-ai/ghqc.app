@@ -68,8 +68,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
 
-        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-
         file_preview <- actionButton(
           ns(file_preview_id),
           label = HTML(modified_name),
@@ -132,6 +130,8 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
         } # if relevant files
 
+        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+
         # browser()
         # checklist_input <- input[[checklist_input_id]]
         # if (is.null(checklist_input)) {
@@ -178,7 +178,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 #' @return None. The function performs operations on UI elements and does not return
 #'   any value.
 #' @noRd
-isolate_rendered_list <- function(input, session, items) {
+isolate_rendered_list <- function(input, session, items, iv) {
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 
@@ -198,6 +198,8 @@ isolate_rendered_list <- function(input, session, items) {
       checklist_input_id,
       selected = isolate(input[[checklist_input_id]])
     )
+
+    iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
   }
 }
 

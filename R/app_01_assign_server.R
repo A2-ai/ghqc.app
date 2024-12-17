@@ -38,7 +38,11 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
   )
 
   moduleServer(id, function(input, output, session) {
-    session$onSessionEnded(function() { stopApp() })
+    session$onSessionEnded(function() {
+      if (!reset_triggered) {
+        stopApp()
+      }
+    })
 
     ns <- session$ns
 
@@ -242,7 +246,8 @@ return "<div><strong>" + escape(item.username) + "</div>"
           relevant_files = relevant_files_list,
           output = output
         )
-        isolate_rendered_list(input, session, selected_items())
+
+        isolate_rendered_list(input, session, selected_items(), iv)
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)
@@ -489,6 +494,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     observeEvent(input$reset, {
+      reset_triggered <<- TRUE
       debug(.le$logger, glue::glue("App was reset through the reset button."))
       session$reload()
     })
