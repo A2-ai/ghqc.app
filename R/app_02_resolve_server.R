@@ -8,7 +8,11 @@ NULL
 
 ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
   moduleServer(id, function(input, output, session) {
-    session$onSessionEnded(function() { stopApp() })
+    session$onSessionEnded(function() {
+      if (!reset_triggered) {
+        stopApp()
+      }
+    })
 
     ns <- session$ns
     preview_trigger <- reactiveVal(FALSE)
@@ -407,6 +411,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
+      reset_triggered <<- TRUE
       session$reload()
     })
 
