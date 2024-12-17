@@ -9,7 +9,11 @@
 NULL
 
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(function() {
+    if (!reset_triggered) {
+      stopApp()
+    }
+  })
 
   iv <- shinyvalidate::InputValidator$new()
 
@@ -464,6 +468,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
+      reset_triggered <<- TRUE
       session$reload()
     })
 
