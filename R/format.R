@@ -1,9 +1,9 @@
 
-format_issue_body <- function(checklist_type, file_path, relevant_files) {
+format_issue_body <- function(checklist_type, file_path, relevant_files, owner, repo) {
   checklists <- get_checklists()
   file_items <- checklists[[checklist_type]]
   qc_checklist <- format_checklist_items(file_items)
-  metadata <- format_metadata(checklist_type, file_path)
+  metadata <- format_metadata(checklist_type, file_path, owner, repo)
   relevant_files <- format_relevant_files(relevant_files)
   note <- get_prepended_checklist_note()
 
@@ -29,10 +29,8 @@ format_relevant_files <- function(relevant_files) {
 
     if (!is.null(file$note) && file$note != "") {
       file_section <- glue::glue(file_section,
-                                 "\n   - {file$note}
-                                 ", .trim = FALSE)
+                                 "\n   - {file$note}", .trim = FALSE)
     }
-    browser()
     file_section
   })
 
@@ -118,7 +116,7 @@ format_collaborators <- function(collaborators, prefix = "") {
   }
 }
 
-format_metadata <- function(checklist_type, file_path) {
+format_metadata <- function(checklist_type, file_path, owner, repo) {
   authors <- get_authors(file_path)
   latest_author <- authors$latest
   author_section <- glue::glue("* author: {latest_author}")
@@ -135,7 +133,7 @@ format_metadata <- function(checklist_type, file_path) {
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
 
-  git_branch <- get_branch_url(git_sha)
+  git_branch <- get_branch_url(git_sha, owner, repo)
   git_branch_section <- glue::glue("* git branch: {git_branch}")
 
   # file_history_url <- get_file_history_url(file_path)
@@ -152,25 +150,14 @@ format_metadata <- function(checklist_type, file_path) {
   glue::glue_collapse(metadata, "\n")
 }
 
-get_branch_url <- function(git_sha) {
+get_branch_url <- function(git_sha, owner, repo) {
   branch <- gert::git_branch()
+  remote <- get_remote()
+  remote_url <- parse_remote_url(remote$url)
 
-  # get remote url (assume first row)
-  remote_url <- gert::git_remote_list()$url[1]
+  https_url <- file.path(remote_url, owner, repo, "tree", git_sha)
 
-  # if it's an ssh, construct manually
-  if (grepl("^git@", remote_url)) {
-    # get the domain and repo
-    domain <- sub("git@(.*):.*", "\\1", remote_url)
-    repo_path <- sub("git@.*:(.*)", "\\1", remote_url)
-
-    remote_url <- glue::glue("https://{domain}/{repo_path}")
-  }
-
-  # take out .git at the end
-  https_url <- sub(".git$", "", remote_url)
-
-  glue::glue("[{branch}]({https_url}/tree/{git_sha})")
+  glue::glue("[{branch}]({https_url})")
 }
 
 get_file_history_url <- function(file_path) {
@@ -200,23 +187,25 @@ get_file_history_url <- function(file_path) {
 
 get_file_contents_url <- function(file_path, git_sha) {
   # branch <- gert::git_branch()
-  remote_url <-  gert::git_remote_list()$url[1]
+  #remote_url <-  gert::git_remote_list()$url[1]
+  browser()
+  remote_url <- parse_remote_url(get_remote()$url)
 
-  if (grepl("^git@", remote_url)) {
-    # get the domain and repo
-    domain <- sub("git@(.*):.*", "\\1", remote_url)
-    repo_path <- sub("git@.*:(.*)", "\\1", remote_url)
-
-    remote_url <- glue::glue("https://{domain}/{repo_path}")
-  }
+  # if (grepl("^git@", remote_url)) {
+  #   # get the domain and repo
+  #   domain <- sub("git@(.*):.*", "\\1", remote_url)
+  #   repo_path <- sub("git@.*:(.*)", "\\1", remote_url)
+  #
+  #   remote_url <- glue::glue("https://{domain}/{repo_path}")
+  # }
 
   # take out .git at the end
-  https_url <- sub(".git$", "", remote_url)
+  #https_url <- sub(".git$", "", remote_url)
 
   file_path <- gsub(" ", "%20", file_path)
 
   # file.path(https_url, "blob", branch, file_path)
-  file.path(https_url, "blob", substr(git_sha, 1, 6), file_path)
+  file.path(remote_url, "blob", substr(git_sha, 1, 6), file_path)
 }
 
 format_body_content <- function(metadata, checklist_type, note, qc_checklist, relevant_files) {

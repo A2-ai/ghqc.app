@@ -6,7 +6,7 @@ create_issue <- function(file, issue_params) {
   # issue title is the name of the file
   issue_params$title <- file$name
   # body is checklist
-  issue_params$body <- format_issue_body(file$checklist_type, file_path = file$name, relevant_files = file$relevant_files)
+  issue_params$body <- format_issue_body(file$checklist_type, file_path = file$name, relevant_files = file$relevant_files, issue_params$owner, issue_params$repo)
   # if file has assignees item, add to issue_params
   if (!is.null(file$assignees)) {
     issue_params$assignees <- I(file$assignees)
