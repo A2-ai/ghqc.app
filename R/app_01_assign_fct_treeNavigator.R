@@ -115,7 +115,6 @@ list_files_and_dirs <- function(path, pattern, all.files) {
 
 #' @importFrom jsTreeR jstreeOutput
 treeNavigatorUI <- function(id, width = "100%", height = "auto") {
-  # browser()
   tree <- jstreeOutput(outputId = id, width = width, height = height)
   tagList(
     tree,
@@ -139,10 +138,8 @@ treeNavigatorUIAssociate <- function(id, width = "100%", height = "auto") {
 treeNavigatorServer <- function(
     id, rootFolder, search = TRUE, wholerow = FALSE, contextMenu = FALSE,
     theme = "proton", pattern = NULL, all.files = FALSE, output_id, ...) {
-  # browser()
   theme <- match.arg(theme, c("default", "proton"))
   moduleServer(id, function(input, output, session) {
-    #browser()
     debug(.le$logger, glue::glue("Initializing treeNavigatorServer module with id: {id}"))
 
     output[[output_id]] <- renderJstree({

@@ -9,6 +9,8 @@
 NULL
 
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
+  iv <- shinyvalidate::InputValidator$new()
+
   observe({
     req(remote, root_dir)
       waiter_hide()
@@ -53,6 +55,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     }
 
     qc_trigger <- reactiveVal(FALSE)
+    reset_triggered <- reactiveVal(FALSE)
+
 
     w_load_items <- Waiter$new(
       id = ns("content"),
@@ -492,7 +496,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     observeEvent(input$reset, {
-      reset_triggered <<- TRUE
       debug(.le$logger, glue::glue("App was reset through the reset button."))
       reset_triggered <<- TRUE
       session$reload()

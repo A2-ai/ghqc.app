@@ -1,15 +1,54 @@
 
-format_issue_body <- function(checklist_type, file_path) {
+format_issue_body <- function(checklist_type, file_path, relevant_files) {
   checklists <- get_checklists()
   file_items <- checklists[[checklist_type]]
   qc_checklist <- format_checklist_items(file_items)
   metadata <- format_metadata(checklist_type, file_path)
+  relevant_files <- format_relevant_files(relevant_files)
   note <- get_prepended_checklist_note()
 
   issue_body_content <- format_body_content(metadata = metadata,
+                                            relevant_files = relevant_files,
                                             checklist_type = checklist_type,
                                             note = note,
                                             qc_checklist = qc_checklist)
+}
+
+format_relevant_files <- function(relevant_files) {
+
+  if (is.null(relevant_files)) {
+    return("")
+  }
+
+  file_sections <- lapply(relevant_files, function(file) {
+    file_name <- ifelse(is.null(file$name) || file$name == "", file$file_path, file$name)
+
+    file_section <- glue::glue(
+      "- **{file_name}**\n   - [`{file$file_path}`](https://github.com)", .trim = FALSE
+    )
+
+    if (!is.null(file$note) && file$note != "") {
+      file_section <- glue::glue(file_section,
+                                 "\n   - {file$note}
+                                 ", .trim = FALSE)
+    }
+    browser()
+    file_section
+  })
+
+  file_sections_col <- glue::glue_collapse(file_sections, sep = "\n&nbsp;\n")
+
+  relevant_files_section <- glue::glue(
+    "## Relevant files
+
+    {file_sections_col}
+
+    "
+  )
+
+  relevant_files_section
+  return(relevant_files_section)
+
 }
 
 format_items <- function(items) {
@@ -180,9 +219,10 @@ get_file_contents_url <- function(file_path, git_sha) {
   file.path(https_url, "blob", substr(git_sha, 1, 6), file_path)
 }
 
-format_body_content <- function(metadata, checklist_type, note, qc_checklist) {
+format_body_content <- function(metadata, checklist_type, note, qc_checklist, relevant_files) {
   glue::glue("## Metadata\n\n
              {metadata}\n\n
+             {relevant_files}
              # {checklist_type}\n\n
              {note}\n\n
              {qc_checklist}")

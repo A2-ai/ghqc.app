@@ -101,7 +101,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
                              )
         )
 
-        #browser()
         # Add relevant files section
         if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
           relevant_files_list <- tags$ul(
@@ -132,7 +131,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
         iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
 
-        # browser()
         # checklist_input <- input[[checklist_input_id]]
         # if (is.null(checklist_input)) {
         #   addClass(checklist_input_id, "input-error")
@@ -220,13 +218,16 @@ extract_file_data <- function(input, items) {
 
       file_data <- list()
       for (name in items) {
+
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
         preview_input_id <- generate_input_id("preview", name)
+        filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
 
         checklist_input_value <- input[[checklist_input_id]]
         assignee_input_value <- input[[assignee_input_id]]
         preview_input_value <- input[[preview_input_id]]
+        filtered_file_selector_value <- input[[filtered_file_selector_id]]
 
         if (!isTruthy(assignee_input_value) || assignee_input_value == "No assignee") {
           assignee_input_value <- NULL
@@ -236,8 +237,36 @@ extract_file_data <- function(input, items) {
           return(NULL)
         }
 
-        file_data <- append(file_data, list(create_file_data_structure(file_name = generate_input_id(name = name), assignees = assignee_input_value, checklist_type = checklist_input_value)))
-      }
+        relevant_files <- input[[filtered_file_selector_id]] %||% character(0)
+
+        if (length(relevant_files) > 0) {
+          relevant_file_data <- lapply(relevant_files, function(file) {
+            name_input_id <- paste0("name_", file)
+            note_input_id <- paste0("note_", file)
+
+            file_name <- input[[name_input_id]] %||% basename(file)
+            file_note <- input[[note_input_id]] %||% ""
+
+            list(
+              file_path = file,
+              name = file_name,
+              note = file_note
+            )
+          })
+        }
+        else {
+           relevant_file_data <- NULL
+         }
+
+        file_data <- append(file_data,
+                            list(create_file_data_structure(
+                              file_name = generate_input_id(name = name),
+                              assignees = assignee_input_value,
+                              checklist_type = checklist_input_value,
+                              relevant_files =  relevant_file_data
+                            ))
+                      )
+      } #for
       debug(.le$logger, "Extracted file data successfully")
       return(file_data)
     },
@@ -418,7 +447,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
       clean_name <- generate_input_id(name = name)
 
-      filtered_file_selector_id <- paste0("filtered_file_selector_", name)
+      filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
 
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
@@ -487,22 +516,21 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
           )
         })
 
-        # Render the right pane: Selected files with input boxes
+        # right pane
         output[[paste0(filtered_file_selector_id, "_selected")]] <- renderUI({
-          selected_files <- input[[filtered_file_selector_id]] %||% character(0)  # Default to empty
+          selected_files <- input[[filtered_file_selector_id]] %||% character(0)
 
           if (length(selected_files) == 0) {
             return(tags$div("No files selected.", style = "font-size: 14px; color: #999;"))
           }
 
-          # Generate input boxes for each selected file
+          # input boxes
           do.call(tagList, lapply(selected_files, function(file) {
             tags$div(
               style = "margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;",
-              #tags$strong(file),  # File name
               tags$div(
                 style = "padding-bottom: 7px; font-weight: bold; word-wrap: break-word; word-break: break-word; white-space: normal; overflow-wrap: break-word;",
-                file  # File name (will wrap if too long)
+                file
               ),
               textInput(
                 ns(paste0("name_", file)),
