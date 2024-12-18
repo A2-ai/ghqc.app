@@ -544,6 +544,13 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
             footer = NULL,
             easyClose = TRUE,
             fluidRow(
+              column(
+                width = 12,
+                div(
+                  "Select files related to the QC file that the QCer may want to reference during review: e.g. specification files, sourced files, etc.",
+                  style = "margin-bottom: 10px; color: #333;"
+                )
+              ),
               column(6, uiOutput(ns(filtered_file_selector_id))),  # Left pane
               column(6, uiOutput(ns(paste0(filtered_file_selector_id, "_selected"))))  # Right pane
             )
