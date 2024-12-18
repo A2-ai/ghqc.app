@@ -369,7 +369,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
                       files = qc_items()
           )
 
-          create_checklists("test.yaml")
+          create_checklists("test.yaml", remote)
           removeClass("create_qc_items", "enabled-btn")
           addClass("create_qc_items", "disabled-btn")
         },
