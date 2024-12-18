@@ -186,13 +186,6 @@ isolate_rendered_list <- function(input, session, items, iv) {
       selected = isolate(input[[checklist_input_id]])
     )
 
-    #HERE
-    # browser()
-    # if (is.null(input[[checklist_input_id]])) {
-    #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
-    #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-    # }
-
   }
 }
 

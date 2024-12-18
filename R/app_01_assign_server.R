@@ -226,9 +226,22 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     relevant_files <<- reactiveVal(list())
 
+    output$validation_message <- renderUI({
+      validate(
+        need(length(selected_items()) > 0,
+             HTML("<div style='color: #d9534f;'>No files selected</div>")
+        )
+      )
+    })
+
     output$main_panel_dynamic <- renderUI({
       req(selected_items())
-        validate(need(length(selected_items()) > 0, "No files selected"))
+        #validate(need(length(selected_items()) > 0, HTML("<div style='color: #d9534f;'>No files selected</div>")))
+        if (length(selected_items()) == 0) {
+          # Render a styled message if no items are selected
+          return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
+        }
+
         w_load_items$show()
 
         log_string <- glue::glue_collapse(selected_items(), sep = ", ")
@@ -260,7 +273,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     observe({
       req(input$adjust_grid_finished) # retrieve msg through js when adjust grid is done
       req(selected_items())
-      browser()
+      # browser()
       items <- selected_items()
       for (name in items) {
         checklist_input_id <- generate_input_id("checklist", name)
