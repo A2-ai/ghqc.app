@@ -236,9 +236,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     output$main_panel_dynamic <- renderUI({
       req(selected_items())
-        #validate(need(length(selected_items()) > 0, HTML("<div style='color: #d9534f;'>No files selected</div>")))
         if (length(selected_items()) == 0) {
-          # Render a styled message if no items are selected
           return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
         }
 

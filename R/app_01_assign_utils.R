@@ -126,12 +126,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
         } # if relevant files
 
-        # browser()
-        # if (is.null(input[[checklist_input_id]])) {
-        #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
-        #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-        # }
-
       }
 
 
@@ -425,6 +419,8 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
 associate_relevant_files_button_event <- function(input, output, name, ns, root_dir) {
   tryCatch(
     {
+      file_meta <- reactiveVal(list())
+
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
       clean_name <- generate_input_id(name = name)
 
@@ -442,10 +438,35 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         filter_files(root_dir)
       })
 
-      observeEvent(input$add_files, ignoreInit = FALSE, {
-        debug <- ns(filtered_file_selector_id)
+      observeEvent(input[[filtered_file_selector_id]], {
+        # this stops name and note from disappearing when relevant files are added/subtracted
+        req(input[[filtered_file_selector_id]])
+        selected_files <- input[[filtered_file_selector_id]] %||% character(0)
 
+        lapply(selected_files, function(file) {
+            current_meta <- file_meta()
+            current_meta[[file]]$name <- input[[paste0("name_", file)]]
+            current_meta[[file]]$note <- input[[paste0("note_", file)]]
+            file_meta(current_meta)
+        })
+      })
+
+      observeEvent(input$add_files, ignoreInit = FALSE, {
         selected_files <- input[[filtered_file_selector_id]]
+        current_meta <- file_meta()
+
+        # Update metadata for selected files
+        for (file in selected_files) {
+          if (is.null(current_meta[[file]])) {
+            current_meta[[file]] <- list(name = basename(file), note = "")
+          }
+        }
+
+        # Remove metadata for files no longer selected
+        current_meta <- current_meta[selected_files]
+
+        file_meta(current_meta)
+
         valid_files <- intersect(selected_files, filtered_files())
 
         updated_relevant_files <- relevant_files()
@@ -500,13 +521,19 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         # right pane
         output[[paste0(filtered_file_selector_id, "_selected")]] <- renderUI({
           selected_files <- input[[filtered_file_selector_id]] %||% character(0)
+          current_meta <- file_meta()
 
           if (length(selected_files) == 0) {
             return(tags$div("No files selected.", style = "font-size: 14px; color: #999;"))
           }
 
           # input boxes
-          do.call(tagList, lapply(selected_files, function(file) {
+          ui_elements <- lapply(selected_files, function(file) {
+            meta <- current_meta[[file]] %||% list(name = basename(file), note = "")
+            #browser()
+            # note_value <- input[[paste0("note_", file)]]
+            # name_value <- input[[paste0("name_", file)]] %||% basename(file)
+
             tags$div(
               style = "margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;",
               tags$div(
@@ -516,18 +543,20 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
               textInput(
                 ns(paste0("name_", file)),
                 label = "Name",
-                value = basename(file),
+                value = meta$name,
                 placeholder = "(optional)"
               ),
               textAreaInput(
                 ns(paste0("note_", file)),
                 label = "Note",
-                value = "",
+                value = meta$note,
                 rows = 2,
                 placeholder = "(optional)"
                 )
             )
-          }))
+          })
+
+          do.call(tagList, ui_elements)
         })
 
         showModal(
@@ -557,7 +586,6 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
           )
         )
 
-        #iv$enable()
 
       }, ignoreInit = TRUE)
 
