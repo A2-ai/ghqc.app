@@ -90,6 +90,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       }
     })
 
+
+
     output$sidebar <- renderUI({
       tagList(
         radioButtons(ns("milestone_toggle"), "Milestone State", choices = c("New", "Existing"), inline = TRUE),
@@ -147,6 +149,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         iv$add_rule("milestone_existing", shinyvalidate::sv_required())
       }
     })
+
 
     observe({
       req(org, members)
@@ -221,8 +224,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     })
 
-    # TODO: need to now link this to some portion of the issue. links are absolute path,
-    # feel free to clean
     relevant_files <<- reactiveVal(list())
 
     output$main_panel_dynamic <- renderUI({
@@ -258,6 +259,15 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     observe({
       req(input$adjust_grid_finished) # retrieve msg through js when adjust grid is done
+      req(selected_items())
+      browser()
+      items <- selected_items()
+      for (name in items) {
+        checklist_input_id <- generate_input_id("checklist", name)
+        debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
+        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+      }
+
       w_load_items$hide()
     })
 
@@ -519,29 +529,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
       }
     })
 
-    # observe({
-    #   req(selected_items)
-    #   items <- selected_items()
-    #   for (name in items) {
-    #     tryCatch(
-    #       {
-    #         #create_checklist_preview_event(input, iv, ns, name = name, checklists)
-    #         checklist_input_id <- generate_input_id("checklist", name)
-    #
-    #         if (checklist_input == "") {
-    #           addClass(checklist_input_id, "input-error")
-    #         } else {
-    #           removeClass(checklist_input_id, "input-error")
-    #         }
-    #
-    #       },
-    #       error = function(e) {
-    #         error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
-    #         rlang::abort(e$message)
-    #       }
-    #     )
-    #   }
-    # })
+
 
     iv$enable()
     return(input)

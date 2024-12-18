@@ -117,32 +117,21 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           )
 
           output[[paste0("relevant_files_section_", name)]] <- renderUI({
-            relevant_files_section
+            isolate({
+              relevant_files_section
+            })
           })
 
           ul <- tagAppendChild(ul, uiOutput(ns(paste0("relevant_files_section_", name))))
-          # ul <- tagAppendChild(ul, div(
-          #   class = "relevant-files-section",
-          #   style = "padding-bottom: 15px;",
-          #   tags$strong("Relevant files:"), relevant_files_list)
-          #   )
 
         } # if relevant files
 
-        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+        # browser()
+        # if (is.null(input[[checklist_input_id]])) {
+        #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
+        #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+        # }
 
-        # checklist_input <- input[[checklist_input_id]]
-        # if (is.null(checklist_input)) {
-        #   addClass(checklist_input_id, "input-error")
-        #   #iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-        # }
-        # else {
-        #   if (checklist_input == "") {
-        #     addClass(checklist_input_id, "input-error")
-        #   } else {
-        #     removeClass(checklist_input_id, "input-error")
-        #   }
-        # }
       }
 
 
@@ -197,7 +186,13 @@ isolate_rendered_list <- function(input, session, items, iv) {
       selected = isolate(input[[checklist_input_id]])
     )
 
-    iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+    #HERE
+    # browser()
+    # if (is.null(input[[checklist_input_id]])) {
+    #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
+    #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+    # }
+
   }
 }
 
@@ -371,18 +366,11 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
       preview_input_id <- generate_input_id("preview", name)
       checklist_input_id <- generate_input_id("checklist", name)
 
-      if (is.null(input[[checklist_input_id]])) {
-        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-      }
+      # if (is.null(input[[checklist_input_id]])) {
+      #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
+      #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+      # }
 
-      observeEvent(input[[checklist_input_id]], {
-        checklist_input <- input[[checklist_input_id]]
-        if (checklist_input == "") {
-          addClass(checklist_input_id, "input-error")
-        } else {
-          removeClass(checklist_input_id, "input-error")
-        }
-      })
 
       observeEvent(input[[preview_input_id]], {
         selected_checklist <- input[[checklist_input_id]]
