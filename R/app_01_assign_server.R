@@ -38,8 +38,9 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
   )
 
   moduleServer(id, function(input, output, session) {
+    reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
-      if (!reset_triggered) {
+      if (!isTRUE(isolate(reset_triggered()))) {
         stopApp()
       }
     })
@@ -55,8 +56,6 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     }
 
     qc_trigger <- reactiveVal(FALSE)
-    reset_triggered <- reactiveVal(FALSE)
-
 
     w_load_items <- Waiter$new(
       id = ns("content"),
@@ -518,7 +517,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
-      reset_triggered <<- TRUE
+      reset_triggered(TRUE)
       session$reload()
     })
 
