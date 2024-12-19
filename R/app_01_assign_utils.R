@@ -101,7 +101,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
                              )
         )
 
-        # Add relevant files section
+        # relevant files section
         if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
           relevant_files_list <- tags$ul(
             lapply(relevant_files[[name]], function(file) {
@@ -125,9 +125,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           ul <- tagAppendChild(ul, uiOutput(ns(paste0("relevant_files_section_", name))))
 
         } # if relevant files
-
       }
-
 
       debug(.le$logger, "Rendered selected list successfully")
       ul
@@ -353,12 +351,6 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
       preview_input_id <- generate_input_id("preview", name)
       checklist_input_id <- generate_input_id("checklist", name)
 
-      # if (is.null(input[[checklist_input_id]])) {
-      #   debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
-      #   iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
-      # }
-
-
       observeEvent(input[[preview_input_id]], {
         selected_checklist <- input[[checklist_input_id]]
 
@@ -419,13 +411,14 @@ create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
 associate_relevant_files_button_event <- function(input, output, name, ns, root_dir) {
   tryCatch(
     {
+      # init metadata
       file_meta <- reactiveVal(list())
 
       associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
+      filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
       clean_name <- generate_input_id(name = name)
 
-      filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
-
+      # make paths relative, remove renv, remove selected file itself
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
         filtered_files <- all_files[!grepl("renv", all_files)]
@@ -438,11 +431,12 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         filter_files(root_dir)
       })
 
+      # when a relevant file is added/subtracted
       observeEvent(input[[filtered_file_selector_id]], {
-        # this stops name and note from disappearing when relevant files are added/subtracted
         req(input[[filtered_file_selector_id]])
         selected_files <- input[[filtered_file_selector_id]] %||% character(0)
 
+        # saving metadata stops name and note from disappearing when relevant files are added/subtracted
         lapply(selected_files, function(file) {
             current_meta <- file_meta()
             current_meta[[file]]$name <- input[[paste0("name_", file)]]
@@ -451,48 +445,42 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         })
       })
 
+      # click "Associate files"
       observeEvent(input$add_files, ignoreInit = FALSE, {
         selected_files <- input[[filtered_file_selector_id]]
+
+        # update current metadata
         current_meta <- file_meta()
+        current_meta <- lapply(selected_files, function(file) {
+          current_meta[[file]]$name <- input[[paste0("name_", file)]]
+          current_meta[[file]]$note <- input[[paste0("note_", file)]]
+          file_meta(current_meta)
 
-        # Update metadata for selected files
-        for (file in selected_files) {
-          if (is.null(current_meta[[file]])) {
-            current_meta[[file]] <- list(name = basename(file), note = "")
-          }
-        }
-
-        # Remove metadata for files no longer selected
-        current_meta <- current_meta[selected_files]
-
+          current_meta[[file]]
+        })
+        names(current_meta) <- selected_files
+        current_meta <- current_meta[selected_files] # remove metadata forunselected files
         file_meta(current_meta)
 
         valid_files <- intersect(selected_files, filtered_files())
-
         updated_relevant_files <- relevant_files()
 
         if (is.null(valid_files)) {
           updated_relevant_files[[name]] <- NULL
         }
-
         else {
           updated_relevant_files[[name]] <- selected_files
         }
-
         relevant_files(updated_relevant_files)
 
-
         debug(.le$logger, glue::glue("Files associated for {name}: {paste({selected_files}, collapse = ', ')}"))
-
         removeModal()
       })
 
-
-
       observeEvent(input[[associate_relevant_files_id]], {
-        removeModal()
+        removeModal() # avoid modal stuttering
 
-        # Render the left pane: File selection
+        # left pane
         output[[filtered_file_selector_id]] <- renderUI({
           current_files <- relevant_files()[[name]]
 
@@ -516,7 +504,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
             selected = if (length(valid_selected_files) == 0) "" else valid_selected_files,
             multiple = TRUE,
           )
-        })
+        }) # left pane
 
         # right pane
         output[[paste0(filtered_file_selector_id, "_selected")]] <- renderUI({
@@ -529,10 +517,9 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
 
           # input boxes
           ui_elements <- lapply(selected_files, function(file) {
+            # pre-fill with meta if set previously
+            # if meta is null, make name the basename and note blank
             meta <- current_meta[[file]] %||% list(name = basename(file), note = "")
-            #browser()
-            # note_value <- input[[paste0("note_", file)]]
-            # name_value <- input[[paste0("name_", file)]] %||% basename(file)
 
             tags$div(
               style = "margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;",
@@ -554,10 +541,9 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
                 placeholder = "(optional)"
                 )
             )
-          })
-
+          }) # ui_elements
           do.call(tagList, ui_elements)
-        })
+        }) # right pane
 
         showModal(
           modalDialog(
@@ -573,6 +559,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
             footer = NULL,
             easyClose = TRUE,
             fluidRow(
+              # context message about relevant files
               column(
                 width = 12,
                 div(
@@ -580,13 +567,13 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
                   style = "margin-bottom: 10px; color: #333;"
                 )
               ),
-              column(6, uiOutput(ns(filtered_file_selector_id))),  # Left pane
-              column(6, uiOutput(ns(paste0(filtered_file_selector_id, "_selected"))))  # Right pane
+              # left pane
+              column(6, uiOutput(ns(filtered_file_selector_id))),
+              # right pane
+              column(6, uiOutput(ns(paste0(filtered_file_selector_id, "_selected"))))
             )
           )
         )
-
-
       }, ignoreInit = TRUE)
 
       debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
