@@ -563,7 +563,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
               column(
                 width = 12,
                 div(
-                  "Select files related to the QC file that the QCer may want to reference during review: e.g. specification files, sourced files, etc.",
+                  "Select files related to the QC file that the QCer may want to reference during review: e.g. data files, specification files, sourced files, etc.",
                   style = "margin-bottom: 10px; color: #333;"
                 )
               ),
