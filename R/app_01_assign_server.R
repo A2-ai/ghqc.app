@@ -9,12 +9,6 @@
 NULL
 
 ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
-  session$onSessionEnded(function() {
-    if (!reset_triggered) {
-      stopApp()
-    }
-  })
-
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -26,7 +20,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     req(root_dir)
     if (getwd() != root_dir) {
       setwd(root_dir)
-      info(.le$logger, glue::glue("Directory changed to project root: {root_dir)}"))
+      info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
     }
   })
 
@@ -39,10 +33,17 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     rootFolder = root_dir_reactive,
     search = FALSE,
     pattern = exclude_patterns(),
-    all.files = FALSE
+    all.files = FALSE,
+    output_id = "treeNavigator"
   )
 
   moduleServer(id, function(input, output, session) {
+    session$onSessionEnded(function() {
+      if (!reset_triggered) {
+        stopApp()
+      }
+    })
+
     ns <- session$ns
 
     if (length(milestone_list) == 0) {
@@ -54,6 +55,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     }
 
     qc_trigger <- reactiveVal(FALSE)
+    reset_triggered <- reactiveVal(FALSE)
+
 
     w_load_items <- Waiter$new(
       id = ns("content"),
@@ -86,6 +89,8 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         rv_milestone(input$milestone_existing)
       }
     })
+
+
 
     output$sidebar <- renderUI({
       tagList(
@@ -144,6 +149,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         iv$add_rule("milestone_existing", shinyvalidate::sv_required())
       }
     })
+
 
     observe({
       req(org, members)
@@ -218,26 +224,66 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     })
 
-    output$main_panel_dynamic <- renderUI({
-      validate(need(length(selected_items()) > 0, "No files selected"))
-      w_load_items$show()
+    relevant_files <<- reactiveVal(list())
 
-      log_string <- glue::glue_collapse(selected_items(), sep = ", ")
-      debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
-
-      list <- render_selected_list(input, ns, iv, items = selected_items(), checklist_choices = checklists)
-      isolate_rendered_list(input, session, selected_items())
-
-      session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
-      return(list)
+    output$validation_message <- renderUI({
+      validate(
+        need(length(selected_items()) > 0,
+             HTML("<div style='color: #d9534f;'>No files selected</div>")
+        )
+      )
     })
+
+    output$main_panel_dynamic <- renderUI({
+      req(selected_items())
+        if (length(selected_items()) == 0) {
+          return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
+        }
+
+        w_load_items$show()
+
+        log_string <- glue::glue_collapse(selected_items(), sep = ", ")
+        debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
+
+        relevant_files_list <- tryCatch({
+          relevant_files()
+        }, error = function(e){
+          NULL
+        })
+
+        list <- render_selected_list(
+          input = input,
+          ns = ns,
+          iv = iv,
+          items = selected_items(),
+          checklist_choices = checklists,
+          relevant_files = relevant_files_list,
+          output = output
+        )
+
+        isolate_rendered_list(input, session, selected_items(), iv)
+
+        session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
+        return(list)
+    })
+
 
     observe({
       req(input$adjust_grid_finished) # retrieve msg through js when adjust grid is done
+      req(selected_items())
+      # browser()
+      items <- selected_items()
+      for (name in items) {
+        checklist_input_id <- generate_input_id("checklist", name)
+        debug(.le$logger, glue::glue("Adding validation rule for {checklist_input_id}"))
+        iv$add_rule(checklist_input_id, shinyvalidate::sv_required())
+      }
+
       w_load_items$hide()
     })
 
     observeEvent(selected_items(), {
+      req(checklists)
       items <- selected_items()
       for (name in items) {
         log_string <- glue::glue_collapse(items, sep = ", ")
@@ -245,6 +291,10 @@ return "<div><strong>" + escape(item.username) + "</div>"
         tryCatch(
           {
             create_button_preview_event(input, name = name)
+            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir)
+            create_checklist_preview_event(input = input, iv = iv, ns = ns, name = name, checklists = checklists)
+
+
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
@@ -340,7 +390,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
                       files = qc_items()
           )
 
-          create_checklists("test.yaml")
+          create_checklists("test.yaml", remote)
           removeClass("create_qc_items", "enabled-btn")
           addClass("create_qc_items", "disabled-btn")
         },
@@ -472,7 +522,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
       session$reload()
     })
 
-    #HERE
     observeEvent(selected_items(), {
       req(checklists)
       items <- selected_items()
@@ -490,6 +539,8 @@ return "<div><strong>" + escape(item.username) + "</div>"
         )
       }
     })
+
+
 
     iv$enable()
     return(input)
