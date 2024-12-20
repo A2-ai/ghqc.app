@@ -191,7 +191,7 @@ isolate_rendered_list <- function(input, session, items, iv) {
 #' @return A list of structured data for each file, including the file name, assignees, and checklist type.
 #'
 #' @noRd
-extract_file_data <- function(input, items) {
+extract_file_data <- function(input, items, relevant_files_list) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Extracting file data for items: {paste(items, collapse = ', ')}"))
@@ -207,7 +207,8 @@ extract_file_data <- function(input, items) {
         checklist_input_value <- input[[checklist_input_id]]
         assignee_input_value <- input[[assignee_input_id]]
         preview_input_value <- input[[preview_input_id]]
-        filtered_file_selector_value <- input[[filtered_file_selector_id]]
+        # passing in reactive instead to preserve order of selection
+        #filtered_file_selector_value <- input[[filtered_file_selector_id]]
 
         if (!isTruthy(assignee_input_value) || assignee_input_value == "No assignee") {
           assignee_input_value <- NULL
@@ -217,7 +218,8 @@ extract_file_data <- function(input, items) {
           return(NULL)
         }
 
-        relevant_files <- input[[filtered_file_selector_id]] %||% character(0)
+        #relevant_files <- input[[filtered_file_selector_id]] %||% character(0)
+        relevant_files <- relevant_files_list[[name]]
 
         if (length(relevant_files) > 0) {
           relevant_file_data <- lapply(relevant_files, function(file) {
@@ -437,12 +439,12 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         selected_files <- input[[filtered_file_selector_id]] %||% character(0)
 
         # saving metadata stops name and note from disappearing when relevant files are added/subtracted
+        current_meta <- file_meta()
         lapply(selected_files, function(file) {
-            current_meta <- file_meta()
             current_meta[[file]]$name <- input[[paste0("name_", file)]]
             current_meta[[file]]$note <- input[[paste0("note_", file)]]
-            file_meta(current_meta)
         })
+        file_meta(current_meta)
       })
 
       # click "Associate files"
@@ -454,12 +456,10 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
         current_meta <- lapply(selected_files, function(file) {
           current_meta[[file]]$name <- input[[paste0("name_", file)]]
           current_meta[[file]]$note <- input[[paste0("note_", file)]]
-          file_meta(current_meta)
-
           current_meta[[file]]
         })
         names(current_meta) <- selected_files
-        current_meta <- current_meta[selected_files] # remove metadata forunselected files
+        #current_meta <- current_meta[selected_files] # remove metadata forunselected files
         file_meta(current_meta)
 
         valid_files <- intersect(selected_files, filtered_files())

@@ -202,7 +202,12 @@ return "<div><strong>" + escape(item.username) + "</div>"
       req(root_dir, selected_items())
       tryCatch(
         {
-          file_data <- extract_file_data(input, selected_items())
+          relevant_files_list <- tryCatch({
+            relevant_files()
+          }, error = function(e){
+            NULL
+          })
+          file_data <- extract_file_data(input, selected_items(), relevant_files_list)
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{e$message}"))
@@ -270,7 +275,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
     observe({
       req(input$adjust_grid_finished) # retrieve msg through js when adjust grid is done
       req(selected_items())
-      # browser()
       items <- selected_items()
       for (name in items) {
         checklist_input_id <- generate_input_id("checklist", name)
@@ -489,7 +493,13 @@ return "<div><strong>" + escape(item.username) + "</div>"
       addClass("create_qc_items", "disabled-btn")
 
       if (length(selected_items()) > 0 && isTruthy(rv_milestone())) {
-        file_data <- extract_file_data(input, selected_items())
+        relevant_files_list <- tryCatch({
+          relevant_files()
+        }, error = function(e){
+          NULL
+        })
+
+        file_data <- extract_file_data(input, selected_items(), relevant_files_list)
         if (!is.null(file_data)) {
           debug(.le$logger, glue::glue("create_qc_items buttons are activated because there are {length(selected_items())} selected items and milestone is named {rv_milestone()}"))
           removeClass("create_qc_items", "disabled-btn")
