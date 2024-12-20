@@ -33,15 +33,21 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url) {
       "- **{file_name}**\n   - [`{file$file_path}`]({file_contents_url})", .trim = FALSE
     )
 
+    #browser()
     if (!is.null(file$note) && file$note != "") {
+      modified_note <- stringr::str_replace_all(file$note, "\\n", "\\\n      > ")
       file_section <- glue::glue(file_section,
-                                 "\n   - {file$note}", .trim = FALSE)
+                                 "\n      > {modified_note}", .trim = FALSE)
+    }
+    else {
+      file_section <- glue::glue(file_section,
+                                 "\n&nbsp;", .trim = FALSE)
     }
 
     file_section
   })
 
-  file_sections_col <- glue::glue_collapse(file_sections, sep = "\n&nbsp;\n")
+  file_sections_col <- glue::glue_collapse(file_sections, sep = "\n")
 
   relevant_files_section <- glue::glue(
     "## Relevant files
