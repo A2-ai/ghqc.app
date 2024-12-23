@@ -1,5 +1,5 @@
 
-format_issue_body <- function(checklist_type, file_path, relevant_files, owner, repo, remote) {
+format_issue_body <- function(checklist_type, file_path, relevant_files, owner, repo, remote, file_names) {
   remote_url <- parse_remote_url(remote$url)
 
   checklists <- get_checklists()
@@ -8,7 +8,7 @@ format_issue_body <- function(checklist_type, file_path, relevant_files, owner, 
 
   metadata <- format_metadata(checklist_type, file_path, owner, repo, remote_url)
 
-  relevant_files <- format_relevant_files(relevant_files, owner, repo, remote_url)
+  relevant_files <- format_relevant_files(relevant_files, owner, repo, remote_url, file_names)
 
   note <- get_prepended_checklist_note()
 
@@ -19,12 +19,14 @@ format_issue_body <- function(checklist_type, file_path, relevant_files, owner, 
                                             qc_checklist = qc_checklist)
 }
 
-format_relevant_files <- function(relevant_files, owner, repo, remote_url) {
+format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_names) {
   if (is.null(relevant_files)) {
     return("")
   }
 
   file_sections <- lapply(relevant_files, function(file) {
+    qced_separately <- ifelse(file$name %in% file_names, TRUE, FALSE)
+
     file_name <- ifelse(is.null(file$name) || file$name == "", file$file_path, file$name)
     branch <- gert::git_branch()
     file_contents_url <- file.path(remote_url, owner, repo, "blob", branch, file$file_path)
@@ -32,6 +34,11 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url) {
     file_section <- glue::glue(
       "- **{file_name}**\n   - [`{file$file_path}`]({file_contents_url})", .trim = FALSE
     )
+
+    if(qced_separately) {
+      file_section <- glue::glue(file_section,
+                                 "\n   - QCed separately in another issue in the milestone")
+    }
 
     if (!is.null(file$note) && file$note != "") {
       modified_note <- stringr::str_replace_all(file$note, "\\n", "\\\n      > ")
