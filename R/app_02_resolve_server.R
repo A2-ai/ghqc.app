@@ -72,7 +72,6 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
       get_commits_df(
         issue_number = issue_parts()$issue_number,
-        file_path = issue_parts()$issue_title,
         owner = org,
         repo = repo
       )
