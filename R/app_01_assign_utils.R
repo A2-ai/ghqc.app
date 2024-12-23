@@ -40,7 +40,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 
       checklist_choices <- stats::setNames(names(checklist_choices), names(checklist_choices))
       ul <- div(class = paste("grid-container", "depth", depth, sep = "-")) # if i remove depth, it won't take styles anymore
-      #browser()
       for (name in items) {
         # no css only way to set line breaks on certain chr; used <wbr> to designate non-alphanumeric values as wbr (https://stackoverflow.com/a/24489931)
         modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", generate_input_id(name = name))
@@ -116,17 +115,9 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
             relevant_files_list
           )
 
-          output[[paste0("relevant_files_section_", name)]] <- renderUI({
-            isolate({
-              relevant_files_section
-            })
-          })
-
-          ul <- tagAppendChild(ul, uiOutput(ns(paste0("relevant_files_section_", name))))
-
+          ul <- tagAppendChild(ul, relevant_files_section)
         } # if relevant files
       } # for
-
 
       debug(.le$logger, "Rendered selected list successfully")
       ul

@@ -89,8 +89,6 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       }
     })
 
-
-
     output$sidebar <- renderUI({
       tagList(
         radioButtons(ns("milestone_toggle"), "Milestone State", choices = c("New", "Existing"), inline = TRUE),
