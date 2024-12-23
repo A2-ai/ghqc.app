@@ -119,16 +119,16 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
             width = "100%"
           )
         ),
-        selectizeInput(
-          ns("assignees"),
-          "Select Assignee(s)",
-          choices = "No assignee",
-          multiple = TRUE,
-          width = "100%",
-          options = list(
-            closeAfterSelect = TRUE
-          )
-        ),
+        # selectizeInput(
+        #   ns("assignees"),
+        #   "Select Assignee(s)",
+        #   choices = "No assignee",
+        #   multiple = TRUE,
+        #   width = "100%",
+        #   options = list(
+        #     closeAfterSelect = TRUE
+        #   )
+        # ),
         div(
           style = "font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; font-weight: bold;",
           "Select File(s) for QC"
@@ -174,7 +174,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
 }'
           )
         )
-      )
+      ) # updateSelectizeInput
     })
 
     observe({
@@ -237,7 +237,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     output$main_panel_dynamic <- renderUI({
-      req(selected_items())
+      req(selected_items(), members)
         if (length(selected_items()) == 0) {
           return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
         }
@@ -260,10 +260,11 @@ return "<div><strong>" + escape(item.username) + "</div>"
           items = selected_items(),
           checklist_choices = checklists,
           relevant_files = relevant_files_list,
-          output = output
+          output = output,
+          members = members
         )
 
-        isolate_rendered_list(input, session, selected_items(), iv)
+        isolate_rendered_list(input, session, selected_items(), iv, members)
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)

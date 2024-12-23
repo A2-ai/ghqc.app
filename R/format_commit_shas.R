@@ -8,9 +8,10 @@
 # format in table
 
 get_commits_df <- function(issue_number, owner, repo) {
+  browser()
   init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
 
-  all_commits <- gert::git_log()
+  all_commits <- gert::git_log(ref = init_qc_commit)
 
   cutoff_position <- which(all_commits$commit == init_qc_commit)
 

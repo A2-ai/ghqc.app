@@ -33,7 +33,7 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output) {
+render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output, members) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
@@ -50,13 +50,61 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         preview_input_id <- generate_input_id("preview", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
+        browser()
+        # assignee_input <- selectizeInput(
+        #   ns(assignee_input_id),
+        #   label = NULL,
+        #   choices = c("No assignee"),
+        #   width = "100%",
+        #   options = list(placeholder = "No assignee")
+        # )
+
         assignee_input <- selectizeInput(
+          #ns("assignees"),
           ns(assignee_input_id),
           label = NULL,
-          choices = c("No assignee", input$assignees),
+          choices = c("No assignee", members),
+          multiple = TRUE,
           width = "100%",
-          options = list(placeholder = "No assignee")
+          options = list(
+            closeAfterSelect = TRUE,
+            placeholder = "No assignee",
+            valueField = "username",
+            labelField = "username",
+            searchField = c("username", paste0("name")),
+            render = I(
+              '{ option: function(item, escape) {
+if (item.name !== null) {
+return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
+return "<div><strong>" + escape(item.username) + "</div>"
+}
+}
+}'
+          )
         )
+        )
+
+#         updateSelectizeInput(
+#           session,
+#           "assignees",
+#           server = TRUE,
+#           choices = members,
+#           options = list(
+#             placeholder = "(optional)",
+#             valueField = "username",
+#             labelField = "username",
+#             searchField = c("username", paste0("name")),
+#             render = I(
+#               '{ option: function(item, escape) {
+# if (item.name !== null) {
+# return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
+# return "<div><strong>" + escape(item.username) + "</div>"
+# }
+# }
+# }'
+#             )
+#           ) # list
+#         ) # updateSelectizeInput
 
         checklist_input <- selectizeInput(
           ns(checklist_input_id),
@@ -149,7 +197,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 #' @return None. The function performs operations on UI elements and does not return
 #'   any value.
 #' @noRd
-isolate_rendered_list <- function(input, session, items, iv) {
+isolate_rendered_list <- function(input, session, items, iv, members) {
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 
@@ -157,12 +205,35 @@ isolate_rendered_list <- function(input, session, items, iv) {
 
     checklist_input_id <- generate_input_id("checklist", name)
 
+    # updateSelectizeInput(
+    #   session,
+    #   assignee_input_id,
+    #   choices = c("No assignee", members),
+    #   selected = isolate(input[[assignee_input_id]])
+    # )
+
     updateSelectizeInput(
       session,
-      assignee_input_id,
-      choices = c("No assignee", input$assignees),
-      selected = isolate(input[[assignee_input_id]])
-    )
+      assignee_input_id,,
+      server = TRUE,
+      choices = c("No assignee", members),
+      selected = isolate(input[[assignee_input_id]]),
+      options = list(
+        placeholder = "(optional)",
+        valueField = "username",
+        labelField = "username",
+        searchField = c("username", paste0("name")),
+        render = I(
+          '{ option: function(item, escape) {
+if (item.name !== null) {
+return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
+return "<div><strong>" + escape(item.username) + "</div>"
+}
+}
+}'
+        )
+      ) # list
+    ) # updateSelectizeInput
 
     updateSelectizeInput(
       session,
