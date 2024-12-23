@@ -2,11 +2,17 @@
 # - organize issues associated with a set of files with milestones
 # - assign a different user to each issue for a given file
 
-create_issue <- function(file, issue_params) {
+create_issue <- function(file, issue_params, remote, file_names) {
   # issue title is the name of the file
   issue_params$title <- file$name
   # body is checklist
-  issue_params$body <- format_issue_body(file$checklist_type, file_path = file$name)
+  issue_params$body <- format_issue_body(checklist_type = file$checklist_type,
+                                         file_path = file$name,
+                                         relevant_files = file$relevant_files,
+                                         owner = issue_params$owner,
+                                         repo = issue_params$repo,
+                                         remote = remote,
+                                         file_names = file_names)
   # if file has assignees item, add to issue_params
   if (!is.null(file$assignees)) {
     issue_params$assignees <- I(file$assignees)
@@ -33,7 +39,7 @@ create_issue <- function(file, issue_params) {
 } # create_issue
 
 #' @importFrom log4r warn error info debug
-create_issues <- function(data) {
+create_issues <- function(data, remote) {
   # create list of issue_params to input to api call -
   # will build up in pieces because some are optional
   issue_params <- list(
@@ -60,13 +66,14 @@ create_issues <- function(data) {
     issue_params$milestone <- get_milestone_number(milestone_params)
   }
 
-
-  file_names <- glue::glue_collapse(purrr::map(data$files, "name"), sep = ", ", last = " and ")
-  debug(.le$logger, glue::glue("Creating {get_checklist_display_name_var(plural = TRUE)} for files: {file_names}"))
+  #browser()
+  file_names <- purrr::map(data$files, "name")
+  file_names_col <- glue::glue_collapse(file_names, sep = ", ", last = " and ")
+  debug(.le$logger, glue::glue("Creating {get_checklist_display_name_var(plural = TRUE)} for files: {file_names_col}"))
 
   # create an issue for each file
   lapply(data$files, function(file) {
-    issue <- create_issue(file, issue_params)
+    issue <- create_issue(file, issue_params, remote, file_names)
     debug(.le$logger, glue::glue("Created {get_checklist_display_name_var()} for file: {file$name}"))
     if (!is.null(data$milestone)) {
       debug(.le$logger, glue::glue("Milestone: {data$milestone}"))
@@ -77,7 +84,7 @@ create_issues <- function(data) {
     debug(.le$logger, glue::glue("Issue number: {issue$number}"))
     return(issue)
   })
-  info(.le$logger, glue::glue("Created {get_checklist_display_name_var()}(s) for file(s): {file_names}"))
+  info(.le$logger, glue::glue("Created {get_checklist_display_name_var()}(s) for file(s): {file_names_col}"))
 } # create_issues
 
 #' @importFrom gh gh
@@ -106,10 +113,10 @@ create_ghqc_label <- function(data) {
 
 # test with "test_yamls/checklist.yaml"
 #' @importFrom log4r warn error info debug
-create_checklists <- function(yaml_path) {
+create_checklists <- function(yaml_path, remote) {
   data <- read_and_validate_yaml(yaml_path)
   if (!ghqc_label_exists(data)) labels <- create_ghqc_label(data)
-  create_issues(data)
+  create_issues(data, remote)
 }
 
 
