@@ -66,9 +66,10 @@ create_issues <- function(data, remote) {
     issue_params$milestone <- get_milestone_number(milestone_params)
   }
 
-
-  file_names <- glue::glue_collapse(purrr::map(data$files, "name"), sep = ", ", last = " and ")
-  debug(.le$logger, glue::glue("Creating {get_checklist_display_name_var(plural = TRUE)} for files: {file_names}"))
+  #browser()
+  file_names <- purrr::map(data$files, "name")
+  file_names_col <- glue::glue_collapse(file_names, sep = ", ", last = " and ")
+  debug(.le$logger, glue::glue("Creating {get_checklist_display_name_var(plural = TRUE)} for files: {file_names_col}"))
 
   # create an issue for each file
   lapply(data$files, function(file) {
@@ -83,7 +84,7 @@ create_issues <- function(data, remote) {
     debug(.le$logger, glue::glue("Issue number: {issue$number}"))
     return(issue)
   })
-  info(.le$logger, glue::glue("Created {get_checklist_display_name_var()}(s) for file(s): {file_names}"))
+  info(.le$logger, glue::glue("Created {get_checklist_display_name_var()}(s) for file(s): {file_names_col}"))
 } # create_issues
 
 #' @importFrom gh gh

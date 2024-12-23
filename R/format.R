@@ -25,7 +25,7 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
   }
 
   file_sections <- lapply(relevant_files, function(file) {
-    qced_separately <- ifelse(file$name %in% file_names, TRUE, FALSE)
+    qced_separately <- ifelse(file$file_path %in% file_names, TRUE, FALSE)
 
     file_name <- ifelse(is.null(file$name) || file$name == "", file$file_path, file$name)
     branch <- gert::git_branch()
@@ -37,7 +37,8 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
 
     if(qced_separately) {
       file_section <- glue::glue(file_section,
-                                 "\n   - QCed separately in another issue in the milestone")
+                                 "\n   - QCed separately in another Issue",  .trim = FALSE
+                                 )
     }
 
     if (!is.null(file$note) && file$note != "") {
@@ -53,7 +54,10 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
     file_section
   })
 
+  #browser()
   file_sections_col <- glue::glue_collapse(file_sections, sep = "\n")
+  # if ended on a &nbsp, remove it for nicer formatting between sections
+  file_sections_col <- stringr::str_remove(file_sections_col, "&nbsp;$")
 
   relevant_files_section <- glue::glue(
     "## Relevant files
