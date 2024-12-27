@@ -50,61 +50,18 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         preview_input_id <- generate_input_id("preview", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
-        browser()
-        # assignee_input <- selectizeInput(
-        #   ns(assignee_input_id),
-        #   label = NULL,
-        #   choices = c("No assignee"),
-        #   width = "100%",
-        #   options = list(placeholder = "No assignee")
-        # )
 
         assignee_input <- selectizeInput(
-          #ns("assignees"),
           ns(assignee_input_id),
           label = NULL,
-          choices = c("No assignee", members),
-          multiple = TRUE,
+          choices = NULL,
+          #selected = "No assignee", # unname(members$username)
+          multiple = FALSE,
           width = "100%",
           options = list(
-            closeAfterSelect = TRUE,
-            placeholder = "No assignee",
-            valueField = "username",
-            labelField = "username",
-            searchField = c("username", paste0("name")),
-            render = I(
-              '{ option: function(item, escape) {
-if (item.name !== null) {
-return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
-return "<div><strong>" + escape(item.username) + "</div>"
-}
-}
-}'
+            closeAfterSelect = TRUE
           )
         )
-        )
-
-#         updateSelectizeInput(
-#           session,
-#           "assignees",
-#           server = TRUE,
-#           choices = members,
-#           options = list(
-#             placeholder = "(optional)",
-#             valueField = "username",
-#             labelField = "username",
-#             searchField = c("username", paste0("name")),
-#             render = I(
-#               '{ option: function(item, escape) {
-# if (item.name !== null) {
-# return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
-# return "<div><strong>" + escape(item.username) + "</div>"
-# }
-# }
-# }'
-#             )
-#           ) # list
-#         ) # updateSelectizeInput
 
         checklist_input <- selectizeInput(
           ns(checklist_input_id),
@@ -147,6 +104,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
                                div(class = "item-d", preview_input)
                              )
         )
+
 
         # relevant files section
         if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
@@ -205,21 +163,20 @@ isolate_rendered_list <- function(input, session, items, iv, members) {
 
     checklist_input_id <- generate_input_id("checklist", name)
 
-    # updateSelectizeInput(
-    #   session,
-    #   assignee_input_id,
-    #   choices = c("No assignee", members),
-    #   selected = isolate(input[[assignee_input_id]])
-    # )
+
+    members <- rbind(
+      data.frame(username = "No assignee", name = NA, stringsAsFactors = FALSE),
+      members
+    )
 
     updateSelectizeInput(
       session,
-      assignee_input_id,,
+      assignee_input_id,
       server = TRUE,
-      choices = c("No assignee", members),
+      choices = members, # "No assignee",
       selected = isolate(input[[assignee_input_id]]),
       options = list(
-        placeholder = "(optional)",
+        placeholder = "No assignee",
         valueField = "username",
         labelField = "username",
         searchField = c("username", paste0("name")),
