@@ -1,3 +1,7 @@
+# ghqc.app 0.4.0.9005
+
+- fixes large logo bug
+
 # ghqc.app 0.4.0.9004
 
 - removes assignees section in left panel and isolates to right panel
