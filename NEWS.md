@@ -1,18 +1,20 @@
-# ghqc.app 0.3.9004
+# ghqc.app 0.4.0.9004
 
 - removes assignees section in left panel and isolates to right panel
 
-- changes language from Assignee to QCer
+- changes language from "Assignee" to "QCer"
 
-# ghqc.app 0.3.9003
+# ghqc.app 0.4.0.9003
 
 - removes "Preview Comment" button from `ghqc_resolve_app()` and instead displays comment preview in modal pop-up upon selecting "Post Comment".
 
-# ghqc.app 0.3.9002
+- adds "Associate Relevant Files" section modal pop-up
+
+# ghqc.app 0.4.0.9002
 
 - simplifies metadata in ghqc Issues by removing file history and qc type
 
-# ghqc.app 0.3.9001
+# ghqc.app 0.4.0.9001
 
 - ghqc remote ssh compatibility implemented
 
