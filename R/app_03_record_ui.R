@@ -26,7 +26,7 @@ ghqc_record_ui <- function(id) {
           style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
           div(
             style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
-            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img")
+            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;")
           ),
           div("Generate QC Record", style = "white-space: nowrap;")
         ),
