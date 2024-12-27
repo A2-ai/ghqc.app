@@ -1,3 +1,7 @@
+# ghqc.app 0.3.2
+
+- fixes bug in resolve for Issues created in different branches that haven't been fetched locally
+
 # ghqc.app 0.3.1
 
 - fixes a bug in parsing a glue component

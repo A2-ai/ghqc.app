@@ -10,6 +10,14 @@ get_init_qc_commit <- function(owner, repo, issue_number) {
   return(init_commit)
 }
 
+get_branch_from_metadata <- function(owner, repo, issue_number) {
+  issue <- get_issue(owner, repo, issue_number)
+  text <- get_metadata(issue$body)$`git branch`
+  branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
+
+  return(branch)
+}
+
 create_assignees_list <- function(assignees) {
   sapply(assignees, function(assignee) glue::glue("@{assignee$login}"))
 }
