@@ -33,7 +33,7 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output) {
+render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output, members) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
@@ -50,12 +50,16 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         preview_input_id <- generate_input_id("preview", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
+
         assignee_input <- selectizeInput(
           ns(assignee_input_id),
           label = NULL,
-          choices = c("No assignee", input$assignees),
+          choices = NULL,
+          multiple = FALSE,
           width = "100%",
-          options = list(placeholder = "No assignee")
+          options = list(
+            closeAfterSelect = TRUE
+          )
         )
 
         checklist_input <- selectizeInput(
@@ -99,6 +103,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
                                div(class = "item-d", preview_input)
                              )
         )
+
 
         # relevant files section
         if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
@@ -149,7 +154,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 #' @return None. The function performs operations on UI elements and does not return
 #'   any value.
 #' @noRd
-isolate_rendered_list <- function(input, session, items, iv) {
+isolate_rendered_list <- function(input, session, items, iv, members) {
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 
@@ -157,12 +162,34 @@ isolate_rendered_list <- function(input, session, items, iv) {
 
     checklist_input_id <- generate_input_id("checklist", name)
 
+
+    members <- rbind(
+      data.frame(username = "No assigned QCer", name = NA, stringsAsFactors = FALSE),
+      members
+    )
+
     updateSelectizeInput(
       session,
       assignee_input_id,
-      choices = c("No assignee", input$assignees),
-      selected = isolate(input[[assignee_input_id]])
-    )
+      server = TRUE,
+      choices = members,
+      selected = isolate(input[[assignee_input_id]]),
+      options = list(
+        placeholder = "QCer (optional)",
+        valueField = "username",
+        labelField = "username",
+        searchField = c("username", paste0("name")),
+        render = I(
+          '{ option: function(item, escape) {
+if (item.name !== null) {
+return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
+return "<div><strong>" + escape(item.username) + "</div>"
+}
+}
+}'
+        )
+      ) # list
+    ) # updateSelectizeInput
 
     updateSelectizeInput(
       session,
@@ -201,7 +228,7 @@ extract_file_data <- function(input, items, relevant_files_list) {
         # passing in reactive instead to preserve order of selection
         #filtered_file_selector_value <- input[[filtered_file_selector_id]]
 
-        if (!isTruthy(assignee_input_value) || assignee_input_value == "No assignee") {
+        if (!isTruthy(assignee_input_value) || assignee_input_value == "No assigned QCer") {
           assignee_input_value <- NULL
         }
         # requires the widget and input to be available before proceeding
