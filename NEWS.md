@@ -1,3 +1,9 @@
+# ghqc.app 0.3.9004
+
+- removes assignees section in left panel and isolates to right panel
+
+- changes language from Assignee to QCer
+
 # ghqc.app 0.3.9003
 
 - removes "Preview Comment" button from `ghqc_resolve_app()` and instead displays comment preview in modal pop-up upon selecting "Post Comment".
