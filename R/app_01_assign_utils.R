@@ -55,7 +55,6 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
           ns(assignee_input_id),
           label = NULL,
           choices = NULL,
-          #selected = "No assignee", # unname(members$username)
           multiple = FALSE,
           width = "100%",
           options = list(
@@ -165,7 +164,7 @@ isolate_rendered_list <- function(input, session, items, iv, members) {
 
 
     members <- rbind(
-      data.frame(username = "No assignee", name = NA, stringsAsFactors = FALSE),
+      data.frame(username = "No assigned QCer", name = NA, stringsAsFactors = FALSE),
       members
     )
 
@@ -173,10 +172,10 @@ isolate_rendered_list <- function(input, session, items, iv, members) {
       session,
       assignee_input_id,
       server = TRUE,
-      choices = members, # "No assignee",
+      choices = members,
       selected = isolate(input[[assignee_input_id]]),
       options = list(
-        placeholder = "No assignee",
+        placeholder = "QCer (optional)",
         valueField = "username",
         labelField = "username",
         searchField = c("username", paste0("name")),
@@ -229,7 +228,7 @@ extract_file_data <- function(input, items, relevant_files_list) {
         # passing in reactive instead to preserve order of selection
         #filtered_file_selector_value <- input[[filtered_file_selector_id]]
 
-        if (!isTruthy(assignee_input_value) || assignee_input_value == "No assignee") {
+        if (!isTruthy(assignee_input_value) || assignee_input_value == "No assigned QCer") {
           assignee_input_value <- NULL
         }
         # requires the widget and input to be available before proceeding
