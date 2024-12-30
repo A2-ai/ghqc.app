@@ -24,7 +24,7 @@ get_branch_from_metadata <- function(owner, repo, issue_number) {
     return(branch)
   }, error = function(e) {
     shiny::stopApp()
-    rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
+    rlang::abort(e$message)
   })
 
 }
