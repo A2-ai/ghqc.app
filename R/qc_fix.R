@@ -11,11 +11,22 @@ get_init_qc_commit <- function(owner, repo, issue_number) {
 }
 
 get_branch_from_metadata <- function(owner, repo, issue_number) {
-  issue <- get_issue(owner, repo, issue_number)
-  text <- get_metadata(issue$body)$`git branch`
-  branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
+  tryCatch({
+    issue <- get_issue(owner, repo, issue_number)
+    text <- get_metadata(issue$body)$`git branch`
+    branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
 
-  return(branch)
+    if (length(branch) == 0) {
+      shiny::stopApp()
+      rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
+    }
+
+    return(branch)
+  }, error = function(e) {
+    shiny::stopApp()
+    rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
+  })
+
 }
 
 create_assignees_list <- function(assignees) {
