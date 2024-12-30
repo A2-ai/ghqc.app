@@ -298,7 +298,36 @@ get_issues <- function(owner, repo, milestone) {
 #' @importFrom log4r warn error info debug
 get_all_issues_in_repo <- function(owner, repo) {
   debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {repo}..."))
-  open_issues <- list()
+  issues <- list()
+  page <- 1
+
+  repeat {
+    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
+                  owner = owner,
+                  repo = repo,
+                  per_page = 100,
+                  page = page)
+
+    # break if no more issues
+    if (length(res) == 0) break
+
+    # append to list
+    issues <- c(issues, res)
+
+    # next page
+    page <- page + 1
+  }
+
+  issues <- get_only_ghqc_issues(issues)
+  num_issues <- length(issues)
+  info(.le$logger, glue::glue("Retrieved {num_issues} ghqc Issue(s) from repo: {repo}"))
+  return(issues)
+}
+
+#' @importFrom log4r warn error info debug
+get_all_open_issues_in_repo <- function(owner, repo) {
+  debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {repo}..."))
+  issues <- list()
   page <- 1
 
   repeat {
@@ -313,39 +342,16 @@ get_all_issues_in_repo <- function(owner, repo) {
     if (length(res) == 0) break
 
     # append to list
-    open_issues <- c(open_issues, res)
+    issues <- c(issues, res)
 
     # next page
     page <- page + 1
   }
 
-  # closed issues
-  closed_issues <- list()
-  page <- 1
-
-  repeat {
-    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-                  owner = owner,
-                  repo = repo,
-                  state = "closed",
-                  per_page = 100,
-                  page = page)
-
-    # break if no more issues
-    if (length(res) == 0) break
-
-    # append to list
-    closed_issues <- c(closed_issues, res)
-
-    # next page
-    page <- page + 1
-  }
-
-  issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
+  issues <- get_only_ghqc_issues(issues)
   num_issues <- length(issues)
-  info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {repo}"))
+  info(.le$logger, glue::glue("Retrieved {num_issues} ghqc Issue(s) from repo: {repo}"))
   return(issues)
-
 }
 
 get_only_ghqc_issues <- function(issues) {

@@ -6,7 +6,7 @@
 #' @importFrom gert git_status
 NULL
 
-ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
+ghqc_resolve_server <- function(id, remote, org, repo, milestone_list, open_issues_df) {
   moduleServer(id, function(input, output, session) {
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
@@ -41,18 +41,17 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       w_gh$show()
       on.exit(w_gh$hide())
 
-      tryCatch(
-        {
-          if (input$select_milestone == "All Issues") {
-            all_issues <- get_all_issues_in_repo(owner = org, repo = repo)
-            issue_choices <- convert_issue_df_format(all_issues)
-          } else {
-            issues_by_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = input$select_milestone)
-            issue_choices <- convert_issue_df_format(issues_by_milestone)
-          }
-        },
-        error = function(e) {
+      tryCatch({
+        if (input$select_milestone == "All Issues") {
+          open_issues_df$display
+        }
+        else {
+          milestone_issues <- open_issues_df %>% dplyr::filter(milestone == input$select_milestone)
+          milestone_issues$display
+        }
+      }, error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving issues: {e$message}"))
+          stopApp()
           rlang::abort(e$message)
         }
       )

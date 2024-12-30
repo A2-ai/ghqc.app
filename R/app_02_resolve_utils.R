@@ -17,35 +17,67 @@
 #' )
 #' convert_issue_df_format(issues)
 #' @noRd
-convert_issue_df_format <- function(issue_df) {
-  debug(.le$logger, "Converting Issue data frame format to named list")
+convert_issue_df_format <- function(issues, org, repo) {
+  log4r::debug(.le$logger, "Parsing Issue data frame format")
 
-  issues_df <- map_df(issue_df, function(.x) {
+  issues_df <- map_df(issues, function(.x) {
     tibble(
       number = .x$number,
       title = .x$title,
-      state = .x$state
+      state = .x$state,
+      milestone = .x$milestone$title
     )
   })
 
-  debug(.le$logger, glue::glue("Issues data frame created: {nrow(issues_df)} row(s)"))
+  latest_commit_date <- lapply(issues_df$title, function(file_path) {
+    # commits for the specific file
+    commits <- gh::gh(
+      "GET /repos/{org}/{repo}/commits",
+      .api_url = .le$github_api_url,
+      org = org,
+      repo = repo,
+      path = file_path
+    )
 
-  issues_choices <- issues_df %>%
-    mutate(state = case_when(
-      state == "open" ~ "Open Issues",
-      state == "closed" ~ "Closed Issues"
-    ))
+    # get most recent commit date
+    if (length(commits) > 0) {
+      return(as.POSIXct(commits[[1]]$commit$committer$date, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    } else {
+      return(NA)
+    }
+  })
 
-  issues_choices <- issues_choices %>%
-    split(issues_choices$state) %>%
-    rev() %>%
-    lapply(function(x) {
-      stats::setNames(nm = paste0("Issue ", x$number, ": ", x$title))
-    })
+  latest_commit_date <- do.call(c, latest_commit_date)
+  issues_df <- dplyr::mutate(issues_df, latest_commit_date)
 
-  debug(.le$logger, "Successfully created Issues choices list")
+  issues_df <- issues_df %>%
+    dplyr::arrange(desc(latest_commit_date))
 
-  return(issues_choices)
+  # display <- issues_df %>%
+  #   mutate(state = case_when(
+  #     state == "open" ~ "Open Issues",
+  #     state == "closed" ~ "Closed Issues"
+  #   ))
+
+  # display <- display %>%
+  #   split(display$state) %>%
+  #   rev() %>%
+  #   lapply(function(x) {
+  #     stats::setNames(nm = paste0("Issue ", x$number, ": ", x$title))
+  #   })
+
+
+  issues_df <- issues_df %>%
+    mutate(display = paste0("Issue ", number, ": ", title),
+           clean_date = format(latest_commit_date, "%Y-%m-%d")
+           )
+
+  #issues_df <- issues_df %>% split(issues_df$clean_date)
+
+
+  log4r::info(.le$logger, "Parsed Issue data frame format")
+
+  return(issues_df)
 }
 
 
