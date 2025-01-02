@@ -32,6 +32,11 @@ ghqc_resolve_app <- function() {
     rlang::abort("There were no open Milestones found.")
   }
 
+  # fetch for other branches that might not be present locally
+  #suppressMessages(suppressWarnings(gert::git_fetch()))
+  # invisible(capture.output(gert::git_fetch()))
+  gert::git_fetch()
+
   app <- shinyApp(
     ui = ghqc_resolve_ui(
       id = "ghqc_resolve_app"
