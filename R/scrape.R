@@ -697,8 +697,8 @@ ghqc_report <- function(milestone_names = NULL,
                         input_name = NULL,
                         just_tables = FALSE,
                         location = ".",
-                        owner = get_organization(),
-                        repo = get_current_repo()) {
+                        owner,
+                        repo) {
 
   # get user input if milestone_names not inputted (check existence here)
   if (is.null(milestone_names)) {

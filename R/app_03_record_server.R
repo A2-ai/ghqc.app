@@ -9,6 +9,13 @@ NULL
 
 ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
   moduleServer(id, function(input, output, session) {
+    reset_triggered <- reactiveVal(FALSE)
+    session$onSessionEnded(function() {
+      if (!isTRUE(isolate(reset_triggered()))) {
+        stopApp()
+      }
+    })
+
     ns <- session$ns
     report_trigger <- reactiveVal(FALSE)
 
@@ -26,7 +33,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
       tryCatch(
         {
           closed_milestones <- get_closed_milestone_names(org = org, repo = repo)
-          milestone_list_url <- get_milestone_list_url()
+          milestone_list_url <- get_milestone_list_url(org = org, repo = repo)
           if (length(closed_milestones) == 0) {
             warn_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
             showModal(
@@ -53,7 +60,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {e$message}"))
-          showModal(modalDialog("Error in getting Milestones: ", e$message, footer = NULL))
+          rlang::abort(glue::glue("There was an error retrieving closed Milestones: {e$message}"))
         }
       )
     })
@@ -153,7 +160,9 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
           milestone_names = input$select_milestone,
           input_name = input$pdf_name,
           just_tables = input$just_tables,
-          location = input$pdf_location
+          location = input$pdf_location,
+          owner = org,
+          repo = repo
         )
 
         showModal(
@@ -193,6 +202,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
 
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
+      reset_triggered(TRUE)
       session$reload()
     })
 

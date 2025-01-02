@@ -24,7 +24,7 @@ get_checklists <- function() {
   return(checklists_data)
 }
 
-create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, checklists = get_checklists()) {
+create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, checklists = get_checklists(), relevant_files) {
   # if checklist_type wasn't given, make it the file ext
   # if (is.null(checklist_type)) {
   #   file_extension <- tools::file_ext(file_name)
@@ -37,7 +37,13 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
     checklist_type = checklist_type
   )
 
-  if (!is.null(assignees)) {file_data$assignees = assignees}
+  if (!is.null(assignees)) {
+    file_data$assignees <- assignees
+  }
+
+  if (!is.null(relevant_files)) {
+    file_data$relevant_files <- relevant_files
+  }
 
   #file_data$items <- checklists[[checklist_type]]
 
@@ -93,8 +99,6 @@ create_yaml <- function(name,
                         milestone = NULL,
                         description = NULL
                         ) {
-  # hard code owner
-  #owner <- get_organization() #"a2-ai-tech-training"
 
   data <- list(
     owner = org,

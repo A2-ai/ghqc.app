@@ -17,7 +17,7 @@ ghqc_resolve_app <- function() {
 
   # error handling before starting app
   remote <- check_github_credentials()
-  org <- get_org_errors()
+  org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)
   milestone_list <- get_open_milestone_list_errors(org = org, repo = repo)
 
