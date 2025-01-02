@@ -33,7 +33,7 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output, members) {
+render_selected_list <- function(input, ns, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output, members) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
@@ -51,6 +51,7 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
 
+        #browser()
         assignee_input <- selectizeInput(
           ns(assignee_input_id),
           label = NULL,
@@ -154,19 +155,18 @@ render_selected_list <- function(input, ns, iv, items = NULL, checklist_choices 
 #' @return None. The function performs operations on UI elements and does not return
 #'   any value.
 #' @noRd
-isolate_rendered_list <- function(input, session, items, iv, members) {
+isolate_rendered_list <- function(input, session, items, members) {
+  no_assigned_qcer <- data.frame(username = "No assigned QCer", name = NA_character_, stringsAsFactors = FALSE)
+  members <- rbind(
+    no_assigned_qcer,
+    members
+  )
+
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 
     assignee_input_id <- generate_input_id("assignee", name)
-
     checklist_input_id <- generate_input_id("checklist", name)
-
-
-    members <- rbind(
-      data.frame(username = "No assigned QCer", name = NA, stringsAsFactors = FALSE),
-      members
-    )
 
     updateSelectizeInput(
       session,
@@ -365,7 +365,7 @@ create_button_preview_event <- function(input, name) {
 #' @importFrom glue glue
 #' @importFrom log4r warn error info debug
 #' @importFrom shinyjs enable disable addClass removeClass delay
-create_checklist_preview_event <- function(input, iv, ns, name, checklists) {
+create_checklist_preview_event <- function(input, name, checklists) {
   tryCatch(
     {
       preview_input_id <- generate_input_id("preview", name)

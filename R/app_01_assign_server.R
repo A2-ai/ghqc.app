@@ -258,7 +258,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
         list <- render_selected_list(
           input = input,
           ns = ns,
-          iv = iv,
           items = selected_items(),
           checklist_choices = checklists,
           relevant_files = relevant_files_list,
@@ -266,7 +265,10 @@ return "<div><strong>" + escape(item.username) + "</div>"
           members = members
         )
 
-        isolate_rendered_list(input, session, selected_items(), iv, members)
+        isolate_rendered_list(input = input,
+                              session = session,
+                              items = selected_items(),
+                              members = members)
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)
@@ -275,7 +277,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
         stopApp()
         rlang::abort(e$message)
       })
-
     })
 
 
@@ -302,9 +303,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir)
-            create_checklist_preview_event(input = input, iv = iv, ns = ns, name = name, checklists = checklists)
-
-
+            create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
@@ -540,27 +539,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
       reset_triggered(TRUE)
       session$reload()
     })
-
-    observeEvent(selected_items(), {
-      req(checklists)
-      items <- selected_items()
-      for (name in items) {
-        log_string <- glue::glue_collapse(items, sep = ", ")
-        debug(.le$logger, glue::glue("Preview buttons created for: {log_string}"))
-        tryCatch(
-          {
-            create_checklist_preview_event(input, iv, ns, name = name, checklists)
-          },
-          error = function(e) {
-            error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
-            stopApp()
-            rlang::abort(e$message)
-          }
-        )
-      }
-    })
-
-
 
     iv$enable()
     return(input)
