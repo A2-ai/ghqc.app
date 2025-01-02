@@ -51,18 +51,30 @@ get_script_hash <- function(script) {
   digest::digest(collapsed_script, algo = "md5")
 }
 
-create_metadata_body <- function(file_path,
+create_comment_metadata_body <- function(file_path,
                                  reference_commit,
                                  reference_script,
                                  comparator_commit,
-                                 comparator_script) {
+                                 comparator_script,
+                                 owner,
+                                 repo,
+                                 remote_url) {
 
   # get script hashes
   reference_script_hash <- get_script_hash(reference_script)
   comparator_script_hash <- get_script_hash(comparator_script)
 
-  ref_url <- get_file_contents_url(file_path, reference_commit)
-  comp_url <- get_file_contents_url(file_path, comparator_commit)
+  ref_url <- get_file_contents_url(file_path = file_path,
+                                   git_sha = reference_commit,
+                                   owner = owner,
+                                   repo = repo,
+                                   remote_url = remote_url)
+
+  comp_url <- get_file_contents_url(file_path = file_path,
+                                    git_sha = comparator_commit,
+                                    owner = owner,
+                                    repo = repo,
+                                    remote_url = remote_url)
 
   glue::glue("## Metadata\n",
              "* current commit: {comparator_commit}\n",
@@ -87,7 +99,8 @@ create_comment_body <- function(owner,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
-                                comparator_commit = "current") {
+                                comparator_commit = "current",
+                                remote_url) {
 
   issue <- get_issue(owner, repo, issue_number)
   ## check if file exists locally
@@ -136,11 +149,14 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  metadata_body <- create_metadata_body(file_path = issue$title,
+  metadata_body <- create_comment_metadata_body(file_path = issue$title,
                                         reference_commit = reference_commit,
                                         reference_script = reference_script,
                                         comparator_commit = comparator_commit,
-                                        comparator_script = comparator_script)
+                                        comparator_script = comparator_script,
+                                        owner = owner,
+                                        repo = repo,
+                                        remote_url = remote_url)
   debug(.le$logger, glue::glue("Got metadata body"))
 
   comment_body <- glue::glue("{assignees_body}",
