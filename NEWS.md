@@ -24,6 +24,18 @@
 
 - stops apps on error using advice from this slack overflow: https://stackoverflow.com/questions/70841568/why-do-i-have-to-terminate-r-in-between-every-shiny-app-run
 
+# ghqc.app 0.3.3
+
+- provides additional error handling in the resolve app in the case that the git branch isn't present in a given Issue's metadata section
+
+# ghqc.app 0.3.2
+
+- fixes bug in resolve for Issues created in different branches that haven't been fetched locally
+
+# ghqc.app 0.3.1
+
+- fixes a bug in parsing a glue component
+
 # ghqc.app 0.3.0
 
 -   Updated the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:

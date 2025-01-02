@@ -74,10 +74,13 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list, open_issu
 
     all_commits <- reactive({
       req(org, repo, issue_parts()$issue_number)
+
+
       get_commits_df(
         issue_number = issue_parts()$issue_number,
         owner = org,
-        repo = repo
+        repo = repo,
+        remote = remote
       )
     })
 
