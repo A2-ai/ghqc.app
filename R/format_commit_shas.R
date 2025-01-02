@@ -7,10 +7,13 @@
 # add "second most recent commit", "most recent commit" and "original qc commit" identifiers
 # format in table
 
-get_commits_df <- function(issue_number, owner, repo) {
-  init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
 
-  all_commits <- gert::git_log(ref = init_qc_commit)
+get_commits_df <- function(issue_number, owner, repo, remote) {
+  init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
+  branch <- get_branch_from_metadata(owner, repo, issue_number)
+
+  # get commits on branch
+  all_commits <- gert::git_log(glue::glue("{remote$name}/{branch}"))
 
   cutoff_position <- which(all_commits$commit == init_qc_commit)
 
