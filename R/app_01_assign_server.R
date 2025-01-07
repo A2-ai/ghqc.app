@@ -38,6 +38,11 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
   )
 
   moduleServer(id, function(input, output, session) {
+
+    # This section ensures that when an error occurs, the app stops
+    # When an error occurs, the session ends. The other instance of this is when
+    # the user clicks reset.
+    # The logic here prevents the app from stopping when reset is clicked
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
@@ -119,16 +124,6 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
             width = "100%"
           )
         ),
-        # selectizeInput(
-        #   ns("assignees"),
-        #   "Select Assignee(s)",
-        #   choices = "No assignee",
-        #   multiple = TRUE,
-        #   width = "100%",
-        #   options = list(
-        #     closeAfterSelect = TRUE
-        #   )
-        # ),
         div(
           style = "font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; font-weight: bold;",
           "Select File(s) for QC"

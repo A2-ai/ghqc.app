@@ -9,6 +9,11 @@ NULL
 
 ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
   moduleServer(id, function(input, output, session) {
+
+    # This section ensures that when an error occurs, the app stops
+    # When an error occurs, the session ends. The other instance of this is when
+    # the user clicks reset.
+    # The logic here prevents the app from stopping when reset is clicked
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {

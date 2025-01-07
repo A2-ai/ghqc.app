@@ -480,7 +480,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
           current_meta[[file]]
         })
         names(current_meta) <- selected_files
-        current_meta <- current_meta[selected_files] # remove metadata forunselected files
+        current_meta <- current_meta[selected_files] # remove metadata for unselected files
         file_meta(current_meta)
 
         valid_files <- intersect(selected_files, filtered_files())

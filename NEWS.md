@@ -7,7 +7,6 @@
 - adds "Associate Relevant Files" section modal pop-up
 - simplifies metadata in ghqc Issues by removing file history and qc type
 - ghqc remote ssh compatibility implemented
-
 - stops apps on error using advice from this slack overflow: https://stackoverflow.com/questions/70841568/why-do-i-have-to-terminate-r-in-between-every-shiny-app-run
 
 # ghqc.app 0.3.3

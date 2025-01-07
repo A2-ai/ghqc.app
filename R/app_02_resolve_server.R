@@ -8,6 +8,11 @@ NULL
 
 ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
   moduleServer(id, function(input, output, session) {
+
+    # This section ensures that when an error occurs, the app stops
+    # When an error occurs, the session ends. The other instance of this is when
+    # the user clicks reset.
+    # The logic here prevents the app from stopping when reset is clicked
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
@@ -147,9 +152,6 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       updateSelectizeInput(session, "comp_commits", choices = comp_commits())
     })
 
-    preview_comment_modal <- eventReactive(input$post, {
-
-    })
 
     # https://stackoverflow.com/questions/34731975/how-to-listen-for-more-than-one-event-expression-within-a-shiny-eventreactive-ha
     modal_check <- eventReactive(c(input$preview, input$post), {
@@ -212,13 +214,12 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
     observeEvent(input$post, {
       req(modal_check())
-      #HERE
       if (!is.null(modal_check()$message)) {
         if (modal_check()$state == "warning") {
           showModal(modalDialog(
             title = tags$div(
                   tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-                  actionButton(ns("proceed_preview"), "Proceed Anyway"), #HERE
+                  actionButton(ns("proceed_preview"), "Proceed Anyway"),
                   actionButton(ns("return"), "Return"),
                   style = "text-align: right;"
                   ),
