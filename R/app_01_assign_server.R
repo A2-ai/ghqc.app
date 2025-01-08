@@ -222,7 +222,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
     })
 
-    relevant_files <<- reactiveVal(list())
+    relevant_files <- reactiveVal(list())
 
     output$validation_message <- renderUI({
       validate(
@@ -297,7 +297,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
         tryCatch(
           {
             create_button_preview_event(input, name = name)
-            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir)
+            associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
             create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {

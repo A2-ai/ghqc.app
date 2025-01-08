@@ -428,7 +428,7 @@ create_checklist_preview_event <- function(input, name, checklists) {
 #'
 #' @return A list of files selected with name, path, and note
 #' @noRd
-associate_relevant_files_button_event <- function(input, output, name, ns, root_dir) {
+associate_relevant_files_button_event <- function(input, output, name, ns, root_dir, relevant_files) {
   tryCatch(
     {
       # init metadata
