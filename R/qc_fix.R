@@ -46,23 +46,16 @@ create_message_body <- function(message) {
   else glue::glue("{message}\n\n\n")
 }
 
-get_script_hash <- function(script) {
-  collapsed_script <- glue::glue_collapse(script, "\n")
-  digest::digest(collapsed_script, algo = "md5")
-}
 
 create_comment_metadata_body <- function(file_path,
                                  reference_commit,
-                                 reference_script,
+                                 reference_hash,
                                  comparator_commit,
-                                 comparator_script,
+                                 comparator_hash,
                                  owner,
                                  repo,
                                  remote_url) {
 
-  # get script hashes
-  reference_script_hash <- get_script_hash(reference_script)
-  comparator_script_hash <- get_script_hash(comparator_script)
 
   ref_url <- get_file_contents_url(file_path = file_path,
                                    git_sha = reference_commit,
@@ -78,10 +71,10 @@ create_comment_metadata_body <- function(file_path,
 
   glue::glue("## Metadata\n",
              "* current commit: {comparator_commit}\n",
-             "* current script md5 checksum: {comparator_script_hash}\n",
+             "* current script md5 checksum: {comparator_hash}\n",
              "* file contents at current commit: {comp_url}\n&nbsp;\n",
              "* previous commit: {reference_commit}\n",
-             "* previous script md5 checksum: {reference_script_hash}\n",
+             "* previous script md5 checksum: {reference_hash}\n",
              "* file contents at previous commit: {ref_url}\n\n\n")
 }
 
@@ -140,6 +133,9 @@ create_comment_body <- function(owner,
   comparator_script <- script_contents$comparator_script
   debug(.le$logger, glue::glue("Got script contents"))
 
+  reference_hash <- script_contents$hash_at_reference
+  comparator_hash <- script_contents$hash_at_comparator
+
   debug(.le$logger, glue::glue("Getting file difference body..."))
   diff_body <- create_diff_body(diff = diff,
                            reference_commit = reference_commit,
@@ -151,9 +147,9 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Getting metadata body..."))
   metadata_body <- create_comment_metadata_body(file_path = issue$title,
                                         reference_commit = reference_commit,
-                                        reference_script = reference_script,
+                                        reference_hash = reference_hash,
                                         comparator_commit = comparator_commit,
-                                        comparator_script = comparator_script,
+                                        comparator_hash = comparator_hash,
                                         owner = owner,
                                         repo = repo,
                                         remote_url = remote_url)
