@@ -1,3 +1,7 @@
+# ghqc.app 0.4.1
+
+- fixes bug in md5 hashes in resolve comment metadata to make hashes correct
+
 # ghqc.app 0.4.0
 
 - fixes large logo bug
