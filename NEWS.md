@@ -1,3 +1,18 @@
+# ghqc.app 0.4.1
+
+- fixes bug in md5 hashes in resolve comment metadata to make hashes correct
+
+# ghqc.app 0.4.0
+
+- fixes large logo bug
+- removes assignees section in left panel and isolates to right panel
+- changes language from "Assignee" to "QCer"
+- removes "Preview Comment" button from `ghqc_resolve_app()` and instead displays comment preview in modal pop-up upon selecting "Post Comment".
+- adds "Associate Relevant Files" section modal pop-up
+- simplifies metadata in ghqc Issues by removing file history and qc type
+- ghqc remote ssh compatibility implemented
+- stops apps on error using advice from this slack overflow: https://stackoverflow.com/questions/70841568/why-do-i-have-to-terminate-r-in-between-every-shiny-app-run
+
 # ghqc.app 0.3.3
 
 - provides additional error handling in the resolve app in the case that the git branch isn't present in a given Issue's metadata section

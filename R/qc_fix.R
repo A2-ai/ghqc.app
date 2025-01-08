@@ -46,30 +46,35 @@ create_message_body <- function(message) {
   else glue::glue("{message}\n\n\n")
 }
 
-get_script_hash <- function(script) {
-  collapsed_script <- glue::glue_collapse(script, "\n")
-  digest::digest(collapsed_script, algo = "md5")
-}
 
-create_metadata_body <- function(file_path,
+create_comment_metadata_body <- function(file_path,
                                  reference_commit,
-                                 reference_script,
+                                 reference_hash,
                                  comparator_commit,
-                                 comparator_script) {
+                                 comparator_hash,
+                                 owner,
+                                 repo,
+                                 remote_url) {
 
-  # get script hashes
-  reference_script_hash <- get_script_hash(reference_script)
-  comparator_script_hash <- get_script_hash(comparator_script)
 
-  ref_url <- get_file_contents_url(file_path, reference_commit)
-  comp_url <- get_file_contents_url(file_path, comparator_commit)
+  ref_url <- get_file_contents_url(file_path = file_path,
+                                   git_sha = reference_commit,
+                                   owner = owner,
+                                   repo = repo,
+                                   remote_url = remote_url)
+
+  comp_url <- get_file_contents_url(file_path = file_path,
+                                    git_sha = comparator_commit,
+                                    owner = owner,
+                                    repo = repo,
+                                    remote_url = remote_url)
 
   glue::glue("## Metadata\n",
              "* current commit: {comparator_commit}\n",
-             "* current script md5 checksum: {comparator_script_hash}\n",
+             "* current script md5 checksum: {comparator_hash}\n",
              "* file contents at current commit: {comp_url}\n&nbsp;\n",
              "* previous commit: {reference_commit}\n",
-             "* previous script md5 checksum: {reference_script_hash}\n",
+             "* previous script md5 checksum: {reference_hash}\n",
              "* file contents at previous commit: {ref_url}\n\n\n")
 }
 
@@ -87,7 +92,8 @@ create_comment_body <- function(owner,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
-                                comparator_commit = "current") {
+                                comparator_commit = "current",
+                                remote_url) {
 
   issue <- get_issue(owner, repo, issue_number)
   ## check if file exists locally
@@ -127,6 +133,9 @@ create_comment_body <- function(owner,
   comparator_script <- script_contents$comparator_script
   debug(.le$logger, glue::glue("Got script contents"))
 
+  reference_hash <- script_contents$hash_at_reference
+  comparator_hash <- script_contents$hash_at_comparator
+
   debug(.le$logger, glue::glue("Getting file difference body..."))
   diff_body <- create_diff_body(diff = diff,
                            reference_commit = reference_commit,
@@ -136,11 +145,14 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  metadata_body <- create_metadata_body(file_path = issue$title,
+  metadata_body <- create_comment_metadata_body(file_path = issue$title,
                                         reference_commit = reference_commit,
-                                        reference_script = reference_script,
+                                        reference_hash = reference_hash,
                                         comparator_commit = comparator_commit,
-                                        comparator_script = comparator_script)
+                                        comparator_hash = comparator_hash,
+                                        owner = owner,
+                                        repo = repo,
+                                        remote_url = remote_url)
   debug(.le$logger, glue::glue("Got metadata body"))
 
   comment_body <- glue::glue("{assignees_body}",
@@ -161,7 +173,7 @@ create_comment_body <- function(owner,
 }
 
 
-post_comment <- function(owner, repo, issue_number, body) {
+post_resolve_comment <- function(owner, repo, issue_number, body) {
   debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {owner}/{repo}..."))
 
   comment <- gh::gh("POST /repos/:owner/:repo/issues/:issue_number/comments",
@@ -174,6 +186,7 @@ post_comment <- function(owner, repo, issue_number, body) {
 
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
 }
+
 
 add_fix_comment <- function(owner,
                             repo,
@@ -191,5 +204,5 @@ add_fix_comment <- function(owner,
                               reference_commit = reference_commit,
                               comparator_commit = comparator_commit)
 
-  post_comment(owner, repo, issue_number, body)
+  post_resolve_comment(owner, repo, issue_number, body)
 }

@@ -95,8 +95,11 @@ div[id$="-main_container"] {
 
 
 .logo-img {
-  margin-right: -15px !important;
+  margin-right: -30px !important;
   background-color: transparent; /* modal ui changes workaround: https://stackoverflow.com/questions/63938194/r-shiny-app-width-shrinks-after-i-close-the-modal */
+  position: relative;
+  left: -18px;
+  top: -2px;
 }
 
 
@@ -113,6 +116,8 @@ div[id$="-main_container"] {
 
 .selectize-dropdown {
  word-wrap : break-word;
+ position: absolute !important;
+  z-index: 1000 !important;
 }
 
 .selectize-dropdown [data-selectable] {
@@ -140,16 +145,27 @@ div[id$="-main_container"] {
 .grid-items {
   display: grid;
   column-gap: 10px;
-  grid-template-columns: 67px minmax(100px, 1fr) minmax(125px, 1fr) minmax(50px, auto); /*minmax(100px, auto) */
-  margin-bottom: 15px;
+  grid-template-columns: auto minmax(100px, 1fr) minmax(125px, 1fr) auto;
   width: 100%;
   transition: 0.5s;
 }
 
-
+/*
 .item-b {
   white-space: nowrap;
+  overflow: auto;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
+
+.item-c {
+  white-space: nowrap;
+  overflow: auto;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+*/
+
 
 .flex-container {
     display: flex;
@@ -184,6 +200,3 @@ div[id$="-main_container"] {
   cursor: pointer !important;
 }
 
-.input-error {
-  border-color: red !important;
-}

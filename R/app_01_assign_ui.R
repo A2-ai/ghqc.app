@@ -32,8 +32,8 @@ ghqc_assign_ui <- function(id) {
       gadgetTitleBar(title = div(
           style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
           div(
-            style = "position: relative;",  # Keep this div centered
-            tags$img(src = "ghqc.app/ghqc_hex.png", height = 46, class = "logo-img", style = "position: relative; left: -18px; margin-right: 10px; top: -2px;")
+            style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
+            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
           ),
           div("Assign file(s) for QC", style = "white-space: nowrap;")
         ),
