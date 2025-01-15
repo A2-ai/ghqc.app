@@ -33,8 +33,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     rootFolder = root_dir_reactive,
     search = FALSE,
     pattern = exclude_patterns(),
-    all.files = FALSE,
-    output_id = "treeNavigator"
+    all.files = FALSE
   )
 
   moduleServer(id, function(input, output, session) {
@@ -195,6 +194,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
       req(root_dir, selected_items())
       tryCatch(
         {
+          browser()
           relevant_files_list <- tryCatch({
             relevant_files()
           }, error = function(e){

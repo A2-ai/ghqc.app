@@ -124,25 +124,16 @@ treeNavigatorUI <- function(id, width = "100%", height = "auto") {
   )
 }
 
-#' @importFrom jsTreeR jstreeOutput
-treeNavigatorUIAssociate <- function(id, width = "100%", height = "auto") {
-  tree <- jstreeOutput(outputId = id, width = width, height = height)
-  tagList(
-    tree,
-    tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/tree.css"),
-    tags$script(type = "module", src = "ghqc.app/js/tree.js")
-  )
-}
 
 #' @importFrom jsTreeR renderJstree jstree
 treeNavigatorServer <- function(
     id, rootFolder, search = TRUE, wholerow = FALSE, contextMenu = FALSE,
-    theme = "proton", pattern = NULL, all.files = FALSE, output_id, ...) {
+    theme = "proton", pattern = NULL, all.files = FALSE, ...) {
   theme <- match.arg(theme, c("default", "proton"))
   moduleServer(id, function(input, output, session) {
     debug(.le$logger, glue::glue("Initializing treeNavigatorServer module with id: {id}"))
 
-    output[[output_id]] <- renderJstree({
+    output[["treeNavigator"]] <- renderJstree({
       req(...)
       req(rootFolder())
       debug(.le$logger, glue::glue("Rendering jstree for rootFolder: {rootFolder()}"))
@@ -226,9 +217,8 @@ treeNavigatorServer <- function(
 
     # example: given input "testTree/inst/www", Paths is "inst/www"
     Paths <- reactiveVal()
-    selected_paths_input_id <- generate_input_id(output_id, "selected_paths")
-    observeEvent(input[[selected_paths_input_id]], {
-      selected <- input[[selected_paths_input_id]]
+    observeEvent(input[["treeNavigator_selected_paths"]], {
+      selected <- input[["treeNavigator_selected_paths"]]
       debug(.le$logger, glue::glue("Selected paths: {paste(selected, collapse = ', ')}"))
 
       adjusted_paths <- sapply(selected, function(item) {
