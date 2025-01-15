@@ -1,3 +1,7 @@
+# ghqc.app 0.4.2
+
+- fixes bug in which QCers dropdown caused error for selected files outside of the root directory
+
 # ghqc.app 0.4.1
 
 - fixes bug in md5 hashes in resolve comment metadata to make hashes correct

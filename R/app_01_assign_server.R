@@ -33,8 +33,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     rootFolder = root_dir_reactive,
     search = FALSE,
     pattern = exclude_patterns(),
-    all.files = FALSE,
-    output_id = "treeNavigator"
+    all.files = FALSE
   )
 
   moduleServer(id, function(input, output, session) {
@@ -142,35 +141,46 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       }
     })
 
-
+    # add options for QCer dropdown
     observe({
-      req(org, members)
-      w_gh <- create_waiter(ns, sprintf("Fetching organization and member data for %s ...", org))
-      w_gh$show()
-      on.exit(w_gh$hide())
+      req(selected_items(), members)
 
-      updateSelectizeInput(
-        session,
-        "assignees",
-        server = TRUE,
-        choices = members,
-        options = list(
-          placeholder = "(optional)",
-          valueField = "username",
-          labelField = "username",
-          searchField = c("username", paste0("name")),
-          render = I(
-            '{ option: function(item, escape) {
+      # add option to not assign QCer
+      no_assigned_qcer <- data.frame(username = "No assigned QCer", name = NA_character_, stringsAsFactors = FALSE)
+      members <- rbind(
+        no_assigned_qcer,
+        members
+      )
+
+      items <- selected_items()
+      for (name in items) {
+        assignee_input_id <- generate_input_id("assignee", name)
+
+        updateSelectizeInput(
+          session,
+          assignee_input_id,
+          server = TRUE,
+          choices = members,
+          selected = isolate(input[[assignee_input_id]]),
+          options = list(
+            placeholder = "QCer (optional)",
+            valueField = "username",
+            labelField = "username",
+            searchField = c("username", paste0("name")),
+            render = I(
+              '{ option: function(item, escape) {
 if (item.name !== null) {
 return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
 return "<div><strong>" + escape(item.username) + "</div>"
 }
 }
 }'
-          )
-        )
-      ) # updateSelectizeInput
-    })
+            ) # I
+          ) # list
+        ) # updateSelectizeInput
+      } # for
+    }) # observe
+
 
     observe({
       req(org, repo, rv_milestone())
@@ -233,7 +243,7 @@ return "<div><strong>" + escape(item.username) + "</div>"
     })
 
     output$main_panel_dynamic <- renderUI({
-      req(selected_items(), members)
+      req(selected_items())
       tryCatch({
         if (length(selected_items()) == 0) {
           return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
@@ -256,14 +266,12 @@ return "<div><strong>" + escape(item.username) + "</div>"
           items = selected_items(),
           checklist_choices = checklists,
           relevant_files = relevant_files_list,
-          output = output,
-          members = members
+          output = output
         )
 
         isolate_rendered_list(input = input,
                               session = session,
-                              items = selected_items(),
-                              members = members)
+                              items = selected_items())
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)
