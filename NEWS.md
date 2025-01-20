@@ -1,3 +1,10 @@
+# ghqc.app 0.4.4
+
+- edited UI in `ghqc_assign_app()` so bold selected qc file paths
+- edited UI in `ghqc_resolve_app()` in modal pop-up to clarify "Post Comment" and "Cancel" options
+- added `shinyvalidate` marker to `ghqc_record_app()` to indicate required input of at least one milestone
+
+
 # ghqc.app 0.4.3
 
 - fixes bug in which QCer is un-selectable if relevant files are selected for a QC file
