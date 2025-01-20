@@ -155,7 +155,7 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
 #' @return None. The function performs operations on UI elements and does not return
 #'   any value.
 #' @noRd
-isolate_rendered_list <- function(input, session, items) {
+isolate_rendered_list <- function(input, session, items, members) {
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 
@@ -165,8 +165,25 @@ isolate_rendered_list <- function(input, session, items) {
     updateSelectizeInput(
       session,
       assignee_input_id,
-      selected = isolate(input[[assignee_input_id]])
-    )
+      server = TRUE,
+      choices = members,
+      selected = isolate(input[[assignee_input_id]]),
+      options = list(
+        placeholder = "QCer (optional)",
+        valueField = "username",
+        labelField = "username",
+        searchField = c("username", paste0("name")),
+        render = I(
+          '{ option: function(item, escape) {
+if (item.name !== null) {
+return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
+return "<div><strong>" + escape(item.username) + "</div>"
+}
+}
+}'
+        )
+      ) # list
+    ) # updateSelectizeInput
 
     updateSelectizeInput(
       session,
