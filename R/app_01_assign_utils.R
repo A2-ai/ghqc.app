@@ -73,7 +73,7 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         file_preview <- actionButton(
           ns(file_preview_id),
           label = HTML(modified_name),
-          style = "font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
+          style = "font-size: 12px !important; font-weight: bold; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
           class = "file-preview-button"
         )
 
