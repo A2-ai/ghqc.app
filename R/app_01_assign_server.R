@@ -271,7 +271,8 @@ return "<div><strong>" + escape(item.username) + "</div>"
 
         isolate_rendered_list(input = input,
                               session = session,
-                              items = selected_items())
+                              items = selected_items(),
+                              members = members)
 
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)

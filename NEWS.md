@@ -1,3 +1,7 @@
+# ghqc.app 0.4.3
+
+- fixes bug in which QCer is un-selectable if relevant files are selected for a QC file
+
 # ghqc.app 0.4.2
 
 - fixes bug in which QCers dropdown caused error for selected files outside of the root directory

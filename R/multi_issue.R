@@ -66,7 +66,6 @@ create_issues <- function(data, remote) {
     issue_params$milestone <- get_milestone_number(milestone_params)
   }
 
-  #browser()
   file_names <- purrr::map(data$files, "name")
   file_names_col <- glue::glue_collapse(file_names, sep = ", ", last = " and ")
   debug(.le$logger, glue::glue("Creating {get_checklist_display_name_var(plural = TRUE)} for files: {file_names_col}"))
