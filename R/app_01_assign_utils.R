@@ -50,8 +50,6 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         preview_input_id <- generate_input_id("preview", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
-
-        #browser()
         assignee_input <- selectizeInput(
           ns(assignee_input_id),
           label = NULL,

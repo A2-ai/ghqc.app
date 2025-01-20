@@ -54,7 +54,6 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
     file_section
   })
 
-  #browser()
   file_sections_col <- glue::glue_collapse(file_sections, sep = "\n")
   # if ended on a &nbsp, remove it for nicer formatting between sections
   file_sections_col <- stringr::str_remove(file_sections_col, "&nbsp;$")
