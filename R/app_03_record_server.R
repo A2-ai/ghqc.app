@@ -9,6 +9,8 @@ NULL
 
 ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
   moduleServer(id, function(input, output, session) {
+    iv <- shinyvalidate::InputValidator$new()
+    iv$add_rule("select_milestone", shinyvalidate::sv_required())
 
     # This section ensures that when an error occurs, the app stops
     # When an error occurs, the session ends. The other instance of this is when
@@ -96,6 +98,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
         )
       }
     })
+
 
     observe({
       debug(.le$logger, glue::glue("generate_report buttons are inactivated."))
@@ -222,6 +225,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
       removeModal()
     })
 
+    iv$enable()
     return(input)
   })
 }
