@@ -317,8 +317,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       showModal(modalDialog(
         title = tags$div(
           tags$span("Comment Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
           actionButton(ns("proceed_post"), "Post Comment"),
-          actionButton(ns("return"), "Return"),
           style = "text-align: right;"
         ),
         footer = NULL,
