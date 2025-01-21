@@ -270,7 +270,7 @@ get_summary_table_col_vals <- function(issue) {
 
   file_path <- issue$title
   author <- ifelse(!is.null(latest_author), latest_author, "NA")
-  qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
+  #qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
   #file_name <- basename(file_path)
   #git_sha <- ifelse(!is.null(metadata$git_sha), metadata$git_sha, NA)
   qcer <- ifelse(length(issue$assignees) > 0, issue$assignees[[1]], "NA")
@@ -280,7 +280,7 @@ get_summary_table_col_vals <- function(issue) {
   c(
     file_path = file_path,
     author = author,
-    qc_type = qc_type,
+    #qc_type = qc_type,
     #file_name = file_name,
     #git_sha = git_sha,
     qcer = qcer,
@@ -337,7 +337,7 @@ create_summary_csv <- function(issues, env) {
   #   close_date = c("2024-09-18 18:34:50", "2024-09-18 18:34:50", "2024-09-18 18:34:50")
   # )
   # wrap file paths
-  summary_df$file_path <- insert_breaks(summary_df$file_path, 17)
+  summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
   summary_df$author <- insert_breaks(summary_df$author, 28)
   #summary_df$qc_type <- insert_breaks(summary_df$qc_type, 25)
   summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
@@ -440,7 +440,7 @@ invisible(summary_df)
 table <- summary_df %>%
 
 knitr::kable(
-  col.names = c(\"File Path\", \"Author\", \"QC Type\", \"QCer\", \"Issue Closer\", \"Close Date\"),
+  col.names = c(\"File Path\", \"Author\", \"QCer\", \"Issue Closer\", \"Close Date\"),
   format = \"latex\",
   booktabs = TRUE,
   escape = TRUE,
@@ -448,7 +448,6 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
   column_spec(1, width = \"10em\") %>%
-  column_spec(2, width = \"14em\") %>%
   column_spec(3, width = \"12em\") %>%
   column_spec(4, width = \"6em\") %>%
   column_spec(5, width = \"6em\") %>%
