@@ -141,47 +141,6 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       }
     })
 
-    # add options for QCer dropdown
-    observe({
-      req(selected_items(), members)
-
-      # add option to not assign QCer
-      no_assigned_qcer <- data.frame(username = "No assigned QCer", name = NA_character_, stringsAsFactors = FALSE)
-      members <- rbind(
-        no_assigned_qcer,
-        members
-      )
-
-      items <- selected_items()
-      for (name in items) {
-        assignee_input_id <- generate_input_id("assignee", name)
-
-        updateSelectizeInput(
-          session,
-          assignee_input_id,
-          server = TRUE,
-          choices = members,
-          selected = isolate(input[[assignee_input_id]]),
-          options = list(
-            placeholder = "QCer (optional)",
-            valueField = "username",
-            labelField = "username",
-            searchField = c("username", paste0("name")),
-            render = I(
-              '{ option: function(item, escape) {
-if (item.name !== null) {
-return "<div><strong>" + escape(item.username) + "</strong> (" + escape(item.name) +") </div>" } else {
-return "<div><strong>" + escape(item.username) + "</div>"
-}
-}
-}'
-            ) # I
-          ) # list
-        ) # updateSelectizeInput
-      } # for
-    }) # observe
-
-
     observe({
       req(org, repo, rv_milestone())
 
