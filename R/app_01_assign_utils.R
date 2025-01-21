@@ -160,6 +160,13 @@ isolate_rendered_list <- function(input, session, items, members) {
     assignee_input_id <- generate_input_id("assignee", name)
     checklist_input_id <- generate_input_id("checklist", name)
 
+    # add option to not assign QCer
+    no_assigned_qcer <- data.frame(username = "No assigned QCer", name = NA_character_, stringsAsFactors = FALSE)
+    members <- rbind(
+      no_assigned_qcer,
+      members
+    )
+
     updateSelectizeInput(
       session,
       assignee_input_id,
