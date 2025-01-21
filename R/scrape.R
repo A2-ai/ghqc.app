@@ -111,6 +111,7 @@ clean_comment_body <- function(body) {
 }
 
 create_checklist_section <- function(issue_body) {
+  browser()
   clean_issue_body <- clean_body(issue_body)
   checklist_section <- create_small_section("Issue Body", clean_issue_body)
 }

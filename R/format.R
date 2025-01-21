@@ -81,7 +81,7 @@ format_items <- function(items) {
 format_section_list <- function(section_name, items) {
   formatted_items <- format_items(items)
 
-  glue::glue("### {section_name}\n\n{formatted_items}\n\n")
+  glue::glue("### {section_name}\n\n{formatted_items}\n\n\n", .trim = FALSE)
 }
 
 # functions to format body of Issue
