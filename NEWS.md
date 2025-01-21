@@ -1,3 +1,7 @@
+# ghqc.app 0.4.6
+
+- fixes bug in `ghqc_record_app()` in which QC records were unable to be generated due to missing "qc type" from metadata in ghqc-generated issues since metadata simplification in ghqc 0.4.0
+
 # ghqc.app 0.4.5
 
 - fixes bug in `ghqc_assign_app()` in which "No assigned QCer" isn't an option as soon as a QCer is selected for a QC file
