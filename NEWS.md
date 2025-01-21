@@ -1,3 +1,7 @@
+# ghqc.app 0.4.5
+
+- fixes bug in `ghqc_assign_app()` in which "No assigned QCer" isn't an option as soon as a QCer is selected for a QC file
+
 # ghqc.app 0.4.4
 
 - edited UI in `ghqc_assign_app()` so bold selected qc file paths
