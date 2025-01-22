@@ -191,7 +191,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
               modalButton("Dismiss"),
               style = "overflow: hidden; text-align: right;"
             ),
-            HTML(error_icon_html, e$message, "<br>"),
+            HTML(error_icon_html, conditionMessage(e), "<br>"),
             easyClose = TRUE,
             footer = NULL
           ))
