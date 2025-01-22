@@ -1,6 +1,10 @@
 # ghqc.app 0.4.6
 
 - fixes bug in `ghqc_record_app()` in which QC records were unable to be generated due to missing "qc type" from metadata in ghqc-generated issues since metadata simplification in ghqc 0.4.0
+- re-formats summary tables in QC Records given missing "qc type"" column
+- removes `get_author` call from `ghqc_record` and replaces with author retrieved in Issue metadata
+- in Milestone summary table in QC Records, adds spaces between listed Issues in Milestones
+- removes author and collaborators from QC Data section in QC Records as this is redundant with Issue metadata
 
 # ghqc.app 0.4.5
 
@@ -8,9 +12,9 @@
 
 # ghqc.app 0.4.4
 
-- edited UI in `ghqc_assign_app()` so bold selected qc file paths
-- edited UI in `ghqc_resolve_app()` in modal pop-up to clarify "Post Comment" and "Cancel" options
-- added `shinyvalidate` marker to `ghqc_record_app()` to indicate required input of at least one milestone
+- edits UI in `ghqc_assign_app()` to bold selected qc file paths
+- edits UI in `ghqc_resolve_app()` in modal pop-up to clarify "Post Comment" and "Cancel" options
+- adds `shinyvalidate` marker to `ghqc_record_app()` to indicate required input of at least one milestone
 
 
 # ghqc.app 0.4.3
@@ -50,7 +54,7 @@
 
 # ghqc.app 0.3.0
 
--   Updated the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:
+-   Updates the custom configuration options repository (now `GHQC_OPTIONS_REPO`) check to reflect the following changes:
     -   The "note" file within the custom configuration repository is now `prepended_checklist_note` within "options.yaml"
     -   `checklist_display_name_var` in "options.yaml" provides option to change the name in which the QC checklists are referred to as.
 

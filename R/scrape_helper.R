@@ -101,7 +101,6 @@ download_image <- function(url) {
   asset_url <- httr2::last_response() |> httr2::resp_url()
 
   path <- tempfile(fileext = ".png")
-  browser()
 
   httr2::request(asset_url) |>
     httr2::req_perform(path = path)
