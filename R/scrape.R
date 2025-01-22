@@ -338,11 +338,10 @@ create_summary_csv <- function(issues, env) {
   # )
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
-  summary_df$author <- insert_breaks(summary_df$author, 28)
-  #summary_df$qc_type <- insert_breaks(summary_df$qc_type, 25)
-  summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
-  summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
-  summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
+  # summary_df$author <- insert_breaks(summary_df$author, 28)
+  # summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
+  # summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
+  # summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
 
   summary_csv <- tempfile(fileext = ".csv")
   #suppressMessages({withr::defer(fs::file_delete(summary_csv), env)})
@@ -447,11 +446,7 @@ knitr::kable(
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
-  column_spec(1, width = \"10em\") %>%
-  column_spec(3, width = \"12em\") %>%
-  column_spec(4, width = \"6em\") %>%
-  column_spec(5, width = \"6em\") %>%
-  column_spec(6, width = \"9em\")
+  column_spec(1, width = \"10em\")
 
 ```
 
