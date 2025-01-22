@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ghqc.app</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,14 +31,22 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.6" id="ghqcapp-046">ghqc.app 0.4.6<a class="anchor" aria-label="anchor" href="#ghqcapp-046"></a></h2>
+<ul><li>fixes bug in <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code> in which QC records were unable to be generated due to missing “qc type” from metadata in ghqc-generated issues since metadata simplification in ghqc 0.4.0</li>
+<li>re-formats summary tables in QC Records given missing “qc type”” column</li>
+<li>removes <code>get_author</code> call from <code>ghqc_record</code> and replaces with author retrieved in Issue metadata</li>
+<li>in Milestone summary table in QC Records, adds spaces between listed Issues in Milestones</li>
+<li>removes author and collaborators from QC Data section in QC Records as this is redundant with Issue metadata</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.5" id="ghqcapp-045">ghqc.app 0.4.5<a class="anchor" aria-label="anchor" href="#ghqcapp-045"></a></h2>
 <ul><li>fixes bug in <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> in which “No assigned QCer” isn’t an option as soon as a QCer is selected for a QC file</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.4" id="ghqcapp-044">ghqc.app 0.4.4<a class="anchor" aria-label="anchor" href="#ghqcapp-044"></a></h2>
-<ul><li>edited UI in <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> so bold selected qc file paths</li>
-<li>edited UI in <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code> in modal pop-up to clarify “Post Comment” and “Cancel” options</li>
-<li>added <code>shinyvalidate</code> marker to <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code> to indicate required input of at least one milestone</li>
+<ul><li>edits UI in <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> to bold selected qc file paths</li>
+<li>edits UI in <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code> in modal pop-up to clarify “Post Comment” and “Cancel” options</li>
+<li>adds <code>shinyvalidate</code> marker to <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code> to indicate required input of at least one milestone</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.3" id="ghqcapp-043">ghqc.app 0.4.3<a class="anchor" aria-label="anchor" href="#ghqcapp-043"></a></h2>
@@ -78,7 +86,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="ghqcapp-030">ghqc.app 0.3.0<a class="anchor" aria-label="anchor" href="#ghqcapp-030"></a></h2>
-<ul><li>Updated the custom configuration options repository (now <code>GHQC_OPTIONS_REPO</code>) check to reflect the following changes:
+<ul><li>Updates the custom configuration options repository (now <code>GHQC_OPTIONS_REPO</code>) check to reflect the following changes:
 <ul><li>The “note” file within the custom configuration repository is now <code>prepended_checklist_note</code> within “options.yaml”</li>
 <li>
 <code>checklist_display_name_var</code> in “options.yaml” provides option to change the name in which the QC checklists are referred to as.</li>
