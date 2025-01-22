@@ -71,6 +71,7 @@ get_timeline_list <- function(timeline_events) {
 }
 
 download_image <- function(url) {
+
   is_amz_redirect <- function(resp) {
     # if the server is Amazon and there's a value for x-amz-request-id, it's an amz error
     bool <- httr2::resp_header(resp, "Server") == "AmazonS3" && nzchar(httr2::resp_header(resp, "x-amz-request-id", default = ""))
@@ -100,9 +101,15 @@ download_image <- function(url) {
   asset_url <- httr2::last_response() |> httr2::resp_url()
 
   path <- tempfile(fileext = ".png")
+  browser()
 
   httr2::request(asset_url) |>
     httr2::req_perform(path = path)
+  # request <- httr2::request(asset_url) |>
+  #   httr2::req_error(is_error = function(resp) {
+  #     httr2::resp_status(resp) != 404
+  #   })
+  # httr2::req_perform(request, path = path)
 
   path
 }
