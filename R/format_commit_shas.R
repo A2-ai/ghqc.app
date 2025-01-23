@@ -14,14 +14,19 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
   branch <- get_branch_from_metadata(owner, repo, issue_number)
 
   # get commits on branch
-  local_log <- gert::git_log(glue::glue("{branch}"))
-  remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"))
+  local_log <- gert::git_log(glue::glue("{branch}"), max = 9999)
+  remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"), max = 9999)
   all_commits <- dplyr::bind_rows(local_log, remote_log) %>%
     dplyr::distinct(.data$commit, .keep_all = TRUE) %>%
     dplyr::arrange(dplyr::desc(.data$time))
 
   if (!init_qc_commit %in% all_commits$commit) {
     rlang::abort(glue::glue("git log does not contain initial qc commit ({init_qc_commit}) given in issue #{issue_number}"))
+  }
+
+  if (length(local_log == 9999) || length(local_log == 9999)) {
+    log4r::warn(.le$logger, "More than 9999 commits in git repo - git log may not contain initial QC commit within last 9999 commits")
+
   }
 
   cutoff_position <- which(all_commits$commit == init_qc_commit)
