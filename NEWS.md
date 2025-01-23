@@ -1,3 +1,8 @@
+# ghqc.app 0.4.8
+
+- increases max number of commits in `gert::git_log()` to 9999
+- changes how current commit is calculated by using first element of `get_commits_df$commit` instead of first commit in git log from HEAD
+
 # ghqc.app 0.4.7
 
 - fixes bug in `ghqc_resolve_app()` in which get_commits_df failed with error "argument of length 0" in the case of diverging branches not getting the entire git log.
