@@ -4,20 +4,6 @@ create_qc_data_section <- function(issue_creation_time, issue_creator, issue_tit
   humanized_creation_time <- humanize_time(issue_creation_time)
   qc_initializer <- glue::glue("{issue_creator} at {humanized_creation_time}")
 
-  # get file author
-  authors <- get_authors(issue_title)
-  latest_author <- authors$latest
-  author_section <- glue::glue("* **File Author:** {latest_author}")
-  sections <- c(sections, author_section)
-
-  # get collaborators
-  collaborators <- authors$collaborators
-  if (length(collaborators) != 0) {
-    collaborators <- glue::glue_collapse(collaborators, sep = ", ")
-    collaborators_section <- glue::glue("* **Other file collaborators:** {collaborators}")
-    sections <- c(sections, collaborators_section)
-  }
-
   # issue number and qc_init sections
   qc_init_section <- glue::glue("* **QC initializer:** {qc_initializer}")
   issue_number_section <- glue::glue("* **Issue number:** {issue_number}")
@@ -269,8 +255,9 @@ get_summary_table_col_vals <- function(issue) {
   latest_author <- authors$latest
 
   file_path <- issue$title
-  author <- ifelse(!is.null(latest_author), latest_author, "NA")
-  qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
+  #author <- ifelse(!is.null(latest_author), latest_author, "NA")
+  author <- ifelse(!is.null(metadata$author), metadata$author, "NA")
+  #qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
   #file_name <- basename(file_path)
   #git_sha <- ifelse(!is.null(metadata$git_sha), metadata$git_sha, NA)
   qcer <- ifelse(length(issue$assignees) > 0, issue$assignees[[1]], "NA")
@@ -280,9 +267,6 @@ get_summary_table_col_vals <- function(issue) {
   c(
     file_path = file_path,
     author = author,
-    qc_type = qc_type,
-    #file_name = file_name,
-    #git_sha = git_sha,
     qcer = qcer,
     issue_closer = issue_closer,
     close_date = close_date
@@ -337,12 +321,12 @@ create_summary_csv <- function(issues, env) {
   #   close_date = c("2024-09-18 18:34:50", "2024-09-18 18:34:50", "2024-09-18 18:34:50")
   # )
   # wrap file paths
-  summary_df$file_path <- insert_breaks(summary_df$file_path, 17)
-  summary_df$author <- insert_breaks(summary_df$author, 28)
-  #summary_df$qc_type <- insert_breaks(summary_df$qc_type, 25)
-  summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
-  summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
-  summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
+  summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
+  summary_df$file_path <- kableExtra::linebreak(summary_df$file_path)
+  # summary_df$author <- insert_breaks(summary_df$author, 28)
+  # summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
+  # summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
+  # summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
 
   summary_csv <- tempfile(fileext = ".csv")
   #suppressMessages({withr::defer(fs::file_delete(summary_csv), env)})
@@ -440,19 +424,14 @@ invisible(summary_df)
 table <- summary_df %>%
 
 knitr::kable(
-  col.names = c(\"File Path\", \"Author\", \"QC Type\", \"QCer\", \"Issue Closer\", \"Close Date\"),
+  col.names = c(\"File Path\", \"Author\", \"QCer\", \"Issue Closer\", \"Close Date\"),
   format = \"latex\",
   booktabs = TRUE,
   escape = TRUE,
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
-  column_spec(1, width = \"10em\") %>%
-  column_spec(2, width = \"14em\") %>%
-  column_spec(3, width = \"12em\") %>%
-  column_spec(4, width = \"6em\") %>%
-  column_spec(5, width = \"6em\") %>%
-  column_spec(6, width = \"9em\")
+  column_spec(1, width = \"10em\")
 
 ```
 
@@ -594,9 +573,9 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
   footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
-  column_spec(1, width = \"5em\", latex_valign = \"p\") %>%
-  column_spec(2, width = \"10em\", latex_valign = \"p\") %>%
-  column_spec(3, width = \"3em\", latex_valign = \"p\") %>%
+  # column_spec(1, width = \"5em\", latex_valign = \"p\") %>%
+  # column_spec(2, width = \"10em\", latex_valign = \"p\") %>%
+  # column_spec(3, width = \"3em\", latex_valign = \"p\") %>%
   column_spec(4, width = \"22em\", latex_valign = \"p\")
   #collapse_rows(1:4, valign = \"top\")
 
@@ -632,11 +611,8 @@ create_milestone_df <- function(milestone_names, owner, repo) {
     issue_names <- lapply(issues, function(issue) {
       issue_name <- issue$title
       # insert line breaks here before adding makecell and additional chars
-      # milestone_df$title <- insert_breaks(milestone_df$title, 10)
-      # milestone_df$description <- insert_breaks(milestone_df$description, 10)
-      # milestone_df$status <- insert_breaks(milestone_df$status, 10)
 
-      issue_name <- insert_breaks(issue_name, 45)
+      issue_name <- insert_breaks(issue_name, 42)
 
       if (issue$state == "open") {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{O}}")
@@ -648,7 +624,7 @@ create_milestone_df <- function(milestone_names, owner, repo) {
       return(issue_name)
     })
 
-    issues_str <- glue::glue_collapse(issue_names, "\n")
+    issues_str <- glue::glue_collapse(issue_names, "\n\n")
     issues_str <- kableExtra::linebreak(issues_str)
     issues_str <- stringr::str_replace_all(issues_str, "_", "\\\\_")
     return(issues_str)
@@ -664,14 +640,14 @@ create_milestone_df <- function(milestone_names, owner, repo) {
       desc <- "NA"
     }
 
-    desc <- insert_breaks(desc, 23) #LB
+    #desc <- insert_breaks(desc, 23) #LB
     desc <- kableExtra::linebreak(desc)
     desc <- stringr::str_replace_all(desc, "_", "\\\\_")
     return(desc)
   })
 
   milestone_names <- sapply(milestone_names, function(milestone_name) {
-    milestone_name <- insert_breaks(milestone_name, 10) #LB
+    #milestone_name <- insert_breaks(milestone_name, 10) #LB
     milestone_name <- kableExtra::linebreak(milestone_name)
     milestone_name <- stringr::str_replace_all(milestone_name, "_", "\\\\_")
   })
