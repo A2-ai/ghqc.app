@@ -13,7 +13,15 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
   branch <- get_branch_from_metadata(owner, repo, issue_number)
 
   # get commits on branch
-  all_commits <- gert::git_log(glue::glue("{remote$name}/{branch}"))
+  local_log <- gert::git_log(glue::glue("{branch}"))
+  remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"))
+  all_commits <- dplyr::bind_rows(local_log, remote_log) %>%
+    dplyr::distinct(commit, .keep_all = TRUE) %>%
+    dplyr::arrange(desc(time))
+
+  if (!init_qc_commit %in% all_commits$commit) {
+    rlang::abort(glue::glue("git log does not contain initial qc commit ({init_qc_commit}) given in issue #{issue_number}"))
+  }
 
   cutoff_position <- which(all_commits$commit == init_qc_commit)
 
