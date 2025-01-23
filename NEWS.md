@@ -1,3 +1,7 @@
+# ghqc.app 0.4.7
+
+- fixes bug in `ghqc_resolve_app()` in which get_commits_df failed with error "argument of length 0" in the case of diverging branches not getting the entire git log.
+
 # ghqc.app 0.4.6
 
 - fixes bug in `ghqc_record_app()` in which QC records were unable to be generated due to missing "qc type" from metadata in ghqc-generated issues since metadata simplification in ghqc 0.4.0
