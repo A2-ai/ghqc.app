@@ -7,8 +7,9 @@
 # add "second most recent commit", "most recent commit" and "original qc commit" identifiers
 # format in table
 
-
+#' @importFrom rlang .data
 get_commits_df <- function(issue_number, owner, repo, remote) {
+
   init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
   branch <- get_branch_from_metadata(owner, repo, issue_number)
 
@@ -16,8 +17,8 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
   local_log <- gert::git_log(glue::glue("{branch}"))
   remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"))
   all_commits <- dplyr::bind_rows(local_log, remote_log) %>%
-    dplyr::distinct(commit, .keep_all = TRUE) %>%
-    dplyr::arrange(desc(time))
+    dplyr::distinct(.data$commit, .keep_all = TRUE) %>%
+    dplyr::arrange(dplyr::desc(.data$time))
 
   if (!init_qc_commit %in% all_commits$commit) {
     rlang::abort(glue::glue("git log does not contain initial qc commit ({init_qc_commit}) given in issue #{issue_number}"))
@@ -27,23 +28,20 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
 
   commit_log <- all_commits[1:cutoff_position, ]
 
-  columns <- c("commit", "message", "date", "time", "short_sha", "display")
   commit_log <- commit_log %>%
     dplyr::mutate(
-      date = stringr::str_extract(commit_log[[columns[[4]]]], "^[\\w'-]+"),
-      message = stringr::str_remove_all(commit_log[[columns[[2]]]], "\n"),  # remove /n from message
-      short_sha = stringr::str_extract(commit_log[[columns[[1]]]], "^.{1,7}"))
+      date = stringr::str_extract(.data$time, "^[\\w'-]+"),
+      message = stringr::str_remove_all(.data$message, "\n"),  # remove /n from message
+      short_sha = stringr::str_extract(.data$commit, "^.{1,7}")
+    )
 
   commit_log <- commit_log %>% dplyr::mutate(
       display = glue::glue("{message} | {short_sha}")
     )
 
   commit_log <- commit_log %>%
-    dplyr::select(columns[[3]], columns[[1]], columns[[6]])
+    dplyr::select(.data$date, .data$commit, .data$display)
 
-
-  #last_row <- nrow(commit_log)
-  # commit_log$display[last_row] <- glue::glue("{commit_log$display[last_row]}") # \n(initial qc commit)
   commit_log
 }
 
