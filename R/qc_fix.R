@@ -93,12 +93,14 @@ create_comment_body <- function(owner,
                                 diff = FALSE,
                                 reference_commit = "original",
                                 comparator_commit = "current",
-                                remote_url) {
+                                remote) {
+
+  remote_url <- parse_remote_url(remote$url)
 
   issue <- get_issue(owner, repo, issue_number)
   ## check if file exists locally
   if (!fs::file_exists(issue$title)) {
-    rlang::abort(glue::glue("Error: {issue$title} does not exist in local project repo"))
+    log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
   }
 
   # log
@@ -113,6 +115,7 @@ create_comment_body <- function(owner,
   message_body <- create_message_body(message)
   debug(.le$logger, glue::glue("Created message body"))
 
+
   # get reference and comparator scripts if default
   if (reference_commit == "original" && comparator_commit == "current") {
     # reference = oldest
@@ -122,10 +125,9 @@ create_comment_body <- function(owner,
 
     # comparator = newest
     debug(.le$logger, glue::glue("Getting comparator commit..."))
-    comparator_commit <- gert::git_log(max = 1)$commit
+    comparator_commit <- get_commits_df(issue_number = issue_number, owner = owner, repo = repo, remote = remote)$commit[1]
     debug(.le$logger, glue::glue("Got comparator commit: {comparator_commit}"))
   }
-
 
   debug(.le$logger, glue::glue("Getting script contents..."))
   script_contents <- get_script_contents(issue$title, reference = reference_commit, comparator = comparator_commit)
@@ -188,21 +190,3 @@ post_resolve_comment <- function(owner, repo, issue_number, body) {
 }
 
 
-add_fix_comment <- function(owner,
-                            repo,
-                            issue_number,
-                            message = NULL,
-                            diff = FALSE,
-                            reference_commit = "original",
-                            comparator_commit = "current") {
-
-  body <- create_comment_body(owner,
-                              repo,
-                              issue_number,
-                              message,
-                              diff,
-                              reference_commit = reference_commit,
-                              comparator_commit = comparator_commit)
-
-  post_resolve_comment(owner, repo, issue_number, body)
-}
