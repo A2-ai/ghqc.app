@@ -272,8 +272,24 @@ get_issue <- function(owner, repo, issue_number) {
 
 #' @importFrom log4r warn error info debug
 get_issue_comments <- function(owner, repo, issue_number) {
-  gh::gh("GET /repos/:owner/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
-         owner = owner, repo = repo, issue_number = issue_number)
+  # gh::gh("GET /repos/:owner/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
+  #        owner = owner, repo = repo, issue_number = issue_number)
+  browser()
+  remote <- get_remote()
+  remote_url <- parse_remote_url(remote$url)
+  token <- get_gh_token(remote_url)
+  url <- glue::glue("https://{.le$github_api_url}/repos/{owner}/{repo}/issues/{issue_number}/comments")
+
+  req <- httr2::request(url) %>%
+    httr2::req_headers(
+      "Accept" = "application/vnd.github.full+json",
+      "Authorization" = paste("token", token)
+    ) %>%
+    httr2::req_perform()
+
+  res <- jsonlite::resp_body_json(req, simplifyVector = TRUE)
+
+  return(res)
 } # get_issue_comments
 
 #' @importFrom log4r warn error info debug
