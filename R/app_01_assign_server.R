@@ -152,7 +152,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
           issue_titles_with_root_dir
         },
         error = function(e) {
-          debug(.le$logger, glue::glue("There was no Milestones to query: {e$message}"))
+          debug(.le$logger, glue::glue("There was no Milestones to query: {conditionMessage(e)}"))
           return(list())
         }
       )
@@ -172,9 +172,9 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
           file_data <- extract_file_data(input, selected_items(), relevant_files_list)
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{e$message}"))
+          error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{conditionMessage(e)}"))
           stopApp()
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
     })
@@ -236,9 +236,9 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         session$sendCustomMessage("adjust_grid", id) # finds the width of the files and adjusts grid column spacing based on values
         return(list)
       }, error = function(e) {
-        error(.le$logger, glue::glue("There was an error rendering items in right panel: {e$message}"))
+        error(.le$logger, glue::glue("There was an error rendering items in right panel: {conditionMessage(e)}"))
         stopApp()
-        rlang::abort(e$message)
+        rlang::abort(conditionMessage(e))
       })
     })
 
@@ -269,9 +269,9 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
             create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
-            error(.le$logger, glue::glue("There was an error creating the preview buttons: {e$message}"))
+            error(.le$logger, glue::glue("There was an error creating the preview buttons: {conditionMessage(e)}"))
             stopApp()
-            rlang::abort(e$message)
+            rlang::abort(conditionMessage(e))
           }
         )
       }
@@ -292,15 +292,15 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
               get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = rv_milestone())
             },
             error = function(e) {
-              debug(.le$logger, glue::glue("There were no Milestones to query: {e$message}"))
+              debug(.le$logger, glue::glue("There were no Milestones to query: {conditionMessage(e)}"))
               return(list())
             }
           )
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {e$message}"))
+          error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {conditionMessage(e)}"))
           stopApp()
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
 
@@ -369,9 +369,9 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
           addClass("create_qc_items", "disabled-btn")
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error creating the Milestone {qc_items()}: {e$message}"))
+          error(.le$logger, glue::glue("There was an error creating the Milestone {qc_items()}: {conditionMessage(e)}"))
           stopApp()
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
 

@@ -1,3 +1,9 @@
+# ghqc.app 0.4.9
+
+- fixes HTTP 404 error caused in attempts to download images from Issue comments
+- `ghqc_record_app()` returns in cases of errors instead of returning a modal pop-up
+- In `tryCatch`s, `e$message` is replaced with `conditionMessage(e)`
+
 # ghqc.app 0.4.8
 
 - increases max number of commits in `gert::git_log()` to 9999

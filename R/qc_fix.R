@@ -24,7 +24,7 @@ get_branch_from_metadata <- function(owner, repo, issue_number) {
     return(branch)
   }, error = function(e) {
     shiny::stopApp()
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
 
 }

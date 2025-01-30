@@ -71,7 +71,6 @@ get_timeline_list <- function(timeline_events) {
 }
 
 download_image <- function(url) {
-
   is_amz_redirect <- function(resp) {
     # if the server is Amazon and there's a value for x-amz-request-id, it's an amz error
     bool <- httr2::resp_header(resp, "Server") == "AmazonS3" && nzchar(httr2::resp_header(resp, "x-amz-request-id", default = ""))
@@ -84,38 +83,34 @@ download_image <- function(url) {
     bool
   }
 
-  token <- get_gh_token(.le$github_api_url)
-
   req <- httr2::request(url)
 
   req <- httr2::req_headers(req, "Accept" = "application/vnd.github.v3.raw")
-  req <- httr2::req_auth_bearer_token(req, token)
-  # for the error, tis not really an error if its an amazon redirect, then we can go in and get the
-  # url code
+  req <- httr2::req_headers(req, "Accept" = "application/vnd.github.full+json")
   req <- httr2::req_error(req, is_error = function(resp) {
-    # it's only considered an error if it's not an amz error and it's not a ghe error
-    !is_amz_redirect(resp) && !is_ghe_redirect(resp)
+    # it's only considered an error if it's not an amz error and it's not a ghe error and not status 200
+    !is_amz_redirect(resp) && !is_ghe_redirect(resp) && httr2::resp_status(resp) != 200
   })
+
   req <- httr2::req_perform(req, verbosity = 1)
 
   asset_url <- httr2::last_response() |> httr2::resp_url()
-
   path <- tempfile(fileext = ".png")
 
   httr2::request(asset_url) |>
     httr2::req_perform(path = path)
-  # request <- httr2::request(asset_url) |>
-  #   httr2::req_error(is_error = function(resp) {
-  #     httr2::resp_status(resp) != 404
-  #   })
-  # httr2::req_perform(request, path = path)
 
   path
 }
 
 process_comments <- function(comments) {
-  sapply(comments, function(comment) {
-    text <- comment$body
+  if (length(comments) == 0) {
+    return("")
+  }
+  comments_list <- as.list(split(as.data.frame(comments), seq_len(nrow(comments))))
+  lapply(comments_list, function(comment) {
+    comment <- as.list(comment)
+    text <- comment$body_html
 
     # detect markdown images
     pattern_md <- "!\\[.*?\\]\\((.*?)\\)"
@@ -136,13 +131,12 @@ process_comments <- function(comments) {
 
         if (startsWith(url, "http")) {
           local_path <- download_image(url)
-          text <- gsub(link, paste0("\n![](", local_path, ")\n"), text, fixed = TRUE)
+          text <- gsub(link, paste0("\n\n![](", local_path, ")\n"), text, fixed = TRUE)
         }
         else {
           # replace with plain text link
           text <- gsub(link, url, text, fixed = TRUE)
         }
-
       }
     }
     time <- humanize_time(comment$created_at)

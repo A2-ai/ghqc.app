@@ -57,8 +57,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
           }
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error retrieving issues: {e$message}"))
-          rlang::abort(e$message)
+          error(.le$logger, glue::glue("There was an error retrieving issues: {conditionMessage(e)}"))
+          rlang::abort(conditionMessage(e))
         }
       )
     })
@@ -100,7 +100,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
           ref_commits <- convert_commits_df_format(ref_commits)
         },
         error = function(e) {
-          debug(.le$logger, glue::glue("There was 0 reference commits for issue {issue_parts()$issue_number}: {e$message}"))
+          debug(.le$logger, glue::glue("There was 0 reference commits for issue {issue_parts()$issue_number}: {conditionMessage(e)}"))
           NULL
         }
       )
@@ -134,7 +134,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
           comp_commits <- convert_commits_df_format(comp_commits)
         },
         error = function(e) {
-          debug(.le$logger, glue::glue("There was 0 comparator commits for issue {issue_parts()$issue_number}: {e$message}"))
+          debug(.le$logger, glue::glue("There was 0 comparator commits for issue {issue_parts()$issue_number}: {conditionMessage(e)}"))
           NULL
         }
       )
@@ -164,7 +164,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
           commit_update_status <- check_if_updates_since_init(all_commits())
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {e$message}"))
+          error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {conditionMessage(e)}"))
         }
       )
 
@@ -275,10 +275,10 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
             "- Compare Type: {input$compare}\n",
             "- Comparator Commit: {commits_for_compare$comparator_commit}\n",
             "- Reference Commit: {commits_for_compare$reference_commit}\n",
-            "Error Message: {e$message}"
+            "Error Message: {conditionMessage(e)}"
           )
           error(.le$logger, log_string)
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
     })
@@ -301,10 +301,10 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
             "- Compare Type: {input$compare}\n",
             "- Comparator Commit: {commits_for_compare$comparator_commit}\n",
             "- Reference Commit: {commits_for_compare$reference_commit}\n",
-            "Error Message: {e$message}"
+            "Error Message: {conditionMessage(e)}"
           )
           error(.le$logger, log_string)
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
     })
@@ -353,10 +353,10 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
             "- Compare Type: {input$compare}\n",
             "- Current Commit: {commits_for_compare$comparator_commit}\n",
             "- Previous Commit: {commits_for_compare$reference_commit}\n",
-            "Error Message: {e$message}"
+            "Error Message: {conditionMessage(e)}"
           )
           error(.le$logger, log_string)
-          rlang::abort(e$message)
+          rlang::abort(conditionMessage(e))
         }
       )
     })

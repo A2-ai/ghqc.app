@@ -101,12 +101,12 @@ create_checklist_section <- function(issue_body) {
   checklist_section <- create_small_section("Issue Body", clean_issue_body)
 }
 
-issue_to_markdown <- function(owner, repo, issue_number) {
+issue_to_markdown <- function(owner, repo, issue_number, token) {
   # collect issue info
   issue <- get_issue(owner, repo, issue_number)
   milestones <- get_all_milestone_objects(owner, repo)
 
-  issue_comments <- get_issue_comments(owner, repo, issue_number)
+  issue_comments <- get_issue_comments(owner, repo, issue_number, token)
 
   issue_events <- get_issue_events(owner, repo, issue_number)
   events_list <- get_events_list(issue_events)
@@ -221,11 +221,6 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
 
   return(pdf_path_abs)
 } # markdown_to_pdf
-
-scrape_issue <- function(owner, repo, issue_number) {
-  rmd_contents <- issue_to_markdown(owner, repo, issue_number)
-  markdown_to_pdf(rmd_contents, repo, issue_number)
-} # scrape
 
 get_summary_table_col_vals <- function(issue) {
   metadata <- {
@@ -444,9 +439,9 @@ print(table)
   )
 }
 
-create_set_of_issue_sections <- function(issues, owner, repo) {
+create_set_of_issue_sections <- function(issues, owner, repo, token) {
   issue_numbers <- sapply(issues, function(issue) issue$number)
-  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(owner, repo, issue$number))
+  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(owner, repo, issue$number, token))
   issue_titles <- sapply(issues, function(issue) issue$title)
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
@@ -454,7 +449,7 @@ create_set_of_issue_sections <- function(issues, owner, repo) {
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone_report_section <- function(owner, repo, milestone_name, env, just_tables = FALSE) {
+create_milestone_report_section <- function(owner, repo, milestone_name, env, just_tables = FALSE, token) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
   issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
 
@@ -464,7 +459,7 @@ create_milestone_report_section <- function(owner, repo, milestone_name, env, ju
   summary_table_section <- create_summary_table_section(summary_csv)
   info(.le$logger, glue::glue("Created summary table for Milestone: {milestone_name}"))
   # issues
-  issue_sections <- create_set_of_issue_sections(issues, owner, repo)
+  issue_sections <- create_set_of_issue_sections(issues, owner, repo, token)
 
   res <- {
     if (just_tables) {
@@ -510,7 +505,7 @@ get_inputted_milestone_names <- function(owner, repo) {
         FALSE
       },
       error = function(e) {
-        cat("Error:", e$message, "\n")
+        cat("Error:", conditionMessage(e), "\n")
         FALSE
       })
 
@@ -674,7 +669,8 @@ ghqc_report <- function(milestone_names = NULL,
                         just_tables = FALSE,
                         location = ".",
                         owner,
-                        repo) {
+                        repo,
+                        token) {
 
   # get user input if milestone_names not inputted (check existence here)
   if (is.null(milestone_names)) {
@@ -708,7 +704,7 @@ ghqc_report <- function(milestone_names = NULL,
   debug(.le$logger, "Creating Milestone sections...")
   # create milestone sections
   milestone_sections <- lapply(milestone_names, function(milestone_name) {
-    milestone_body <- create_milestone_report_section(owner, repo, milestone_name, parent.frame(n = 2), just_tables)
+    milestone_body <- create_milestone_report_section(owner, repo, milestone_name, parent.frame(n = 2), just_tables, token)
     create_big_section(milestone_name, milestone_body)
   })
   info(.le$logger, "Created Milestone sections")

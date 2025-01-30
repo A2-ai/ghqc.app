@@ -85,7 +85,7 @@ get_gh_api_url <- function(remote_url) {
     {
       glue::glue("{remote_url}/api/v3")
     }, error = function(e) {
-      rlang::abort(message = e$message)
+      rlang::abort(message = conditionMessage(e))
     }
   )
 }
@@ -95,7 +95,7 @@ get_gh_token <- function(url) {
   tryCatch({
     pat <- gitcreds::gitcreds_get(url = get_gh_api_url(url))$password
   }, error = function(e) {
-    error(.le$logger, message = glue::glue("Could not find GitHub PAT for {url} due to: {e$message}. Set your GitHub credentials before continuing"))
+    error(.le$logger, message = glue::glue("Could not find GitHub PAT for {url} due to: {conditionMessage(e)}. Set your GitHub credentials before continuing"))
     rlang::abort(message = glue::glue("Could not find GitHub PAT for {url}. Set your GitHub credentials before continuing"), parent = e$parent)
   })
 
@@ -115,7 +115,7 @@ try_api_call <- function(url, token) {
     info(.le$logger, glue::glue("Successful test api call to {get_gh_api_url(url)}"))
   }, error = function(e) {
     pat_substr <- paste0(substr(token, 1, 4), strrep("*", nchar(token)-4))
-    error(.le$logger, message = glue::glue("{url} could not be accessed using {pat_substr} due to: {e$message}. Ensure your GitHub credentials are correct before continuing"))
+    error(.le$logger, message = glue::glue("{url} could not be accessed using {pat_substr} due to: {conditionMessage(e)}. Ensure your GitHub credentials are correct before continuing"))
     rlang::abort(message = glue::glue("{url} could not be accessed using {pat_substr}. Ensure your GitHub credentials are correct before continuing", parent = e$parent))
   })
 }
@@ -130,11 +130,14 @@ check_github_credentials <- function() {
   remote_url <- parse_remote_url(remote$url)
   check_upstream_set(remote$name)
 
-  # api_url <- get_gh_api_url(remote_url)
   token <- get_gh_token(remote_url)
   try_api_call(remote_url, token)
   check_remote_matches_env_url(remote_url)
   assign("github_api_url", get_gh_api_url(remote_url), envir = .le)
-  invisible(remote)
+
+  return(list(
+    remote = remote,
+    token = token
+  ))
 }
 
