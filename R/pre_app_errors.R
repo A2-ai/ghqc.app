@@ -6,7 +6,7 @@ rproj_root_dir <- function() {
     },
     error = function(e) {
       error(.le$logger, glue::glue("There was no Rproj file found within the directory '{getwd()}'."))
-      rlang::abort(e$message)
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -18,8 +18,8 @@ get_valid_checklists <- function() {
         yaml_checklists <- get_checklists()
       },
       error = function(e) {
-        error(.le$logger, glue::glue("There was an error retrieving {get_checklist_display_name_var(plural = TRUE)}: {e$message}"))
-        rlang::abort(e$message)
+        error(.le$logger, glue::glue("There was an error retrieving {get_checklist_display_name_var(plural = TRUE)}: {conditionMessage(e)}"))
+        rlang::abort(conditionMessage(e))
       }
   )
 
@@ -33,8 +33,8 @@ get_org_errors <- function(remote) {
       get_organization(remote)
     },
     error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving organization: {e$message}"))
-      rlang::abort(e$message)
+      error(.le$logger, glue::glue("There was an error retrieving organization: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -45,8 +45,8 @@ get_repo_errors <- function(remote) {
       get_current_repo(remote)
     },
     error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving repo: {e$message}"))
-      rlang::abort(e$message)
+      error(.le$logger, glue::glue("There was an error retrieving repo: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -57,8 +57,8 @@ get_members_errors <- function(org, repo) {
       get_collaborators(owner = org, repo = repo)
     },
     error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving members: {e$message}"))
-      rlang::abort(e$message)
+      error(.le$logger, glue::glue("There was an error retrieving members: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -71,8 +71,8 @@ get_open_milestone_list_errors <- function(org, repo) {
     },
     error = function(e) {
       # it's fine to swallow error for this because milestones are not needed for creating
-      error(.le$logger, glue::glue("There was an error retrieving open Milestones: {e$message}"))
-      rlang::abort(e$message)
+      error(.le$logger, glue::glue("There was an error retrieving open Milestones: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -84,8 +84,8 @@ get_all_milestone_list_errors <- function(org, repo) {
       rev(all_milestones)
     },
     error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving all Milestones: {e$message}"))
-      rlang::abort(e$message)
+      error(.le$logger, glue::glue("There was an error retrieving all Milestones: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }

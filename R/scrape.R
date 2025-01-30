@@ -505,7 +505,7 @@ get_inputted_milestone_names <- function(owner, repo) {
         FALSE
       },
       error = function(e) {
-        cat("Error:", e$message, "\n")
+        cat("Error:", conditionMessage(e), "\n")
         FALSE
       })
 

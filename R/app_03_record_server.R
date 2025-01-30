@@ -66,8 +66,8 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
           rev(closed_milestones)
         },
         error = function(e) {
-          error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {e$message}"))
-          rlang::abort(glue::glue("There was an error retrieving closed Milestones: {e$message}"))
+          error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
+          rlang::abort(glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
         }
       )
     })
@@ -184,18 +184,8 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
         ) #showModal
       },
       error = function(e) {
-        error_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#10071;</span>"
-        showModal(
-          modalDialog(
-            title = tags$div(
-              tags$span("Error", style = "float: left; font-weight: bold; font-size: 20px;"),
-              modalButton("Dismiss"),
-              style = "overflow: hidden; text-align: right;"
-            ),
-            HTML(error_icon_html, conditionMessage(e), "<br>"),
-            easyClose = TRUE,
-            footer = NULL
-          ))
+        error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
+        rlang::abort(glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
       }) # tryCatch
     })
 

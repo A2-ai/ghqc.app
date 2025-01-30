@@ -137,7 +137,6 @@ process_comments <- function(comments) {
           # replace with plain text link
           text <- gsub(link, url, text, fixed = TRUE)
         }
-
       }
     }
     time <- humanize_time(comment$created_at)

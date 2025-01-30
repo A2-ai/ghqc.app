@@ -129,7 +129,7 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
     error = function(e) {
       items <- glue::glue_collapse(items, sep = ", ")
 
-      error_message <- glue::glue("Error rendering selected {items}: {e$message}")
+      error_message <- glue::glue("Error rendering selected {items}: {conditionMessage(e)}")
       log4r::error(.le$logger, error_message)
       stopApp()
       rlang::abort(error_message)
@@ -270,8 +270,8 @@ extract_file_data <- function(input, items, relevant_files_list) {
       return(file_data)
     },
     error = function(e) {
-      log4r::error(glue::glue("Error extracting data from selected {items}: {e$message}"))
-      rlang::abort(e$message)
+      log4r::error(glue::glue("Error extracting data from selected {items}: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -354,8 +354,8 @@ create_button_preview_event <- function(input, name) {
       debug(.le$logger, glue::glue("Created button preview event for item: {name} successfully"))
     },
     error = function(e) {
-      log4r::error(glue::glue("Error creating observe event for item {name}: {e$message}"))
-      rlang::abort(e$message)
+      log4r::error(glue::glue("Error creating observe event for item {name}: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -410,8 +410,8 @@ create_checklist_preview_event <- function(input, name, checklists) {
       debug(.le$logger, glue::glue("Created button preview event for item: {name} successfully"))
     },
     error = function(e) {
-      log4r::error(glue::glue("Error creating observe event for item {name}: {e$message}"))
-      rlang::abort(e$message)
+      log4r::error(glue::glue("Error creating observe event for item {name}: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }
@@ -599,8 +599,8 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       debug(.le$logger, glue::glue("Created associate relevant files event for item: {name} successfully"))
     },
     error = function(e) {
-      log4r::error(glue::glue("Error creating associate relevant files event for item {name}: {e$message}"))
-      rlang::abort(e$message)
+      log4r::error(glue::glue("Error creating associate relevant files event for item {name}: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
     }
   )
 }

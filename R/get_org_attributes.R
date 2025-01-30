@@ -15,7 +15,7 @@ get_repos <- function(org) {
       gh::gh("GET /orgs/:org/repos", .api_url = .le$github_api_url, org = org, .limit = Inf)
     },
     error = function(e) {
-      error(.le$logger, glue::glue("Failed to get repos in org {org}. {e$message}"))
+      error(.le$logger, glue::glue("Failed to get repos in org {org}. {conditionMessage(e)}"))
     }
   )
 
@@ -76,7 +76,7 @@ get_open_milestone_names <- function(org, repo) {
   purrr::map_chr(milestones, "title")
   }, error = function(e) {
     error(.le$logger, glue::glue("Failed to retrieve open Milestone name(s) for organization {org} and {repo}."))
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
 }
 
@@ -87,7 +87,7 @@ get_closed_milestone_names <- function(org, repo) {
     purrr::map_chr(milestones, "title")
   }, error = function(e) {
     error(.le$logger, glue::glue("Failed to retrieve closed Milestone name(s) for organization {org} and {repo}."))
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
 }
 
@@ -194,7 +194,7 @@ get_remote <- function() {
         # error if no remote urls
       }, error = function(e) {
         error(.le$logger, glue::glue("No remote repository found"))
-        rlang::abort(e$message)
+        rlang::abort(conditionMessage(e))
       })
     } # LAST
   } # remote
@@ -209,7 +209,7 @@ get_current_repo <- function(remote) {
 
   }, error = function(e) {
     error(.le$logger, glue::glue("No local git repository found."))
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
   remote_repo_name <- get_remote_name(remote$url)
 }
@@ -260,7 +260,7 @@ get_organization <- function(remote) {
   return(org_name)
   }, error = function(e) {
     error(.le$logger, "Failed to connect to organization. Ensure the repository exists and that remotes are correctly configured.")
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
 }
 
@@ -272,7 +272,10 @@ get_issue <- function(owner, repo, issue_number) {
 
 #' @importFrom log4r warn error info debug
 get_issue_comments <- function(owner, repo, issue_number, token) {
-  url <- glue::glue("https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments")
+ #browser()
+  api_url <- .le$github_api_url
+  base_url <- ifelse(api_url == "https://github.com/api/v3", "https://api.github.com", api_url)
+  url <- glue::glue("{base_url}/repos/{owner}/{repo}/issues/{issue_number}/comments")
 
   req <- httr2::request(url) %>%
     httr2::req_headers(
@@ -459,6 +462,6 @@ get_collaborators <- function(owner, repo) {
     return(members_df)
   }, error = function(e) {
     error(.le$logger, glue::glue("No collaborators found in {owner}/{repo}"))
-    rlang::abort(e$message)
+    rlang::abort(conditionMessage(e))
   })
 }

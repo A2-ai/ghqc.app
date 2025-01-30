@@ -73,7 +73,7 @@ get_milestone_number <- function(params) {
   searched_number <- tryCatch({
       look_up_existing_milestone_number(params)
     }, error = function(e){
-      debug(.le$logger, glue::glue("No Milestones found: {e$message}"))
+      debug(.le$logger, glue::glue("No Milestones found: {conditionMessage(e)}"))
       return(NULL)
     })
 
