@@ -14,7 +14,7 @@ ghqc_assign_app <- function() {
 
   # error handling before starting app
   root_dir <- rproj_root_dir()
-  remote <- check_github_credentials()
+  remote <- check_github_credentials()$remote
   checklists <- get_valid_checklists()
   org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)

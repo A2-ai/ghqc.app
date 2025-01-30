@@ -83,17 +83,12 @@ download_image <- function(url) {
     bool
   }
 
-  token <- get_gh_token(.le$github_api_url)
-
   req <- httr2::request(url)
 
   req <- httr2::req_headers(req, "Accept" = "application/vnd.github.v3.raw")
   req <- httr2::req_headers(req, "Accept" = "application/vnd.github.full+json")
-  req <- httr2::req_auth_bearer_token(req, token)
-  # for the error, tis not really an error if its an amazon redirect, then we can go in and get the
-  # url code
   req <- httr2::req_error(req, is_error = function(resp) {
-    # it's only considered an error if it's not an amz error and it's not a ghe error
+    # it's only considered an error if it's not an amz error and it's not a ghe error and not status 200
     !is_amz_redirect(resp) && !is_ghe_redirect(resp) && httr2::resp_status(resp) != 200
   })
 
@@ -136,7 +131,7 @@ process_comments <- function(comments) {
 
         if (startsWith(url, "http")) {
           local_path <- download_image(url)
-          text <- gsub(link, paste0("\n![](", local_path, ")\n"), text, fixed = TRUE)
+          text <- gsub(link, paste0("\n\n![](", local_path, ")\n"), text, fixed = TRUE)
         }
         else {
           # replace with plain text link

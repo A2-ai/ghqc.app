@@ -7,7 +7,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
+ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
   moduleServer(id, function(input, output, session) {
     iv <- shinyvalidate::InputValidator$new()
     iv$add_rule("select_milestone", shinyvalidate::sv_required())
@@ -170,7 +170,8 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones) {
           just_tables = input$just_tables,
           location = input$pdf_location,
           owner = org,
-          repo = repo
+          repo = repo,
+          token = token
         )
 
         showModal(

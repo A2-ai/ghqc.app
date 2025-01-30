@@ -271,15 +271,8 @@ get_issue <- function(owner, repo, issue_number) {
 } # get_issue
 
 #' @importFrom log4r warn error info debug
-get_issue_comments <- function(owner, repo, issue_number) {
-  # df <- gh::gh("GET /repos/:owner/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
-  #        owner = owner, repo = repo, issue_number = issue_number)
-
-
-
-  token <- get_gh_token(.le$github_api_url)
+get_issue_comments <- function(owner, repo, issue_number, token) {
   url <- glue::glue("https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments")
-
 
   req <- httr2::request(url) %>%
     httr2::req_headers(

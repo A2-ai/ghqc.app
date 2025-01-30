@@ -130,11 +130,14 @@ check_github_credentials <- function() {
   remote_url <- parse_remote_url(remote$url)
   check_upstream_set(remote$name)
 
-  # api_url <- get_gh_api_url(remote_url)
   token <- get_gh_token(remote_url)
   try_api_call(remote_url, token)
   check_remote_matches_env_url(remote_url)
   assign("github_api_url", get_gh_api_url(remote_url), envir = .le)
-  invisible(remote)
+
+  return(list(
+    remote = remote,
+    token = token
+  ))
 }
 
