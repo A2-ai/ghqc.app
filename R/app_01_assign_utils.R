@@ -208,6 +208,8 @@ return "<div><strong>" + escape(item.username) + "</div>"
 #' @param items A list representing the selected items, typically structured hierarchically.
 #' @return A list of structured data for each file, including the file name, assignees, and checklist type.
 #'
+#' @importFrom rlang %||%
+#'
 #' @noRd
 extract_file_data <- function(input, items, relevant_files_list) {
   tryCatch(
@@ -235,7 +237,6 @@ extract_file_data <- function(input, items, relevant_files_list) {
           return(NULL)
         }
 
-        #relevant_files <- input[[filtered_file_selector_id]] %||% character(0)
         relevant_files <- relevant_files_list[[name]]
 
         if (length(relevant_files) > 0) {
@@ -424,6 +425,8 @@ create_checklist_preview_event <- function(input, name, checklists) {
 #'
 #' @param input A reactive list of inputs from a Shiny session.
 #' @param name A character string representing the name of the item associated with the button.
+#'
+#' @importFrom rlang %||%
 #'
 #' @return A list of files selected with name, path, and note
 #' @noRd

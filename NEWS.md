@@ -1,3 +1,7 @@
+# ghqc.app 0.4.10
+
+- fixes error in Associate Relevant Files modal pop-up
+
 # ghqc.app 0.4.9
 
 - fixes HTTP 404 error caused in attempts to download images from Issue comments
