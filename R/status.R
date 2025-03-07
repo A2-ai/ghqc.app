@@ -20,7 +20,9 @@ ghqc_status <- function(owner, repo, milestone_name) {
       file = x$title,
       url = x$html_url,
       state = x$state,
-      QCer = x$assignee$login
+      git_status = get_file_git_status(x),
+      qc_status = get_file_qc_status(x),
+      QCer = x$assignee$login,
     )
   })
   # TODO: add rest of repo files, determine where they're assoc files or not
@@ -28,7 +30,7 @@ ghqc_status <- function(owner, repo, milestone_name) {
 
 get_file_git_status <- function(file) {
   if (!file.exists(file)) {
-    rlang::abort("file does not exist")
+    rlang::abort(glue::glue("file {file} does not exist"))
   }
 
   if (file_has_remote_commits(file)) {
@@ -84,7 +86,7 @@ file_has_remote_commits <- function(file) {
   }
 
   # get remote commits
-  remote_commits <- gert::git_log(ref = "@{upstream}")$commit
+  remote_commits <- gert::git_log(ref = "@{upstream}", max = 9999)$commit
 
   # get latest pushed local commit
   local_commit <- remote_commits[1 + ahead_behind_status$behind]
@@ -100,8 +102,46 @@ file_has_remote_commits <- function(file) {
   return(FALSE) # no unpulled local commits
 }
 
-get_file_qc_status <- function(file, file_git_status) {
-  # TODO
+get_file_qc_status <- function(file, issue_state, file_git_status) {
+  ## For open issues
+  if (issue_status == "open") {
+    # QC update to pull
+    # if local commit is older than latest commented commit in file's issue (even if it didn't change the file)
+
+    # QC update to comment
+    # if there are any remote commits newer than latest commented commit **that change the file**
+
+  } # open
+
+  ## For closed issues
+  else if (issue_state == "closed") {
+    # local uncommitted file changes after Issue closure
+    # if file_git_status is uncommitted file changes
+
+    # local unpushed commits after Issue closure
+    # if file_git_status is local unpushed commits
+
+    # pushed file changes after Issue closure
+
+
+    # uncommented pushed file changes before Issue closure
+
+  } # closed
+
+
+  # uncommented pushed file changes before Issue closure
+
+  ## For non-issue files
+  else if (issue_state == "no issue") {
+    # Associated file
+
+    # NA
+  }
+
+  else {
+    rlang::abort(glue::glue("unrecognized issue state {issue_state}"))
+  }
+
 }
 
 
