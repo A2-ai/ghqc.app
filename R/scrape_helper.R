@@ -151,8 +151,8 @@ get_metadata <- function(body) {
   metadata <- list()
 
   for (line in metadata_lines) {
-    if (stringr::str_detect(line, "^\\*")) {
-      key_value <- stringr::str_match(line, "\\*\\s*(.*?):\\s*(.*)")[2:3]
+    if (stringr::str_detect(line, "^[*-]")) {
+      key_value <- stringr::str_match(line, "[*-]\\s*(.*?):\\s*(.*)")[2:3]
       metadata[[key_value[1]]] <- key_value[2]
     }
   }
