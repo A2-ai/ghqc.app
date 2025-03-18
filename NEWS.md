@@ -1,3 +1,8 @@
+# ghqc.app 0.4.12
+
+- changes references to "QC Record" instead of old term "report"
+
+
 # ghqc.app 0.4.11
 
 - allows metadata bullet parsing to recognize both `*` and `-` characters. 

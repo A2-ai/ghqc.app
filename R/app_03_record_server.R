@@ -159,7 +159,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
       milestone_num_str <- ifelse(length(input$select_milestone) == 1, "Milestone", "Milestones")
       milestones <- glue::glue_collapse(input$select_milestone, sep = ", ", last = " and ")
 
-      w_generate_report <- create_waiter(ns, glue::glue("Generating report for {milestone_num_str}: {milestones}..."))
+      w_generate_report <- create_waiter(ns, glue::glue("Generating QC Record for {milestone_num_str}: {milestones}..."))
       w_generate_report$show()
       on.exit(w_generate_report$hide())
 
@@ -174,18 +174,20 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
           token = token
         )
 
+        stop("artificial error")
+
         showModal(
           modalDialog(
             title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
             footer = NULL,
             easyClose = TRUE,
-            tags$p(glue::glue("QC report generated successfully: {pdf_path}"))
+            tags$p(glue::glue("QC Record generated successfully: {pdf_path}"))
           )
         ) #showModal
       },
       error = function(e) {
-        error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
-        rlang::abort(glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
+        error(.le$logger, glue::glue("There was an error generating the QC Record: {conditionMessage(e)}"))
+        rlang::abort(glue::glue("There was an error generating the QC Record: {conditionMessage(e)}"))
       }) # tryCatch
     })
 
