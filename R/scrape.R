@@ -15,7 +15,7 @@ create_qc_data_section <- function(issue_creation_time, issue_creator, issue_tit
   issue_section <- create_small_section("QC Data", issue_body)
 }
 
-create_milestone_section <- function(milestone_title, milestones) { # issue$milestone$title
+create_milestone_section <- function(milestone_title, milestones) {
   if (!is.null(milestone_title)) {
     milestone_body <- {
       description <- get_milestone_description(milestone_title, milestones)
@@ -27,7 +27,6 @@ create_milestone_section <- function(milestone_title, milestones) { # issue$mile
         glue::glue("* **Milestone:** {milestone_title}")
       }
     }
-    #create_section("Milestone", milestone_body)
   }
   else ""
 }
@@ -69,14 +68,6 @@ create_timeline_section <- function(timeline) {
   timeline_body <- glue::glue_collapse(timeline_list, sep = "\n")
   timeline_section <- create_small_section("Detailed Timeline", timeline_body)
 }
-
-# clean_body <- function(body) {
-#   body <- stringr::str_replace_all(body, "(^#{1,4} (\\w+)|\n#{1,4} (\\w+))", function(x) {
-#     word <- stringr::str_extract(x, "(?<=#{1,4} )\\w+")
-#     paste0("**", word, "**")
-#   })
-#   return(body)
-# }
 
 clean_body <- function(body) {
   body <- stringr::str_replace_all(body, "(^#{1,4} .*|\\n#{1,4} .*)", function(x) {
@@ -214,7 +205,7 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
       )
     )
 
-    stop("forced error")
+    #stop("forced error")
 
     #suppressMessages({withr::defer_parent(unlink(dirname(rmd)))})
 
@@ -248,8 +239,6 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
     rlang::abort(glue::glue("Error generating pdf. Please review generated Rmd and sourced files located in {simple_error_folder_path}"))
   })
 
-
-
 } # markdown_to_pdf
 
 get_summary_table_col_vals <- function(issue) {
@@ -280,11 +269,7 @@ get_summary_table_col_vals <- function(issue) {
   latest_author <- authors$latest
 
   file_path <- issue$title
-  #author <- ifelse(!is.null(latest_author), latest_author, "NA")
   author <- ifelse(!is.null(metadata$author), metadata$author, "NA")
-  #qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
-  #file_name <- basename(file_path)
-  #git_sha <- ifelse(!is.null(metadata$git_sha), metadata$git_sha, NA)
   qcer <- ifelse(length(issue$assignees) > 0, issue$assignees[[1]], "NA")
   issue_closer <- ifelse(!is.null(close_data$closer), close_data$closer, "NA")
   close_date <- ifelse(!is.null(close_data$closed_at), close_data$closed_at, "NA")
@@ -337,25 +322,12 @@ create_summary_csv <- function(issues, env) {
   summary_df <- get_summary_df(issues)
   summary_df$issue_closer[is.na(summary_df$issue_closer)] <- "NA"
   summary_df$close_date[is.na(summary_df$close_date)] <- "NA"
-  # summary_df <- data.frame(
-  #   file_path = c("scripts/sub_dir/long_titled_R_script_for_a_test.R", "short_file.txt", "mediummediummedium_file.R"),
-  #   author = c("jenna-a2ai <jenna@a2-ai.com>", "longergithubname <longergithubname@a2-ai.com", "longerlongerlongergithubname <longerlongerlongergithubname@a2-ai.com"),
-  #   qc_type = c("mrgsolve Model Validation", "qctypeqctypeqctypeqctypeqctypeqctype", "qctype qctype qctype qctype qctype "),
-  #   qcer = c("jenna-a2ai", "longernamelongernamelongername", "mediumname"),
-  #   issue_closer = c("jenna-a2ai", "mediumname", "longernamelongernamelongername"),
-  #   close_date = c("2024-09-18 18:34:50", "2024-09-18 18:34:50", "2024-09-18 18:34:50")
-  # )
+
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
   summary_df$file_path <- kableExtra::linebreak(summary_df$file_path)
-  # summary_df$author <- insert_breaks(summary_df$author, 28)
-  # summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
-  # summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
-  # summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
 
   summary_csv <- tempfile(fileext = ".csv")
-  #suppressMessages({withr::defer(fs::file_delete(summary_csv), env)})
-  #summary_csv <- file.path(getwd(), "summary.csv")
   utils::write.csv(summary_df, file = summary_csv, row.names = FALSE)
   return(summary_csv)
 }
@@ -401,8 +373,6 @@ create_intro <- function(repo, milestone_names) {
   - \\usepackage{{xcolor}}
   - \\pagestyle{{fancy}}
   - \\newcolumntype{{R}}[1]{{>{{\\raggedright\\arraybackslash}}p{{#1}}}}
-  - \\newcommand{{\\blandscape}}{{\\begin{{landscape}}}}
-  - \\newcommand{{\\elandscape}}{{\\end{{landscape}}}}
   - \\setlength{{\\headheight}}{{30pt}}
   - \\fancyfoot[C]{{Page \\thepage\\ of \\pageref{{LastPage}}}}
   - \\usepackage{{lastpage}}
@@ -598,15 +568,7 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
   footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
-  # column_spec(1, width = \"5em\", latex_valign = \"p\") %>%
-  # column_spec(2, width = \"10em\", latex_valign = \"p\") %>%
-  # column_spec(3, width = \"3em\", latex_valign = \"p\") %>%
   column_spec(4, width = \"22em\", latex_valign = \"p\")
-  #collapse_rows(1:4, valign = \"top\")
-
-  #row_spec(1:4, latex_valign = \"t\")
-
-  #column_spec(1, width = \"10em\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -672,11 +634,9 @@ create_milestone_df <- function(milestone_names, owner, repo) {
   })
 
   milestone_names <- sapply(milestone_names, function(milestone_name) {
-    #milestone_name <- insert_breaks(milestone_name, 10) #LB
     milestone_name <- kableExtra::linebreak(milestone_name)
     milestone_name <- stringr::str_replace_all(milestone_name, "_", "\\\\_")
   })
-
 
   milestone_df <- data.frame(
     name = milestone_names,
@@ -684,10 +644,6 @@ create_milestone_df <- function(milestone_names, owner, repo) {
     status = milestone_statuses,
     issues = issues_in_milestones
   )
-
-  # milestone_df$issues <- stringr::str_replace_all(milestone_df$issues, "_", "\\\\_")
-  # milestone_df$name <- stringr::str_replace_all(milestone_df$name, "_", "\\\\_")
-  # milestone_df$description <- stringr::str_replace_all(milestone_df$description, "_", "\\\\_")
 
   milestone_df
 }
