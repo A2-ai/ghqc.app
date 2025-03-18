@@ -1,3 +1,7 @@
+# ghqc.app 0.4.11
+
+- allows metadata bullet parsing to recognize both `*` and `-` characters. 
+
 # ghqc.app 0.4.10
 
 - fixes error in Associate Relevant Files modal pop-up
