@@ -208,8 +208,6 @@ return "<div><strong>" + escape(item.username) + "</div>"
 #' @param items A list representing the selected items, typically structured hierarchically.
 #' @return A list of structured data for each file, including the file name, assignees, and checklist type.
 #'
-#' @importFrom rlang %||%
-#'
 #' @noRd
 extract_file_data <- function(input, items, relevant_files_list) {
   tryCatch(
@@ -244,8 +242,8 @@ extract_file_data <- function(input, items, relevant_files_list) {
             name_input_id <- paste0("name_", file)
             note_input_id <- paste0("note_", file)
 
-            file_name <- input[[name_input_id]] %||% basename(file)
-            file_note <- input[[note_input_id]] %||% ""
+            file_name <- if (!is.null(input[[name_input_id]])) input[[name_input_id]] else basename(file)
+            file_note <- if (!is.null(input[[note_input_id]])) input[[note_input_id]] else ""
 
             list(
               file_path = file,
@@ -426,8 +424,6 @@ create_checklist_preview_event <- function(input, name, checklists) {
 #' @param input A reactive list of inputs from a Shiny session.
 #' @param name A character string representing the name of the item associated with the button.
 #'
-#' @importFrom rlang %||%
-#'
 #' @return A list of files selected with name, path, and note
 #' @noRd
 associate_relevant_files_button_event <- function(input, output, name, ns, root_dir, relevant_files) {
@@ -456,7 +452,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       # when a relevant file is added/subtracted
       observeEvent(input[[filtered_file_selector_id]], {
         req(input[[filtered_file_selector_id]])
-        selected_files <- input[[filtered_file_selector_id]] %||% character(0)
+        selected_files <- if (!is.null(input[[filtered_file_selector_id]])) input[[filtered_file_selector_id]] else character(0)
 
         # saving metadata stops name and note from disappearing when relevant files are added/subtracted
 
@@ -531,7 +527,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
 
         # right pane
         output[[paste0(filtered_file_selector_id, "_selected")]] <- renderUI({
-          selected_files <- input[[filtered_file_selector_id]] %||% character(0)
+          selected_files <- if (!is.null(input[[filtered_file_selector_id]])) input[[filtered_file_selector_id]] else character(0)
           current_meta <- file_meta()
 
           if (length(selected_files) == 0) {
@@ -542,7 +538,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
           ui_elements <- lapply(selected_files, function(file) {
             # pre-fill with meta if set previously
             # if meta is null, make name the basename and note blank
-            meta <- current_meta[[file]] %||% list(name = basename(file), note = "")
+            meta <- if (!is.null(current_meta[[file]])) current_meta[[file]] else list(name = basename(file), note = "")
 
             tags$div(
               style = "margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;",

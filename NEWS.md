@@ -1,3 +1,7 @@
+# ghqc.app 0.4.12
+
+- fixes bug with rlang %||% operator preventing the use of the Associate Relevant Files feature
+
 # ghqc.app 0.4.11
 
 - allows metadata bullet parsing to recognize both `*` and `-` characters. 
