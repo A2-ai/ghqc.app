@@ -2,6 +2,7 @@
 
 - changes references to "QC Record" instead of old term "report"
 - copies rmd file and its sourced files to QC Record directory in case of error in `ghqc_record_app()`
+- fixes bullet point HTML syntax in `ghqc_record_app()` warning modal
 
 # ghqc.app 0.4.12
 
