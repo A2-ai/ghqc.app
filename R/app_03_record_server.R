@@ -174,8 +174,6 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
           token = token
         )
 
-        stop("artificial error")
-
         showModal(
           modalDialog(
             title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),

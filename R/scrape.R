@@ -201,25 +201,55 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
 
   # create pdf from rmd
   location <- normalizePath(location)
-  suppressWarnings(
-    output_file <- rmarkdown::render(
-      input = rmd,
-      output_format = "pdf_document",
-      output_file = pdf_name,
-      output_dir = location,
-      run_pandoc = TRUE,
-      quiet = TRUE
+  tryCatch({
+    #browser()
+    suppressWarnings(
+      output_file <- rmarkdown::render(
+        input = rmd,
+        output_format = "pdf_document",
+        output_file = pdf_name,
+        output_dir = location,
+        run_pandoc = TRUE,
+        quiet = TRUE
+      )
     )
-  )
 
-  #suppressMessages({withr::defer_parent(unlink(dirname(rmd)))})
+    stop("forced error")
 
-  pdf_path_abs <- get_simple_path(output_file)
+    #suppressMessages({withr::defer_parent(unlink(dirname(rmd)))})
 
-  info(.le$logger, "Converted rmd to pdf")
-  info(.le$logger, glue::glue("Created Record pdf: {pdf_path_abs}"))
+    pdf_path_abs <- get_simple_path(output_file)
 
-  return(pdf_path_abs)
+    info(.le$logger, "Converted rmd to pdf")
+    info(.le$logger, glue::glue("Created Record pdf: {pdf_path_abs}"))
+
+    return(pdf_path_abs)
+  }, error = function(e) {
+
+    # if error, put rmd and other files in project dir
+    # create a folder to copy QC Record files into
+    error_folder <- fs::dir_create(file.path(location, tools::file_path_sans_ext(basename(rmd))))
+
+    # parse rmd contents for sourced files
+    temp_dir_escaped <- stringr::str_replace_all(tempdir(), "/", "\\\\/")
+    pattern <- paste0(temp_dir_escaped, "[^\"\\)\\]\\s]+")
+    sourced_files <- unlist(stringr::str_extract_all(rmd_content, pattern))
+
+    # copy rmd and sourced files to folder in directory
+    files_to_copy <- c(rmd, sourced_files)
+    file.copy(files_to_copy, error_folder, overwrite = TRUE)
+
+    # replace sourced file paths in rmd with paths to copied files in user directory
+    modified_rmd_content <- stringr::str_remove_all(rmd_content, paste0(tempdir(), "/"))
+    writeLines(modified_rmd_content, file.path(error_folder, basename(rmd)))
+
+    # print error message
+    simple_error_folder_path <- get_simple_path(error_folder)
+    rlang::abort(glue::glue("Error generating pdf. Please review generated Rmd and sourced files located in {simple_error_folder_path}"))
+  })
+
+
+
 } # markdown_to_pdf
 
 get_summary_table_col_vals <- function(issue) {

@@ -1,6 +1,11 @@
-# ghqc.app 0.4.12
+# ghqc.app 0.4.13
 
 - changes references to "QC Record" instead of old term "report"
+- copies rmd file and its sourced files to QC Record directory in case of error in `ghqc_record_app()`
+
+# ghqc.app 0.4.12
+
+- fixes bug with rlang %||% operator preventing the use of the Associate Relevant Files feature
 
 
 # ghqc.app 0.4.11
