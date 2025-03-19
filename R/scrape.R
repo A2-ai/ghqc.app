@@ -176,15 +176,12 @@ get_pdf_name <- function(input_name, milestone_names, just_tables, repo) {
 
 #' @importFrom log4r warn error info debug
 markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, location, pdf_name) {
-  debug(.le$logger, "Creating Record pdf...")
+  debug(.le$logger, "Creating QC Record pdf...")
   # create temporary rmd
   rmd <- tempfile(fileext = ".Rmd")
 
-  #rmd <- file.path(location, "report.Rmd")
   fs::file_create(rmd)
-  debug(.le$logger, glue::glue("Rmd location: {rmd}"))
-  # delete temporary rmd when it's time
- #suppressMessages({withr::defer_parent(fs::file_delete(rmd))})
+  info(.le$logger, glue::glue("Rmd location: {rmd}"))
 
   # for parsing rmds, need this so quarto setup global options chunk works
   rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
@@ -193,7 +190,6 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
   # create pdf from rmd
   location <- normalizePath(location)
   tryCatch({
-    #browser()
     suppressWarnings(
       output_file <- rmarkdown::render(
         input = rmd,
@@ -205,14 +201,10 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
       )
     )
 
-    #stop("forced error")
-
-    #suppressMessages({withr::defer_parent(unlink(dirname(rmd)))})
-
     pdf_path_abs <- get_simple_path(output_file)
 
     info(.le$logger, "Converted rmd to pdf")
-    info(.le$logger, glue::glue("Created Record pdf: {pdf_path_abs}"))
+    info(.le$logger, glue::glue("Created QC Record pdf: {pdf_path_abs}"))
 
     return(pdf_path_abs)
   }, error = function(e) {
@@ -677,11 +669,11 @@ ghqc_report <- function(milestone_names = NULL,
     rlang::abort(message = glue::glue("Inputted directory {location} doesn't exist.<br>Input an existing directory."))
   }
 
-  debug(.le$logger, "Creating Record introduction...")
+  debug(.le$logger, "Creating QC Record introduction...")
   # intro
   intro <- create_intro(repo, milestone_names)
   set_up_chunk <- set_up_chunk()
-  info(.le$logger, "Created Record introduction")
+  info(.le$logger, "Created QC Record introduction")
 
   # create milestone table
   milestone_table <- create_milestone_table(milestone_names, owner, repo)
