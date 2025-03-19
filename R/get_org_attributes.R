@@ -272,7 +272,6 @@ get_issue <- function(owner, repo, issue_number) {
 
 #' @importFrom log4r warn error info debug
 get_issue_comments <- function(owner, repo, issue_number, token) {
- #browser()
   api_url <- .le$github_api_url
   base_url <- ifelse(api_url == "https://github.com/api/v3", "https://api.github.com", api_url)
   url <- glue::glue("{base_url}/repos/{owner}/{repo}/issues/{issue_number}/comments")
