@@ -367,7 +367,6 @@ create_intro <- function(repo, milestone_names) {
   - \\usepackage{{booktabs}}
   - \\usepackage{{makecell}}
   - \\usepackage{{graphicx}}
-  - \\usepackage{{pdflscape}}
   - \\usepackage{{array}}
   - \\usepackage{{fancyhdr}}
   - \\usepackage{{xcolor}}
