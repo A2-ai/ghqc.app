@@ -1,3 +1,22 @@
+# ghqc.app 0.4.13
+
+changes to `ghqc_record_app()`:
+
+- changes references to old terms "report" and "record" with new standardized term "QC Record"
+- copies rmd file and its sourced files to QC Record directory in case of error in app
+- fixes bullet point HTML syntax in app warning modal
+- fixes bug in which comment bodies with markdown syntax (like in-line code) didn't render in QC Record
+- fixes bug in which checklist headers weren't given their own line in QC Record rendering
+
+# ghqc.app 0.4.12
+
+- fixes bug with rlang %||% operator preventing the use of the Associate Relevant Files feature
+
+
+# ghqc.app 0.4.11
+
+- allows metadata bullet parsing to recognize both `*` and `-` characters. 
+
 # ghqc.app 0.4.10
 
 - fixes error in Associate Relevant Files modal pop-up

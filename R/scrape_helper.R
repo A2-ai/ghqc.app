@@ -110,35 +110,55 @@ process_comments <- function(comments) {
   comments_list <- as.list(split(as.data.frame(comments), seq_len(nrow(comments))))
   lapply(comments_list, function(comment) {
     comment <- as.list(comment)
-    text <- comment$body_html
+    text_html <- comment$body_html
+    text_md <- comment$body
 
-    # detect markdown images
+    # get markdown images in html text body
     pattern_md <- "!\\[.*?\\]\\((.*?)\\)"
-    matches_md <- gregexpr(pattern_md, text, perl = TRUE)
-    links_md <- regmatches(text, matches_md)
+    matches_md <- gregexpr(pattern_md, text_html, perl = TRUE)
+    md_links_in_html_body <- regmatches(text_html, matches_md)
 
-    # detect html images
+    # get html images in html text body
     pattern_html <- "<img[^>]+src=\"(https://[^\"]+)\"[^>]*>"
-    matches_html <- gregexpr(pattern_html, text, perl = TRUE)
-    links_html <- regmatches(text, matches_html)
+    matches_html <- gregexpr(pattern_html, text_html, perl = TRUE)
+    html_links_in_html_body <- regmatches(text_html, matches_html)
 
-    all_links <- c(unlist(links_md), unlist(links_html))
+    # links in html body
+    all_links_in_html_body <- c(unlist(md_links_in_html_body), unlist(html_links_in_html_body))
 
-    if (length(all_links) > 0) {
-      for (link in all_links) {
-        url <- sub("!\\[.*?\\]\\((.*?)\\)", "\\1", link)
-        url <- sub(".*src=\"(https://[^\"]+)\".*", "\\1", url)
+    # get markdown images in md body
+    matches_md <- gregexpr(pattern_md, text_md, perl = TRUE)
+    md_links_in_md_body <- regmatches(text_md, matches_md)
 
-        if (startsWith(url, "http")) {
-          local_path <- download_image(url)
-          text <- gsub(link, paste0("\n\n![](", local_path, ")\n"), text, fixed = TRUE)
+    # get html images in md body
+    pattern_html <- "<img[^>]+src=\"(https://[^\"]+)\"[^>]*>"
+    matches_html <- gregexpr(pattern_html, text_md, perl = TRUE)
+    html_links_in_md_body <- regmatches(text_md, matches_html)
+
+    # links in html body
+    all_links_in_md_body <- c(unlist(md_links_in_md_body), unlist(html_links_in_md_body))
+
+    # text to appear in QC Record
+    text <- text_md
+
+    if (length(all_links_in_html_body) > 0) {
+      mapply(function(link_in_html_body, link_in_md_body) {
+        html_url <- sub("!\\[.*?\\]\\((.*?)\\)", "\\1", link_in_html_body)
+        html_url <- sub(".*src=\"(https://[^\"]+)\".*", "\\1", link_in_html_body)
+
+        if (startsWith(html_url, "http")) {
+          local_path <- download_image(html_url)
+          new_local_image <- paste0("\n\n![](", local_path, ")\n")
+          text <<- gsub(link_in_md_body, new_local_image, text, fixed = TRUE)
         }
         else {
           # replace with plain text link
-          text <- gsub(link, url, text, fixed = TRUE)
+          text <<- gsub(link_in_html_body, html_url, text, fixed = TRUE)
         }
-      }
-    }
+      },
+      all_links_in_html_body, all_links_in_md_body)
+    } # if any links
+
     time <- humanize_time(comment$created_at)
     glue::glue("**Comment by {comment$user$login} at {time}:**\n\n{text}\n\n", .trim = FALSE)
   })
@@ -151,8 +171,8 @@ get_metadata <- function(body) {
   metadata <- list()
 
   for (line in metadata_lines) {
-    if (stringr::str_detect(line, "^\\*")) {
-      key_value <- stringr::str_match(line, "\\*\\s*(.*?):\\s*(.*)")[2:3]
+    if (stringr::str_detect(line, "^[*-]")) {
+      key_value <- stringr::str_match(line, "[*-]\\s*(.*?):\\s*(.*)")[2:3]
       metadata[[key_value[1]]] <- key_value[2]
     }
   }

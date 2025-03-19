@@ -15,7 +15,7 @@ create_qc_data_section <- function(issue_creation_time, issue_creator, issue_tit
   issue_section <- create_small_section("QC Data", issue_body)
 }
 
-create_milestone_section <- function(milestone_title, milestones) { # issue$milestone$title
+create_milestone_section <- function(milestone_title, milestones) {
   if (!is.null(milestone_title)) {
     milestone_body <- {
       description <- get_milestone_description(milestone_title, milestones)
@@ -27,7 +27,6 @@ create_milestone_section <- function(milestone_title, milestones) { # issue$mile
         glue::glue("* **Milestone:** {milestone_title}")
       }
     }
-    #create_section("Milestone", milestone_body)
   }
   else ""
 }
@@ -70,19 +69,11 @@ create_timeline_section <- function(timeline) {
   timeline_section <- create_small_section("Detailed Timeline", timeline_body)
 }
 
-# clean_body <- function(body) {
-#   body <- stringr::str_replace_all(body, "(^#{1,4} (\\w+)|\n#{1,4} (\\w+))", function(x) {
-#     word <- stringr::str_extract(x, "(?<=#{1,4} )\\w+")
-#     paste0("**", word, "**")
-#   })
-#   return(body)
-# }
-
 clean_body <- function(body) {
   body <- stringr::str_replace_all(body, "(^#{1,4} .*|\\n#{1,4} .*)", function(x) {
     line <- stringr::str_extract(x, "(?<=#{1,4} ).*")
     line <- stringr::str_trim(line)
-    paste0("**", line, "**")
+    paste0("\n", "**", line, "**")
   })
   return(body)
 }
@@ -185,15 +176,12 @@ get_pdf_name <- function(input_name, milestone_names, just_tables, repo) {
 
 #' @importFrom log4r warn error info debug
 markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, location, pdf_name) {
-  debug(.le$logger, "Creating Record pdf...")
+  debug(.le$logger, "Creating QC Record pdf...")
   # create temporary rmd
   rmd <- tempfile(fileext = ".Rmd")
 
-  #rmd <- file.path(location, "report.Rmd")
   fs::file_create(rmd)
-  debug(.le$logger, glue::glue("Rmd location: {rmd}"))
-  # delete temporary rmd when it's time
- #suppressMessages({withr::defer_parent(fs::file_delete(rmd))})
+  info(.le$logger, glue::glue("Rmd location: {rmd}"))
 
   # for parsing rmds, need this so quarto setup global options chunk works
   rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
@@ -201,25 +189,48 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
 
   # create pdf from rmd
   location <- normalizePath(location)
-  suppressWarnings(
-    output_file <- rmarkdown::render(
-      input = rmd,
-      output_format = "pdf_document",
-      output_file = pdf_name,
-      output_dir = location,
-      run_pandoc = TRUE,
-      quiet = TRUE
+  tryCatch({
+    suppressWarnings(
+      output_file <- rmarkdown::render(
+        input = rmd,
+        output_format = "pdf_document",
+        output_file = pdf_name,
+        output_dir = location,
+        run_pandoc = TRUE,
+        quiet = TRUE
+      )
     )
-  )
 
-  #suppressMessages({withr::defer_parent(unlink(dirname(rmd)))})
+    pdf_path_abs <- get_simple_path(output_file)
 
-  pdf_path_abs <- get_simple_path(output_file)
+    info(.le$logger, "Converted rmd to pdf")
+    info(.le$logger, glue::glue("Created QC Record pdf: {pdf_path_abs}"))
 
-  info(.le$logger, "Converted rmd to pdf")
-  info(.le$logger, glue::glue("Created Record pdf: {pdf_path_abs}"))
+    return(pdf_path_abs)
+  }, error = function(e) {
 
-  return(pdf_path_abs)
+    # if error, put rmd and other files in project dir
+    # create a folder to copy QC Record files into
+    error_folder <- fs::dir_create(file.path(location, tools::file_path_sans_ext(basename(rmd))))
+
+    # parse rmd contents for sourced files
+    temp_dir_escaped <- stringr::str_replace_all(tempdir(), "/", "\\\\/")
+    pattern <- paste0(temp_dir_escaped, "[^\"\\)\\]\\s]+")
+    sourced_files <- unlist(stringr::str_extract_all(rmd_content, pattern))
+
+    # copy rmd and sourced files to folder in directory
+    files_to_copy <- c(rmd, sourced_files)
+    file.copy(files_to_copy, error_folder, overwrite = TRUE)
+
+    # replace sourced file paths in rmd with paths to copied files in user directory
+    modified_rmd_content <- stringr::str_remove_all(rmd_content, paste0(tempdir(), "/"))
+    writeLines(modified_rmd_content, file.path(error_folder, basename(rmd)))
+
+    # print error message
+    simple_error_folder_path <- get_simple_path(error_folder)
+    rlang::abort(glue::glue("Error generating pdf. Please review generated Rmd and sourced files located in {simple_error_folder_path}"))
+  })
+
 } # markdown_to_pdf
 
 get_summary_table_col_vals <- function(issue) {
@@ -250,11 +261,7 @@ get_summary_table_col_vals <- function(issue) {
   latest_author <- authors$latest
 
   file_path <- issue$title
-  #author <- ifelse(!is.null(latest_author), latest_author, "NA")
   author <- ifelse(!is.null(metadata$author), metadata$author, "NA")
-  #qc_type <- ifelse(!is.null(metadata$`qc type`), metadata$`qc type`, ifelse(!is.null(metadata$`qc_type`), "NA"))
-  #file_name <- basename(file_path)
-  #git_sha <- ifelse(!is.null(metadata$git_sha), metadata$git_sha, NA)
   qcer <- ifelse(length(issue$assignees) > 0, issue$assignees[[1]], "NA")
   issue_closer <- ifelse(!is.null(close_data$closer), close_data$closer, "NA")
   close_date <- ifelse(!is.null(close_data$closed_at), close_data$closed_at, "NA")
@@ -307,25 +314,12 @@ create_summary_csv <- function(issues, env) {
   summary_df <- get_summary_df(issues)
   summary_df$issue_closer[is.na(summary_df$issue_closer)] <- "NA"
   summary_df$close_date[is.na(summary_df$close_date)] <- "NA"
-  # summary_df <- data.frame(
-  #   file_path = c("scripts/sub_dir/long_titled_R_script_for_a_test.R", "short_file.txt", "mediummediummedium_file.R"),
-  #   author = c("jenna-a2ai <jenna@a2-ai.com>", "longergithubname <longergithubname@a2-ai.com", "longerlongerlongergithubname <longerlongerlongergithubname@a2-ai.com"),
-  #   qc_type = c("mrgsolve Model Validation", "qctypeqctypeqctypeqctypeqctypeqctype", "qctype qctype qctype qctype qctype "),
-  #   qcer = c("jenna-a2ai", "longernamelongernamelongername", "mediumname"),
-  #   issue_closer = c("jenna-a2ai", "mediumname", "longernamelongernamelongername"),
-  #   close_date = c("2024-09-18 18:34:50", "2024-09-18 18:34:50", "2024-09-18 18:34:50")
-  # )
+
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
   summary_df$file_path <- kableExtra::linebreak(summary_df$file_path)
-  # summary_df$author <- insert_breaks(summary_df$author, 28)
-  # summary_df$qcer <- insert_breaks(summary_df$qcer, 10)
-  # summary_df$issue_closer <- insert_breaks(summary_df$issue_closer, 10)
-  # summary_df$close_date <- insert_breaks(summary_df$close_date, 20)
 
   summary_csv <- tempfile(fileext = ".csv")
-  #suppressMessages({withr::defer(fs::file_delete(summary_csv), env)})
-  #summary_csv <- file.path(getwd(), "summary.csv")
   utils::write.csv(summary_df, file = summary_csv, row.names = FALSE)
   return(summary_csv)
 }
@@ -365,14 +359,11 @@ create_intro <- function(repo, milestone_names) {
   - \\usepackage{{booktabs}}
   - \\usepackage{{makecell}}
   - \\usepackage{{graphicx}}
-  - \\usepackage{{pdflscape}}
   - \\usepackage{{array}}
   - \\usepackage{{fancyhdr}}
   - \\usepackage{{xcolor}}
   - \\pagestyle{{fancy}}
   - \\newcolumntype{{R}}[1]{{>{{\\raggedright\\arraybackslash}}p{{#1}}}}
-  - \\newcommand{{\\blandscape}}{{\\begin{{landscape}}}}
-  - \\newcommand{{\\elandscape}}{{\\end{{landscape}}}}
   - \\setlength{{\\headheight}}{{30pt}}
   - \\fancyfoot[C]{{Page \\thepage\\ of \\pageref{{LastPage}}}}
   - \\usepackage{{lastpage}}
@@ -568,15 +559,7 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
   footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
-  # column_spec(1, width = \"5em\", latex_valign = \"p\") %>%
-  # column_spec(2, width = \"10em\", latex_valign = \"p\") %>%
-  # column_spec(3, width = \"3em\", latex_valign = \"p\") %>%
   column_spec(4, width = \"22em\", latex_valign = \"p\")
-  #collapse_rows(1:4, valign = \"top\")
-
-  #row_spec(1:4, latex_valign = \"t\")
-
-  #column_spec(1, width = \"10em\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -642,11 +625,9 @@ create_milestone_df <- function(milestone_names, owner, repo) {
   })
 
   milestone_names <- sapply(milestone_names, function(milestone_name) {
-    #milestone_name <- insert_breaks(milestone_name, 10) #LB
     milestone_name <- kableExtra::linebreak(milestone_name)
     milestone_name <- stringr::str_replace_all(milestone_name, "_", "\\\\_")
   })
-
 
   milestone_df <- data.frame(
     name = milestone_names,
@@ -654,10 +635,6 @@ create_milestone_df <- function(milestone_names, owner, repo) {
     status = milestone_statuses,
     issues = issues_in_milestones
   )
-
-  # milestone_df$issues <- stringr::str_replace_all(milestone_df$issues, "_", "\\\\_")
-  # milestone_df$name <- stringr::str_replace_all(milestone_df$name, "_", "\\\\_")
-  # milestone_df$description <- stringr::str_replace_all(milestone_df$description, "_", "\\\\_")
 
   milestone_df
 }
@@ -692,11 +669,11 @@ ghqc_report <- function(milestone_names = NULL,
     rlang::abort(message = glue::glue("Inputted directory {location} doesn't exist.<br>Input an existing directory."))
   }
 
-  debug(.le$logger, "Creating Record introduction...")
+  debug(.le$logger, "Creating QC Record introduction...")
   # intro
   intro <- create_intro(repo, milestone_names)
   set_up_chunk <- set_up_chunk()
-  info(.le$logger, "Created Record introduction")
+  info(.le$logger, "Created QC Record introduction")
 
   # create milestone table
   milestone_table <- create_milestone_table(milestone_names, owner, repo)
