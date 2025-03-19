@@ -73,7 +73,7 @@ clean_body <- function(body) {
   body <- stringr::str_replace_all(body, "(^#{1,4} .*|\\n#{1,4} .*)", function(x) {
     line <- stringr::str_extract(x, "(?<=#{1,4} ).*")
     line <- stringr::str_trim(line)
-    paste0("**", line, "**")
+    paste0("\n", "**", line, "**")
   })
   return(body)
 }
@@ -82,7 +82,7 @@ clean_comment_body <- function(body) {
   # cannot be more general here because "### Title" might exist in the code
   stringr::str_replace_all(body, "(## )(File Difference|Metadata)", function(x) {
     extracted <- stringr::str_remove(x, "## ")
-    new <- paste0("**", extracted, "**\n\n")
+    new <- paste0("**", extracted, "**")
     new
   })
 }
