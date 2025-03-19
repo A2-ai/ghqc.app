@@ -1,9 +1,11 @@
 # ghqc.app 0.4.13
 
-- changes references to "QC Record" instead of old terms "report" and "record"
-- copies rmd file and its sourced files to QC Record directory in case of error in `ghqc_record_app()`
-- fixes bullet point HTML syntax in `ghqc_record_app()` warning modal
-- fixes bug in which comment bodies with markdown syntax (like in-line code) didn't render in Report
+changes to `ghqc_record_app()`:
+
+- changes references to old terms "report" and "record" with new standardized term "QC Record"
+- copies rmd file and its sourced files to QC Record directory in case of error in app
+- fixes bullet point HTML syntax in app warning modal
+- fixes bug in which comment bodies with markdown syntax (like in-line code) didn't render in QC Record
 - fixes bug in which checklist headers weren't given their own line in QC Record rendering
 
 # ghqc.app 0.4.12
