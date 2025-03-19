@@ -82,7 +82,7 @@ clean_comment_body <- function(body) {
   # cannot be more general here because "### Title" might exist in the code
   stringr::str_replace_all(body, "(## )(File Difference|Metadata)", function(x) {
     extracted <- stringr::str_remove(x, "## ")
-    new <- paste0("**", extracted, "**")
+    new <- paste0("**", extracted, "**\n\n")
     new
   })
 }

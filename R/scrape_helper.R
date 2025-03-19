@@ -139,6 +139,10 @@ process_comments <- function(comments) {
         }
       }
     }
+    else { # if there are no images in the comment, use regular markdown so it renders
+      text <- comment$body
+    }
+
     time <- humanize_time(comment$created_at)
     glue::glue("**Comment by {comment$user$login} at {time}:**\n\n{text}\n\n", .trim = FALSE)
   })
