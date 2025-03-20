@@ -104,14 +104,3 @@ format_diff_section <- function(diff_lines) {
   diff_with_line_numbers <- add_line_numbers(diff_cat)
 }
 
-
-get_comments <- function(owner, repo, issue_number) {
-  comments <- gh::gh(
-    "GET /repos/:owner/:repo/issues/:issue_number/comments",
-    .api_url = .le$github_api_url,
-    owner = owner,
-    repo = repo,
-    issue_number = issue_number
-  )
-  comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
-}
