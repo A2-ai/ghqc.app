@@ -23,7 +23,12 @@ ghqc_status <- function(owner, repo, milestone_name) {
 
     issue_number <- issue$number
     branch <- get_branch_from_metadata(owner, repo, issue_number)
-    local_commit_log <- gert::git_log(branch, max = 9999)
+    #local_commit_log <- gert::git_log(branch, max = 9999)
+
+    log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
+    local_commit_log <- read.csv(text = log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+    names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+
     remote_commit_log <- gert::git_log(glue::glue("{remote_name}/{branch}"), max = 9999)
     # latest_qc_commit is the most recent commented commit in file's issue
     latest_qc_commit <- get_latest_qc_commit(owner, repo, issue_number, token)
@@ -130,11 +135,15 @@ get_file_git_status <- function(file, local_commits, remote_commits) {
 
 # commit log may be remote commits, local commits, etc
 last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
-
   commits <- commit_log$commit
 
   # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
-  commits_after_latest_qc_commit <- commits[1:(which(commits == latest_qc_commit) - 1)]
+  index_before_latest_qc_commit <- which(commits == latest_qc_commit) - 1
+  commits_after_latest_qc_commit <- {
+    if (index_before_latest_qc_commit == 0) list()
+    else commits[1:index_before_latest_qc_commit]
+  }
+
   last_commit_that_changed_file <- NULL
   commit_time <- NULL
 
