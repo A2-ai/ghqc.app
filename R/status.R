@@ -18,7 +18,9 @@ ghqc_status <- function(owner, repo, milestone_name) {
   remote_name <- creds$remote$name
 
   issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
+
   issues_df <- map_df(issues, function(issue) {
+
     issue_number <- issue$number
     branch <- get_branch_from_metadata(owner, repo, issue_number)
     local_commit_log <- gert::git_log(branch, max = 9999)
@@ -28,17 +30,17 @@ ghqc_status <- function(owner, repo, milestone_name) {
 
     # get column values for file
     file_name <- issue$title
-    browser()
     url <- issue$html_url
     issue_state <- issue$state
     git_status <- get_file_git_status(file_name,
                                       local_commits = local_commit_log$commit,
                                       remote_commits = remote_commit_log$commit)
 
-    qc_status <- get_file_qc_status(issue_state = issue_state,
+    qc_status <- get_file_qc_status(file = file_name,
+                                    issue_state = issue_state,
                                     git_status = git_status,
-                                    local_commits = local_commit_log,
-                                    remote_commits = remote_commit_log,
+                                    local_commit_log = local_commit_log,
+                                    remote_commit_log = remote_commit_log,
                                     latest_qc_commit = latest_qc_commit,
                                     issue_closed_at = issue$closed_at)
     qcer <- issue$assignee$login
@@ -54,6 +56,8 @@ ghqc_status <- function(owner, repo, milestone_name) {
     )
   })
   # TODO: add rest of repo files, determine whether they're assoc files or not
+
+  return(issues_df)
 }
 
 file_has_uncommitted_local_changes <- function(file) {
@@ -125,12 +129,13 @@ get_file_git_status <- function(file, local_commits, remote_commits) {
 }
 
 # commit log may be remote commits, local commits, etc
-first_commit_that_changed_file_after_latest_qc_commit <- function(latest_qc_commit, commit_log) {
+last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
+
   commits <- commit_log$commit
 
   # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
   commits_after_latest_qc_commit <- commits[1:(which(commits == latest_qc_commit) - 1)]
-  first_commit_that_changed_file <- NULL
+  last_commit_that_changed_file <- NULL
   commit_time <- NULL
 
   # if there are any local commits newer than the latest_qc_commit
@@ -139,14 +144,14 @@ first_commit_that_changed_file_after_latest_qc_commit <- function(latest_qc_comm
     for (commit in commits_after_latest_qc_commit) {
       diff <- gert::git_diff(commit)  # get the set of files that changed in this commit
       if (file %in% diff$old) { # check if the file is in the set of files
-        first_commit_that_changed_file <- commit
-        commit_time <- commit_log[which(commit == commit), ]$time
-        break  # exit after first matching commit
+        last_commit_that_changed_file <- commit
+        commit_time <- commit_log[which(commit_log$commit == last_commit_that_changed_file), ]$time
+        break  # exit after first matching commit in log
       }
     }
   } # if any commits after latest qc commit
   return(list(
-    first_commit_that_changed_file = first_commit_that_changed_file,
+    last_commit_that_changed_file = last_commit_that_changed_file,
     commit_time = commit_time
     ))
 }
@@ -187,9 +192,10 @@ get_comment_metadata <- function(body) {
   return(metadata)
 }
 
-get_file_qc_status <- function(issue_state,
+get_file_qc_status <- function(file,
+                               issue_state,
                                git_status,
-                               local_commitlog,
+                               local_commit_log,
                                remote_commit_log,
                                latest_qc_commit,
                                issue_closed_at) {
@@ -205,9 +211,10 @@ get_file_qc_status <- function(issue_state,
       return("QC update to pull")
     }
 
-    first_commit_that_changed_file <- first_commit_that_changed_file_after_latest_qc_commit(latest_qc_commit,
-                                                                                            commit_log = local_commit_log)$first_commit_that_changed_file
-    if (!is.null(first_commit_that_changed_file)) {
+    last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
+                                                                                            latest_qc_commit,
+                                                                                            commit_log = local_commit_log)$last_commit_that_changed_file
+    if (!is.null(last_commit_that_changed_file)) {
       return("QC update to comment")
     }
 
@@ -225,11 +232,12 @@ get_file_qc_status <- function(issue_state,
     }
 
     # if there exists a commit that changed the file after the latest qc commit,
-    file_change_info <- first_commit_that_changed_file_after_latest_qc_commit(latest_qc_commit,
+    file_change_info <- last_commit_that_changed_file_after_latest_qc_commit(file,
+                                                                              latest_qc_commit,
                                                                               commit_log = remote_commit_log)
-    first_commit_that_changed_file <- file_change_info$first_commit_that_changed_file
+    last_commit_that_changed_file <- file_change_info$last_commit_that_changed_file
 
-    if (!is.null(first_commit_that_changed_file)) {
+    if (!is.null(last_commit_that_changed_file)) {
       # was the commit before or after Issue closure?
       commit_time <- as.POSIXct(file_change_info$commit_time)
       issue_close_time <- as.POSIXct(issue_closed_at)
