@@ -14,7 +14,7 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
   branch <- get_branch_from_metadata(owner, repo, issue_number)
 
   # get commits on branch
-  local_log <- gert::git_log(glue::glue("{branch}"), max = 9999)
+  local_log <- gert::git_log(branch, max = 9999)
   remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"), max = 9999)
   all_commits <- dplyr::bind_rows(local_log, remote_log) %>%
     dplyr::distinct(.data$commit, .keep_all = TRUE) %>%
