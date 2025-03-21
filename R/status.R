@@ -52,7 +52,7 @@ get_file_git_status <- function(file) {
     return("remote file changes")
   }
   else if (file_has_unpushed_commits(file)) {
-    return("local unpushed commits")
+    return("local unpushed commits with file changes")
   }
   else if (file_has_uncommitted_local_changes(file)) {
     return("local uncommitted file changes")
@@ -152,16 +152,21 @@ get_file_qc_status <- function(owner, repo, issue_number, issue_state, git_statu
 
   ## For closed issues
   else if (issue_state == "closed") {
-    # local uncommitted file changes after Issue closure
-    # if file_git_status is uncommitted file changes
+    if (git_status == "uncommitted file changes") {
+      return("local uncommitted file changes after Issue closure")
+    }
 
-    # local unpushed commits after Issue closure
-    # if file_git_status is local unpushed commits
+    if (git_status == "local unpushed commits with file changes") {
+      return("local unpushed commits with file changes with file changes after Issue closure")
+    }
 
     # pushed file changes after Issue closure
 
 
+
     # uncommented pushed file changes before Issue closure
+    # if there are any local OR REMOTE commits **that change the file** and are newer than the latest_qc_commit
+
 
   } # closed
 
