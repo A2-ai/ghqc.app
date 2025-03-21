@@ -196,12 +196,3 @@ format_diff <- function(reference_script, comparator_script) {
   glue::glue("```diff\n{diff_sections_cat}\n```")
 }
 
-get_comments <- function(owner, repo, issue_number) {
-  comments <- gh::gh(
-    "GET /repos/:owner/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
-    owner = owner,
-    repo = repo,
-    issue_number = issue_number
-  )
-  comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
-}

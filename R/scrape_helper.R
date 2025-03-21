@@ -164,7 +164,7 @@ process_comments <- function(comments) {
   })
 } # process_comments
 
-get_metadata <- function(body) {
+get_issue_body_metadata <- function(body) {
   metadata_section <- stringr::str_match(body, "(?s)## Metadata(.*)")[2]
   metadata_lines <- stringr::str_trim(unlist(strsplit(metadata_section, "\n")))
 
@@ -177,7 +177,7 @@ get_metadata <- function(body) {
     }
   }
   metadata
-} # get_metadata
+} # get_issue_body_metadata
 
 
 get_close_info <- function(issue) {

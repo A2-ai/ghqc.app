@@ -1,11 +1,11 @@
 get_init_qc_commit <- function(owner, repo, issue_number) {
   issue <- get_issue(owner, repo, issue_number)
-  init_commit <- get_metadata(issue$body)$`initial qc commit`
+  init_commit <- get_issue_body_metadata(issue$body)$`initial qc commit`
   if (is.null(init_commit)) {
-    init_commit <- get_metadata(issue$body)$`git sha`
+    init_commit <- get_issue_body_metadata(issue$body)$`git sha`
   }
   if (is.null(init_commit)) {
-    init_commit <- get_metadata(issue$body)$`git_sha`
+    init_commit <- get_issue_body_metadata(issue$body)$`git_sha`
   }
   return(init_commit)
 }
@@ -13,7 +13,7 @@ get_init_qc_commit <- function(owner, repo, issue_number) {
 get_branch_from_metadata <- function(owner, repo, issue_number) {
   tryCatch({
     issue <- get_issue(owner, repo, issue_number)
-    text <- get_metadata(issue$body)$`git branch`
+    text <- get_issue_body_metadata(issue$body)$`git branch`
     branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
 
     if (length(branch) == 0) {
