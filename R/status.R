@@ -25,11 +25,15 @@ ghqc_status <- function(owner, repo, milestone_name) {
     branch <- get_branch_from_metadata(owner, repo, issue_number)
     #local_commit_log <- gert::git_log(branch, max = 9999)
 
-    log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
-    local_commit_log <- read.csv(text = log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+    local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
+    local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
     names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
-    remote_commit_log <- gert::git_log(glue::glue("{remote_name}/{branch}"), max = 9999)
+    #remote_commit_log <- gert::git_log(glue::glue("{remote_name}/{branch}"), max = 9999)
+    remote_log_output <- system(glue::glue("git log {remote_name}/{branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+    remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+    names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+
     # latest_qc_commit is the most recent commented commit in file's issue
     latest_qc_commit <- get_latest_qc_commit(owner, repo, issue_number, token)
 
@@ -139,6 +143,7 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
 
   # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
   index_before_latest_qc_commit <- which(commits == latest_qc_commit) - 1
+
   commits_after_latest_qc_commit <- {
     if (index_before_latest_qc_commit == 0) list()
     else commits[1:index_before_latest_qc_commit]
@@ -222,7 +227,7 @@ get_file_qc_status <- function(file,
 
     last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
-                                                                                            commit_log = local_commit_log)$last_commit_that_changed_file
+                                                                                            commit_log = remote_commit_log)$last_commit_that_changed_file
     if (!is.null(last_commit_that_changed_file)) {
       return("QC update to comment")
     }
@@ -232,7 +237,7 @@ get_file_qc_status <- function(file,
 
   ## For closed issues
   else if (issue_state == "closed") {
-    if (git_status == "uncommitted file changes") {
+    if (git_status == "local uncommitted file changes") {
       return("local uncommitted file changes after Issue closure")
     }
 
@@ -249,7 +254,7 @@ get_file_qc_status <- function(file,
     if (!is.null(last_commit_that_changed_file)) {
       # was the commit before or after Issue closure?
       commit_time <- as.POSIXct(file_change_info$commit_time)
-      issue_close_time <- as.POSIXct(issue_closed_at)
+      issue_close_time <- as.POSIXct(issue_closed_at, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
       if (commit_time < issue_close_time) {
         return("uncommented pushed file changes before Issue closure")
