@@ -22,10 +22,15 @@ ghqc_status <- function(owner, repo, milestone_names) {
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
-  milestone_dfs <- sapply(milestone_names, function(milestone_name) {
-    issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
+  all_relevant_files <- list() # associated_file_name, qc_file_name, milestone, issue_number
 
+  all_milestones_df <- map_df(milestone_names, function(milestone_name) {
+    issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
     issues_df <- map_df(issues, function(issue) {
+      # update relevant files list
+      relevant_files_in_issue <- get_relevant_files(issue, milestone_name)
+      all_relevant_files <<- dplyr::bind_rows(all_relevant_files, relevant_files_in_issue)
+
       issue_number <- issue$number
       # branch from metadata might be different from current branch
       branch <- get_branch_from_metadata(owner, repo, issue_number)
@@ -44,7 +49,6 @@ ghqc_status <- function(owner, repo, milestone_names) {
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
-
       qc_status_info <- get_file_qc_status(file = file_name,
                                            issue_state = issue_state,
                                            git_status = git_status,
@@ -54,7 +58,7 @@ ghqc_status <- function(owner, repo, milestone_names) {
                                            issue_closed_at = issue$closed_at)
       qc_status <- qc_status_info$qc_status
       diagnostics <- qc_status_info$diagnostics
-      qcer <- issue$assignee$login
+      qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
 
       tibble(
         milestone_name = milestone_name,
@@ -69,9 +73,7 @@ ghqc_status <- function(owner, repo, milestone_names) {
     })
   }) # milestone_dfs
 
-  all_milestones_df <- dplyr::bind_rows(milestone_dfs)
-
-  # add rest of repo files, determine whether they're assoc files or not
+  # add rest of repo files, determine whether they're relevant files or not
   files_with_issues <- unique(all_milestones_df$file_name)
   files_in_repo <- list.files(path = root_dir, recursive = TRUE)
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
@@ -87,15 +89,41 @@ ghqc_status <- function(owner, repo, milestone_names) {
                                       local_commits = local_commit_log$commit,
                                       remote_commits = remote_commit_log$commit)
 
+    qc_status_info <- {
+      if (file %in% all_relevant_files$relevant_file_name) {
+        # get rows in which file is the relevant file
+        relevant_file_instances <- all_relevant_files[which(all_relevant_files$relevant_file_name == file), ]
+        # loop over rows
+        qc_file_strings <- lapply(split(relevant_file_instances, seq_len(nrow(relevant_file_instances))), function(relevant_file_instance) {
+          qc_file <- relevant_file_instance$qc_file_name
+          issue_number <- relevant_file_instance$issue_number
+          milestone_name <- relevant_file_instance$milestone_name
+          qc_file_string <- glue::glue("#{issue_number}: {qc_file} ({milestone_name})")
+          return(qc_file_string)
+
+        })
+
+        qc_status_string <- glue::glue_collapse(qc_file_strings, sep = ", ", last = " and ")
+
+        list(qc_status = "Associated relevant file",
+             diagnostics = glue::glue("Relevant file in Issues: {qc_status_string}")
+             )
+      }
+      else {
+        list(qc_status = "NA",
+             diagnostics = "NA")
+      }
+    } # qc_status_info
+
     tibble(
       milestone_name = "NA",
       file_name = file,
       url = NA,
       issue_state = "no Issue",
-      qc_status = "NA",
+      qc_status = qc_status_info$qc_status,
       git_status = git_status,
       qcer = "NA",
-      diagnostics = "NA"
+      diagnostics = qc_status_info$diagnostics
     )
   })
 
@@ -341,4 +369,43 @@ get_file_qc_status <- function(file,
   }
 
 } # get_file_qc_status
+
+get_relevant_files <- function(issue, milestone_name) {
+  # parse issue body for associated files
+  issue_body <- issue$body
+
+  if (!stringr::str_detect(issue_body, "## Relevant files")) { # if no associated relevant files
+    return( # return an empty data frame
+      tibble(
+        relevant_file_name = character(),
+        qc_file_name = character(),
+        relevant_file_url = character(),
+        relevant_file_note = character(),
+        milestone_name = character(),
+        issue_number = integer()
+      )
+    )
+  } # if no associated relevant files
+
+  relevant_files_section <- stringr::str_extract(
+    issue_body,
+    "## Relevant files[\\s\\S]*?(?=\\n#{1,6} )"
+  )
+
+  file_pattern <- "- \\*\\*(.*?)\\*\\*\\s*- \\[`.*?`\\]\\((.*?)\\)(?:\\s*>\\s*(.*?))?(?:\\n|$)"
+
+  matches <- stringr::str_match_all(relevant_files_section, file_pattern)[[1]]
+
+  relevant_files_df <- data.frame(
+    relevant_file_name = matches[,2],
+    qc_file_name = issue$title,
+    relevant_file_url = matches[,3],
+    relevant_file_note = stringr::str_trim(matches[,4]),
+    milestone_name = milestone_name,
+    issue_number = issue$number,
+    stringsAsFactors = FALSE
+  )
+
+  return(relevant_files_df)
+} # get_relevant_files
 
