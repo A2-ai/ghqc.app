@@ -477,7 +477,7 @@ get_inputted_milestone_names <- function(owner, repo) {
   # gate with interactive() to avoid hanging
   if (interactive()) {
 
-    milestones <- list_milestones(owner, repo)
+    milestones <- list_ghqc_milestone_names(owner, repo)
     print(glue::glue("Non-empty Milestones in {repo}:\n"))
     print(milestones)
     valid_input <- FALSE

@@ -1,30 +1,16 @@
-#' Title
-#'
-#' @param owner
-#' @param repo
-#' @param milestone_name
-#'
-#' @return
-#' @export
-#'
 #' @import dplyr purrr
-ghqc_status <- function(owner, repo, milestone_names) {
-  git_fetch(prune = TRUE)
-  root_dir <- rproj_root_dir()
-  creds <- check_github_credentials()
-  token <- creds$token
-  remote_name <- creds$remote$name
+ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name, local_commit_log, current_branch) {
+
 
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
-  current_branch <- gert::git_branch()
 
   all_relevant_files <- list()
 
   all_milestones_df <- map_df(milestone_names, function(milestone_name) {
-    issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
+    issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     issues_df <- map_df(issues, function(issue) {
       # update relevant files list
       relevant_files_in_issue <- get_relevant_files(issue, milestone_name)
@@ -32,14 +18,14 @@ ghqc_status <- function(owner, repo, milestone_names) {
 
       issue_number <- issue$number
       # branch from metadata might be different from current branch
-      metadata_branch <- get_branch_from_metadata(owner, repo, issue_number)
+      metadata_branch <- get_branch_from_metadata(org, repo, issue_number)
 
       remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
       remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
       names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
       # latest_qc_commit is the most recent commented commit in file's issue
-      latest_qc_commit <- get_latest_qc_commit(owner, repo, issue_number, token)
+      latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number, token)
 
       # get column values for file
       file_name <- issue$title
@@ -233,11 +219,11 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
     ))
 }
 
-get_latest_qc_commit <- function(owner, repo, issue_number, token) {
-  init_commit <- get_init_qc_commit(owner, repo, issue_number)
+get_latest_qc_commit <- function(org, repo, issue_number, token) {
+  init_commit <- get_init_qc_commit(org, repo, issue_number)
   latest_qc_commit <- init_commit
 
-  comments <- get_issue_comments(owner, repo, issue_number, token)$body
+  comments <- get_issue_comments(org, repo, issue_number, token)$body
 
   # start from latest comment, check if a resolve comment (i.e. if it has metadata)
   # if it does, get the current commit, then break

@@ -92,15 +92,21 @@ get_closed_milestone_names <- function(org, repo) {
 }
 
 #' @importFrom log4r warn error info debug
-list_milestones <- function(org, repo) {
+list_ghqc_milestones <- function(org, repo) {
   debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {org}, repo {repo}..."))
   milestones <- get_all_milestone_objects(org, repo)
+  browser()
   info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {repo}"))
   ghqc_milestones <- filter_for_ghqc_milestones(org, repo, milestones)
   info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {repo}"))
   non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
   info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty ghqc Milestone(s) in repo {repo}"))
-  res <- purrr::map_chr(non_empty_milestones, "title")
+  return(non_empty_milestones)
+}
+
+list_ghqc_milestone_names <- function(org, repo) {
+  ghqc_milestones <- list_ghqc_milestones(org, repo)
+  res <- purrr::map_chr(ghqc_milestones, "title")
   return(res)
 }
 

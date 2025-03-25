@@ -80,7 +80,7 @@ get_open_milestone_list_errors <- function(org, repo) {
 get_all_milestone_list_errors <- function(org, repo) {
   tryCatch(
     {
-      all_milestones <- list_milestones(org = org, repo = repo)
+      all_milestones <- list_ghqc_milestone_names(org = org, repo = repo)
       rev(all_milestones)
     },
     error = function(e) {
