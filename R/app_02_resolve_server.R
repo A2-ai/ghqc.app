@@ -55,6 +55,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
             issues_by_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = input$select_milestone)
             issue_choices <- convert_issue_df_format(issues_by_milestone)
           }
+
+          # filter for only Issues in your branch
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving issues: {conditionMessage(e)}"))
