@@ -9,9 +9,6 @@
 #'
 #' @import dplyr purrr
 ghqc_status <- function(owner, repo, milestone_names) {
-  # TODO: have some functionality to gray out Issues in the Milestone that were
-  # initialized on a different branch than the local user's branch
-
   git_fetch(prune = TRUE)
   root_dir <- rproj_root_dir()
   creds <- check_github_credentials()
@@ -22,7 +19,9 @@ ghqc_status <- function(owner, repo, milestone_names) {
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
-  all_relevant_files <- list() # associated_file_name, qc_file_name, milestone, issue_number
+  current_branch <- gert::git_branch()
+
+  all_relevant_files <- list()
 
   all_milestones_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
@@ -33,9 +32,9 @@ ghqc_status <- function(owner, repo, milestone_names) {
 
       issue_number <- issue$number
       # branch from metadata might be different from current branch
-      branch <- get_branch_from_metadata(owner, repo, issue_number)
+      metadata_branch <- get_branch_from_metadata(owner, repo, issue_number)
 
-      remote_log_output <- system(glue::glue("git log {remote_name}/{branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+      remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
       remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
       names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
@@ -55,7 +54,10 @@ ghqc_status <- function(owner, repo, milestone_names) {
                                            local_commit_log = local_commit_log,
                                            remote_commit_log = remote_commit_log,
                                            latest_qc_commit = latest_qc_commit,
-                                           issue_closed_at = issue$closed_at)
+                                           issue_closed_at = issue$closed_at,
+                                           metadata_branch = metadata_branch,
+                                           current_branch = current_branch
+                                           )
       qc_status <- qc_status_info$qc_status
       diagnostics <- qc_status_info$diagnostics
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
@@ -79,9 +81,7 @@ ghqc_status <- function(owner, repo, milestone_names) {
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 
   repo_files_df <- map_df(files_without_issues, function(file) {
-    # get current branch
-    branch <- gert::git_branch()
-    remote_log_output <- system(glue::glue("git log {remote_name}/{branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+    remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
     remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
     names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
@@ -275,7 +275,16 @@ get_file_qc_status <- function(file,
                                local_commit_log,
                                remote_commit_log,
                                latest_qc_commit,
-                               issue_closed_at) {
+                               issue_closed_at,
+                               metadata_branch,
+                               current_branch) {
+
+  if (metadata_branch != current_branch) {
+    return(list(
+      qc_status = "QC Status not available",
+      diagnostics = glue::glue("QC initialized on branch: {metadata_branch}, current branch: {current_branch}. Switch to {metadata_branch} to view QC status")
+    ))
+  }
 
   local_commits <- local_commit_log$commit
   remote_commits <- remote_commit_log$commit
