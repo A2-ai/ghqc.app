@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ghqc.app</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.14</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,15 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.14" id="ghqcapp-0414">ghqc.app 0.4.14<a class="anchor" aria-label="anchor" href="#ghqcapp-0414"></a></h2>
+<p>changes to <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code>:</p>
+<ul><li>changes button at the bottom of app from “Post Comment” to “Preview Comment” because the button itself doesn’t post the comment</li>
+<li>fixes glue parsing bugs in which variables don’t exist in the case of errors</li>
+<li>fixes commit log to shell out instead of calling <code><a href="https://docs.ropensci.org/gert/reference/git_commit.html" class="external-link">gert::git_log</a></code> which omits commits from merges</li>
+<li>fixes commit log to only retrieve remote commits so that running the app on any local branch does not interfere with the log</li>
+<li>fixes bug in which comments cannot be more than 65536 characters - for large file diffs, a link comparing the “previous” and “current” commits is provided for QCer reference</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.13" id="ghqcapp-0413">ghqc.app 0.4.13<a class="anchor" aria-label="anchor" href="#ghqcapp-0413"></a></h2>
 <p>changes to <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code>:</p>
