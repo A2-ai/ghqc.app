@@ -72,8 +72,7 @@ ghqc_resolve_ui <- function(id) {
       div(
         class = "button_block",
         miniButtonBlock(
-          #actionButton(ns("preview"), "Preview Comment"),
-          actionButton(ns("post"), "Post Comment")
+          actionButton(ns("post"), "Preview Comment")
         )
       )
     )

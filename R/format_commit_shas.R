@@ -11,27 +11,24 @@
 get_commits_df <- function(issue_number, owner, repo, remote) {
 
   init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
-  branch <- get_branch_from_metadata(owner, repo, issue_number)
+  metadata_branch <- get_branch_from_metadata(owner, repo, issue_number)
+  remote_name <- remote$name
 
-  # get commits on branch
-  local_log <- gert::git_log(glue::glue("{branch}"), max = 9999)
-  remote_log <- gert::git_log(glue::glue("{remote$name}/{branch}"), max = 9999)
-  all_commits <- dplyr::bind_rows(local_log, remote_log) %>%
+  remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+
+  remote_commits <- remote_commit_log %>%
     dplyr::distinct(.data$commit, .keep_all = TRUE) %>%
     dplyr::arrange(dplyr::desc(.data$time))
 
-  if (!init_qc_commit %in% all_commits$commit) {
+  if (!init_qc_commit %in% remote_commits$commit) {
     rlang::abort(glue::glue("git log does not contain initial qc commit ({init_qc_commit}) given in issue #{issue_number}"))
   }
 
-  if (length(local_log == 9999) || length(local_log == 9999)) {
-    log4r::warn(.le$logger, "More than 9999 commits in git repo - git log may not contain initial QC commit within last 9999 commits")
+  cutoff_position <- which(remote_commits$commit == init_qc_commit)
 
-  }
-
-  cutoff_position <- which(all_commits$commit == init_qc_commit)
-
-  commit_log <- all_commits[1:cutoff_position, ]
+  commit_log <- remote_commits[1:cutoff_position, ]
 
   commit_log <- commit_log %>%
     dplyr::mutate(
