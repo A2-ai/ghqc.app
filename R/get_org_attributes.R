@@ -95,7 +95,6 @@ get_closed_milestone_names <- function(org, repo) {
 list_ghqc_milestones <- function(org, repo) {
   debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {org}, repo {repo}..."))
   milestones <- get_all_milestone_objects(org, repo)
-  browser()
   info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {repo}"))
   ghqc_milestones <- filter_for_ghqc_milestones(org, repo, milestones)
   info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {repo}"))

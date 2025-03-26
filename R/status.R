@@ -1,6 +1,13 @@
 #' @import dplyr purrr
-ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name, local_commit_log, current_branch) {
-
+ghqc_status <- function(milestone_names,
+                        org,
+                        repo,
+                        root_dir,
+                        token,
+                        remote_name,
+                        local_commit_log,
+                        current_branch,
+                        include_non_issue_repo_files) {
 
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
@@ -9,7 +16,7 @@ ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name
 
   all_relevant_files <- list()
 
-  all_milestones_df <- map_df(milestone_names, function(milestone_name) {
+  status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     issues_df <- map_df(issues, function(issue) {
       # update relevant files list
@@ -59,10 +66,20 @@ ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name
         diagnostics = diagnostics
       )
     })
-  }) # milestone_dfs
+  }) # status_df
 
+  if (include_non_issue_repo_files) {
+    files_with_issues <- unique(status_df$file_name)
+    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, remote_name, current_branch, local_commit_log, root_dir, all_relevant_files)
+    status_df <- dplyr::bind_rows(status_df, repo_files_df)
+  }
+
+  return(status_df)
+}
+
+
+create_non_issue_repo_files_df <- function(files_with_issues, remote_name, current_branch, local_commit_log, root_dir, all_relevant_files) {
   # add rest of repo files, determine whether they're relevant files or not
-  files_with_issues <- unique(all_milestones_df$file_name)
   files_in_repo <- list.files(path = root_dir, recursive = TRUE)
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 
@@ -93,7 +110,7 @@ ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name
 
         list(qc_status = "Associated relevant file",
              diagnostics = glue::glue("Relevant file in Issues: {qc_status_string}")
-             )
+        )
       }
       else {
         list(qc_status = "NA",
@@ -112,10 +129,6 @@ ghqc_status <- function(milestone_names, org, repo, root_dir, token, remote_name
       diagnostics = qc_status_info$diagnostics
     )
   })
-
-  all_files_df <- dplyr::bind_rows(all_milestones_df, repo_files_df)
-
-  return(all_files_df)
 }
 
 file_has_uncommitted_local_changes <- function(file) {

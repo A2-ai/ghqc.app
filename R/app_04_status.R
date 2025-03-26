@@ -27,17 +27,18 @@ ghqc_status_app <- function() {
   current_branch <- gert::git_branch()
 
   all_ghqc_milestones <- list_ghqc_milestones(org, repo)
+  most_recent_milestone <- get_most_recent_milestone(all_ghqc_milestones)
   all_ghqc_milestone_names <- purrr::map_chr(all_ghqc_milestones, "title")
-  all_milestone_statuses <- ghqc_status(milestone_names = all_ghqc_milestone_names,
+
+  default_statuses <- ghqc_status(milestone_names = most_recent_milestone,
                                         org,
                                         repo,
                                         root_dir,
                                         token,
                                         remote_name,
-                                        local_commit_log, current_branch)
-
-
-  browser()
+                                        local_commit_log,
+                                        current_branch,
+                                        include_non_issue_repo_files = FALSE)
 
   app <- shinyApp(
     ui = ghqc_status_ui(
@@ -46,7 +47,15 @@ ghqc_status_app <- function() {
     server = function(input, output, session) {
       ghqc_status_server(
         id = "ghqc_status_app",
-        all_milestone_statuses = all_milestone_statuses
+        all_ghqc_milestone_names = all_ghqc_milestone_names,
+        default_statuses = default_statuses,
+        org,
+        repo,
+        root_dir,
+        token,
+        remote_name,
+        local_commit_log,
+        current_branch
       )
     }
   )
