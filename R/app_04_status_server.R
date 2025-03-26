@@ -10,11 +10,10 @@ NULL
 
 ghqc_status_server <- function(id,
                                all_ghqc_milestone_names,
-                               default_statuses,
+                               most_recent_milestone,
                                org,
                                repo,
                                root_dir,
-                               token,
                                remote_name,
                                local_commit_log,
                                current_branch) {
@@ -25,6 +24,8 @@ ghqc_status_server <- function(id,
     # the user clicks reset.
     # The logic here prevents the app from stopping when reset is clicked
     reset_triggered <- reactiveVal(FALSE)
+    show_table <- reactiveVal(TRUE)
+
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
         stopApp()
@@ -34,22 +35,44 @@ ghqc_status_server <- function(id,
     ns <- session$ns
 
     observe({
-      req(all_ghqc_milestone_names, default_statuses)
-      waiter_hide()
+      req(all_ghqc_milestone_names,
+          most_recent_milestone,
+          org,
+          repo,
+          root_dir,
+          remote_name,
+          local_commit_log,
+          current_branch)
+
+    })
+
+    w <- waiter::Waiter$new(
+      id = ns("main_panel_dynamic"),
+      html = tagList(waiter::spin_1(), h4("Generating table...")),
+      color = "rgba(0,0,0,0.5)"
+    )
+
+    observeEvent(input$generate, {
+      w$show()         # Show the waiter
+      show_table(TRUE) # Trigger rendering
+
+      # Optional: if table generation is slow, delay a bit before hiding
+      shinyjs::delay(500, w$hide())  # Hide after ~0.5s (adjust as needed)
     })
 
     status <- reactive({
       req(input$selected_milestones)
-      ghqc_status(milestone_names = input$selected_milestones,
+
+      status <- ghqc_status(milestone_names = input$selected_milestones,
                   org,
                   repo,
                   root_dir,
-                  token,
                   remote_name,
                   local_commit_log,
                   current_branch,
                   include_non_issue_repo_files = FALSE
                   )
+
     })
 
     output$sidebar <- renderUI({
@@ -57,15 +80,19 @@ ghqc_status_server <- function(id,
         selectizeInput(ns("selected_milestones"),
                        "Milestone",
                        choices = all_ghqc_milestone_names,
+                       selected = most_recent_milestone,
                        multiple = TRUE,
                        width = "100%",
                        options = list(placeholder = "(required)")
         ),
-
+        # button to generate table
+        actionButton(ns("generate"), "Generate Table", class = "btn-primary")
       )
     }) # output$sidebar
 
     output$main_panel_dynamic <- renderUI({
+      req(show_table())
+
       tagList(
         DT::dataTableOutput(ns("status_table"))
       )
@@ -73,10 +100,19 @@ ghqc_status_server <- function(id,
 
     output$status_table <- DT::renderDataTable({
       df <- status()
-      colnames(df) <- c("Milestone", "File", "URL", "Issue State", "QC Status", "Git Status", "QCer", "Diagnostics")
+      colnames(df) <- c("Milestone", "File without url", "File", "Issue State", "QC Status", "Git Status", "QCer", "Diagnostics")
 
-      DT::datatable(
+      # if only one milestone, don't need milestone column
+      if (length(input$selected_milestones) == 1) {
+        df <- df[, colnames(df) != "Milestone"]
+      }
+
+      # remove file without url column
+      df <- df[, colnames(df) != "File without url"]
+
+      pretty_table <- DT::datatable(
         df,
+        escape = FALSE,
         rownames = FALSE,
         class = "stripe hover compact",
         option = list(
@@ -114,6 +150,8 @@ ghqc_status_server <- function(id,
           )
         )
 
+      waiter_hide()
+      pretty_table
     })
 
     observeEvent(input$close, {

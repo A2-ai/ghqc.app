@@ -3,7 +3,6 @@ ghqc_status <- function(milestone_names,
                         org,
                         repo,
                         root_dir,
-                        token,
                         remote_name,
                         local_commit_log,
                         current_branch,
@@ -32,11 +31,13 @@ ghqc_status <- function(milestone_names,
       names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
       # latest_qc_commit is the most recent commented commit in file's issue
-      latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number, token)
+      latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number)
 
       # get column values for file
       file_name <- issue$title
       url <- issue$html_url
+      file_with_url <- glue::glue('<a href="{url}" target="_blank">{file_name}</a>')
+
       issue_state <- issue$state
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
@@ -58,7 +59,7 @@ ghqc_status <- function(milestone_names,
       tibble(
         milestone_name = milestone_name,
         file_name = file_name,
-        url = url,
+        file_with_url = file_with_url,
         issue_state = issue_state,
         qc_status = qc_status,
         git_status = git_status,
@@ -232,11 +233,21 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
     ))
 }
 
-get_latest_qc_commit <- function(org, repo, issue_number, token) {
+get_imageless_comments <- function(org, repo, issue_number) {
+  comments <- gh::gh(
+    "GET /repos/:org/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
+    org = org,
+    repo = repo,
+    issue_number = issue_number
+  )
+  comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
+}
+
+get_latest_qc_commit <- function(org, repo, issue_number) {
   init_commit <- get_init_qc_commit(org, repo, issue_number)
   latest_qc_commit <- init_commit
 
-  comments <- get_issue_comments(org, repo, issue_number, token)$body
+  comments <- get_imageless_comments(org, repo, issue_number)$body
 
   # start from latest comment, check if a resolve comment (i.e. if it has metadata)
   # if it does, get the current commit, then break
