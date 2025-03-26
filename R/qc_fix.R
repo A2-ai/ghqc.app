@@ -163,6 +163,32 @@ create_comment_body <- function(owner,
                              "{diff_body}",
                              .trim = FALSE)
 
+  comment_body <- as.character(comment_body)
+
+  comment_length <- nchar(comment_body)
+
+  if (comment_length >= 65530) { # in this case, give diff url instead of visual diff to avoid api error
+    info(.le$logger, "File difference is too long, providing commit comparison url instead...")
+
+    remote_url_root <- parse_remote_url(remote$url)
+    url <- glue::glue("{remote_url_root}/{owner}/{repo}/compare/{reference_commit}..{comparator_commit}")
+    url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">Click here to view commit comparison</a>")
+
+    diff_body <- glue::glue("## File Difference\n\n",
+                            "File difference too long to render.\n\n",
+               "{url_html}\n\n")
+
+    comment_body <- glue::glue("{assignees_body}",
+                               "{message_body}",
+                               "{metadata_body}",
+                               "{diff_body}",
+                               .trim = FALSE)
+
+    comment_body <- as.character(comment_body)
+
+    info(.le$logger, "Created commit comparison url")
+  }
+
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
 
@@ -171,7 +197,7 @@ create_comment_body <- function(owner,
                               Previous commit: {reference_commit}
                               Original commit: {comparator_commit}"))
 
-  as.character(comment_body)
+  return(comment_body)
 }
 
 

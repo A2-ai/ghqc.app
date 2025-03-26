@@ -1,3 +1,13 @@
+# ghqc.app 0.4.14
+
+changes to `ghqc_resolve_app()`:
+
+- changes button at the bottom of app from "Post Comment" to "Preview Comment" because the button itself doesn't post the comment
+- fixes glue parsing bugs in which variables don't exist in the case of errors
+- fixes commit log to shell out instead of calling `gert::git_log` which omits commits from merges
+- fixes commit log to only retrieve remote commits so that running the app on any local branch does not interfere with the log
+- fixes bug in which comments cannot be more than 65536 characters - for large file diffs, a link comparing the "previous" and "current" commits is provided for QCer reference
+
 # ghqc.app 0.4.13
 
 changes to `ghqc_record_app()`:

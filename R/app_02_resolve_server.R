@@ -55,6 +55,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
             issues_by_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = input$select_milestone)
             issue_choices <- convert_issue_df_format(issues_by_milestone)
           }
+
+          # filter for only Issues in your branch
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving issues: {conditionMessage(e)}"))
@@ -287,6 +289,11 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       req(preview_trigger())
       req(comment_body_string())
       preview_trigger(FALSE)
+
+      commits_for_compare <- case_when(
+        input$compare == "init" ~ list(comparator_commit = "current", reference_commit = "original"),
+        input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
+      )
       tryCatch(
         {
           html_file_path <- create_gfm_file(comment_body_string())
@@ -333,6 +340,11 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       w_pc <- create_waiter(ns, "Posting comment...")
       w_pc$show()
       on.exit(w_pc$hide())
+
+      commits_for_compare <- case_when(
+        input$compare == "init" ~ list(comparator_commit = "current", reference_commit = "original"),
+        input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
+      )
 
       tryCatch(
         {
