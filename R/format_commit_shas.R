@@ -15,7 +15,7 @@ get_commits_df <- function(issue_number, owner, repo, remote) {
   remote_name <- remote$name
 
   remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-  remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
   remote_commits <- remote_commit_log %>%
