@@ -46,7 +46,7 @@ ghqc_status_server <- function(id,
           local_commit_log,
           current_branch)
 
-      waiter_hide()
+      #waiter_hide()
     })
 
     w <- waiter::Waiter$new(
@@ -55,19 +55,13 @@ ghqc_status_server <- function(id,
       color = "rgba(0,0,0,0.5)"
     )
 
-    observeEvent(input$generate, {
-      w$show()
-      show_table(TRUE)
-
-      shinyjs::delay(500, w$hide())
-    })
-
-
-    observeEvent(input$generate, {
+    run_generate <- function() {
       req(input$selected_milestones)
 
+
+      # if milestones changed, re-run ghqc_status
       if (!identical(input$selected_milestones, last_milestones())) {
-        # if milestones changed, re-run ghqc_status
+        w$show()
         status <- ghqc_status(
           milestone_names = input$selected_milestones,
           org,
@@ -78,16 +72,38 @@ ghqc_status_server <- function(id,
           current_branch,
           include_non_issue_repo_files = FALSE
         )
-
         cached_status(status)
         last_milestones(input$selected_milestones)
+        #w$hide()
+        shinyjs::delay(500, w$hide())
       }
-
       show_table(TRUE)
+      waiter_hide()
+    } # run_generate
+
+    trigger_table <- function() {
+      show_table(TRUE)
+      w$show()
+      shinyjs::delay(500, w$hide())
+    }
+
+    observeEvent(input$generate, {
+      run_generate()
+      #trigger_table()
     })
 
-    filtered_data <- eventReactive(input$generate, {
+    observeEvent(input$selected_milestones, {
+      if (is.null(cached_status())) {
+        run_generate()
+        #shinyjs::delay(100, trigger_table())
+      }
+    }, once = TRUE)
+
+
+    filtered_data <- reactive({
+      req(show_table())
       req(cached_status())
+
       df <- cached_status()
 
       if (input$diagnostics_filter == "None") {
@@ -123,13 +139,20 @@ ghqc_status_server <- function(id,
       )
     }) # output$sidebar
 
-    output$main_panel_dynamic <- renderUI({
-      req(show_table())
+    # output$main_panel_dynamic <- renderUI({
+    #   if (!show_table()) return(NULL)
+    #   DT::dataTableOutput(ns("status_table"))
+    # })
+    observeEvent(show_table(), {
+      if (show_table()) {
+        output$main_panel_dynamic <- renderUI({
+          DT::dataTableOutput(ns("status_table"))
+        })
+      } else {
+        output$main_panel_dynamic <- renderUI({ NULL })
+      }
+    })
 
-      tagList(
-        DT::dataTableOutput(ns("status_table"))
-      )
-    }) #output$main_panel_dynamic
 
     output$status_table <- DT::renderDataTable({
       req(show_table())
