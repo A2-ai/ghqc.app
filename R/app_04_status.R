@@ -6,7 +6,7 @@
 #' @return Starts a Shiny app and does not return any value.
 #' @import shiny
 #' @export
-ghqc_status_app <- function() {
+ghqc_status_app <- function(milestones = NULL) {
   if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
   get_options()
   git_fetch(prune = TRUE)
@@ -26,18 +26,12 @@ ghqc_status_app <- function() {
   current_branch <- gert::git_branch()
 
   all_ghqc_milestones <- list_ghqc_milestones(org, repo)
-  most_recent_milestone <- get_most_recent_milestone(all_ghqc_milestones)
   all_ghqc_milestone_names <- purrr::map_chr(all_ghqc_milestones, "title")
 
-  # default_statuses <- ghqc_status(milestone_names = most_recent_milestone,
-  #                                       org,
-  #                                       repo,
-  #                                       root_dir,
-  #                                       token,
-  #                                       remote_name,
-  #                                       local_commit_log,
-  #                                       current_branch,
-  #                                       include_non_issue_repo_files = FALSE)
+  default_milestones <- {
+    if (is.null(milestones)) get_most_recent_milestone(all_ghqc_milestones)
+    else milestones
+  }
 
   app <- shinyApp(
     ui = ghqc_status_ui(
@@ -47,7 +41,7 @@ ghqc_status_app <- function() {
       ghqc_status_server(
         id = "ghqc_status_app",
         all_ghqc_milestone_names = all_ghqc_milestone_names,
-        most_recent_milestone = most_recent_milestone,
+        default_milestones = default_milestones,
         org,
         repo,
         root_dir,

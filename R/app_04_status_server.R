@@ -10,7 +10,7 @@ NULL
 
 ghqc_status_server <- function(id,
                                all_ghqc_milestone_names,
-                               most_recent_milestone,
+                               default_milestones,
                                org,
                                repo,
                                root_dir,
@@ -38,7 +38,7 @@ ghqc_status_server <- function(id,
 
     observe({
       req(all_ghqc_milestone_names,
-          most_recent_milestone,
+          default_milestones,
           org,
           repo,
           root_dir,
@@ -46,7 +46,6 @@ ghqc_status_server <- function(id,
           local_commit_log,
           current_branch)
 
-      #waiter_hide()
     })
 
     w <- waiter::Waiter$new(
@@ -74,8 +73,7 @@ ghqc_status_server <- function(id,
         )
         cached_status(status)
         last_milestones(input$selected_milestones)
-        #w$hide()
-        shinyjs::delay(500, w$hide())
+        w$hide()
       }
       show_table(TRUE)
       waiter_hide()
@@ -121,7 +119,7 @@ ghqc_status_server <- function(id,
         selectizeInput(ns("selected_milestones"),
                        "Milestone",
                        choices = all_ghqc_milestone_names,
-                       selected = most_recent_milestone,
+                       selected = c(default_milestones),
                        multiple = TRUE,
                        width = "100%",
                        options = list(placeholder = "(required)")
