@@ -5,6 +5,7 @@
 #'
 #' @return Starts a Shiny app and does not return any value.
 #' @import shiny
+#' @import log4r info debug warn error
 #' @export
 ghqc_status_app <- function(milestones = NULL) {
   if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
@@ -19,6 +20,7 @@ ghqc_status_app <- function(milestones = NULL) {
   org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)
 
+  # collect inputs for app
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
@@ -28,9 +30,17 @@ ghqc_status_app <- function(milestones = NULL) {
   all_ghqc_milestones <- list_ghqc_milestones(org, repo)
   all_ghqc_milestone_names <- purrr::map_chr(all_ghqc_milestones, "title")
 
+  all_inputted_milestones_valid <- all(milestones %in% all_ghqc_milestone_names)
+  if (!(all_inputted_milestones_valid)) {
+    info(.le$logger, "Not all inputted Milestones exist. Rendering table with most recent Milestone")
+  }
+
   default_milestones <- {
-    if (is.null(milestones)) get_most_recent_milestone(all_ghqc_milestones)
-    else milestones
+    if (!is.null(milestones) && all_inputted_milestones_valid) {
+    milestones
+    } else {
+      get_most_recent_milestone(all_ghqc_milestones)
+    }
   }
 
   app <- shinyApp(
