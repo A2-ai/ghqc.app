@@ -75,6 +75,18 @@ ghqc_status <- function(milestone_names,
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
 
+  # table editting: add filters, sort, etc
+
+  # rename columns
+  colnames(status_df) <- c("Milestone", "File without url", "File", "Issue State", "QC Status", "Git Status", "QCer", "Diagnostics")
+
+  # make factors
+  status_df <- status_df %>%
+    dplyr::mutate(across(
+      c(Milestone, `File without url`, `Issue State`, `QC Status`, `Git Status`, QCer),
+      as.factor
+    ))
+
   return(status_df)
 }
 
@@ -114,19 +126,19 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
         )
       }
       else {
-        list(qc_status = "NA",
-             diagnostics = "NA")
+        list(qc_status = NA,
+             diagnostics = NA)
       }
     } # qc_status_info
 
     tibble(
-      milestone_name = "NA",
+      milestone_name = NA,
       file_name = file,
       url = NA,
       issue_state = "no Issue",
       qc_status = qc_status_info$qc_status,
       git_status = git_status,
-      qcer = "NA",
+      qcer = NA,
       diagnostics = qc_status_info$diagnostics
     )
   })
@@ -323,7 +335,7 @@ get_file_qc_status <- function(file,
     }
 
     return(list(qc_status = "QC in progress",
-                diagnostics = "NA"
+                diagnostics = NA
                 ))
   } # open
 
@@ -370,7 +382,7 @@ get_file_qc_status <- function(file,
     } # if file changed
 
    return(list(qc_status = "QC Complete",
-               diagnostics = "NA"))
+               diagnostics = NA))
   } # closed
 
   ## For non-issue files
@@ -378,8 +390,8 @@ get_file_qc_status <- function(file,
     # TODO: Associated file
 
     # NA
-    return(list(qc_status = "NA",
-                diagnostics = "NA"
+    return(list(qc_status = NA,
+                diagnostics = NA
                 ))
   }
 
