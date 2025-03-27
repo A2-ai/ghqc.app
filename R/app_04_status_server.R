@@ -24,10 +24,11 @@ ghqc_status_server <- function(id,
     # When an error occurs, the session ends. The other instance of this is when
     # the user clicks reset.
     # The logic here prevents the app from stopping when reset is clicked
-    reset_triggered <- reactiveVal(FALSE)
-    show_table <- reactiveVal(FALSE)
-    cached_status <- reactiveVal(NULL)
-    last_milestones <- reactiveVal(NULL)
+    session$onSessionEnded(function() {
+      if (!isTRUE(isolate(reset_triggered()))) {
+        stopApp()
+      }
+    })
 
     w <- waiter::Waiter$new(
       id = ns("main_panel_dynamic"),
@@ -35,16 +36,37 @@ ghqc_status_server <- function(id,
       color = "rgba(0,0,0,0.5)"
     )
 
-    session$onSessionEnded(function() {
-      if (!isTRUE(isolate(reset_triggered()))) {
-        stopApp()
+    # reactives
+    reset_triggered <- reactiveVal(FALSE)
+    show_table <- reactiveVal(FALSE)
+    cached_status <- reactiveVal(NULL)
+    last_milestones <- reactiveVal(NULL)
+    status_cache <- reactiveVal(list())
+
+    # cache previously rendered sets of milestones
+    milestone_key <- function(milestones) {
+      paste(sort(milestones), collapse = "|")
+    }
+
+    # if there's no cache, wait 2 seconds to make sure user if actually done selecting multiple milestones
+    selected_milestones <- reactive({
+      current <- selected_raw()
+      key <- milestone_key(current)
+
+      if (key %in% names(status_cache())) {
+        current
+      } else {
+        selected_debounced()
       }
     })
 
-    selected_milestones <- reactive({
+    selected_raw <- reactive({
       input$selected_milestones
-    }) %>% debounce(2000)
+    })
 
+    selected_debounced <- selected_raw %>% debounce(2000)
+
+    # make sure inputs are loaded
     observe({
       req(all_ghqc_milestone_names,
           default_milestones,
@@ -59,9 +81,13 @@ ghqc_status_server <- function(id,
 
     run_generate <- function() {
       req(selected_milestones())
+      current_milestones <- selected_milestones()
+      key <- milestone_key(current_milestones)
 
-      # if milestones changed, re-run ghqc_status
-      if (!identical(selected_milestones(), last_milestones())) {
+      cache <- status_cache()
+
+      # if milestones cnot in cache, re-run ghqc_status
+      if (!key %in% names(cache)) {
         w$show()
         status <- ghqc_status(
           milestone_names = selected_milestones(),
@@ -73,19 +99,23 @@ ghqc_status_server <- function(id,
           current_branch,
           include_non_issue_repo_files = FALSE
         )
-        cached_status(status)
-        last_milestones(selected_milestones())
+        # add generated status to cache
+        cache[[key]] <- status
+        status_cache(cache)
         w$hide()
       }
+      # if milestones are in cache, use it
+      else {
+        status <- cache[[key]]
+      }
+
+      cached_status(status)
+      last_milestones(current_milestones)
       show_table(TRUE)
       waiter_hide()
     } # run_generate
 
-
-    # observeEvent(input$generate, {
-    #   run_generate()
-    # })
-
+    # generate table with default milestones when app is first loaded
     observeEvent(selected_milestones(), {
       if (is.null(cached_status())) {
         run_generate()
@@ -96,16 +126,17 @@ ghqc_status_server <- function(id,
       run_generate()
     })
 
-
+    # filter data based on filters in sidebar
     filtered_data <- reactive({
       req(show_table())
       req(cached_status())
+      req(input$diagnostics_filter)
 
       df <- cached_status()
 
-      if (input$diagnostics_filter == "None") {
+      if (input$diagnostics_filter == "On track ✅") {
         df <- df[is.na(df$Diagnostics), ]
-      } else if (input$diagnostics_filter == "Available") {
+      } else if (input$diagnostics_filter == "Needs attention ❌") {
         df <- df[!is.na(df$Diagnostics), ]
       }
 
@@ -131,11 +162,13 @@ ghqc_status_server <- function(id,
 
         selectInput(
           ns("diagnostics_filter"),
-          "Diagnostics Filter",
-          choices = c("All", "None", "Available"),
+          "QC Status Filter",
+          choices = c("All", "On track ✅", "Needs attention ❌"),
           selected = "All"
-        ),
-      ) # tagList
+        )
+      )
+
+
     }) # output$sidebar
 
     observeEvent(show_table(), {
