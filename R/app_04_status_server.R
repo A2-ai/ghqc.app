@@ -19,6 +19,7 @@ ghqc_status_server <- function(id,
                                current_branch) {
 
   moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     # This section ensures that when an error occurs, the app stops
     # When an error occurs, the session ends. The other instance of this is when
     # the user clicks reset.
@@ -28,13 +29,21 @@ ghqc_status_server <- function(id,
     cached_status <- reactiveVal(NULL)
     last_milestones <- reactiveVal(NULL)
 
+    w <- waiter::Waiter$new(
+      id = ns("main_panel_dynamic"),
+      html = tagList(waiter::spin_1(), h4("Generating table...")),
+      color = "rgba(0,0,0,0.5)"
+    )
+
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
         stopApp()
       }
     })
 
-    ns <- session$ns
+    selected_milestones <- reactive({
+      input$selected_milestones
+    }) %>% debounce(2000)
 
     observe({
       req(all_ghqc_milestone_names,
@@ -45,24 +54,17 @@ ghqc_status_server <- function(id,
           remote_name,
           local_commit_log,
           current_branch)
-
     })
 
-    w <- waiter::Waiter$new(
-      id = ns("main_panel_dynamic"),
-      html = tagList(waiter::spin_1(), h4("Generating table...")),
-      color = "rgba(0,0,0,0.5)"
-    )
 
     run_generate <- function() {
-      req(input$selected_milestones)
-
+      req(selected_milestones())
 
       # if milestones changed, re-run ghqc_status
-      if (!identical(input$selected_milestones, last_milestones())) {
+      if (!identical(selected_milestones(), last_milestones())) {
         w$show()
         status <- ghqc_status(
-          milestone_names = input$selected_milestones,
+          milestone_names = selected_milestones(),
           org,
           repo,
           root_dir,
@@ -72,30 +74,27 @@ ghqc_status_server <- function(id,
           include_non_issue_repo_files = FALSE
         )
         cached_status(status)
-        last_milestones(input$selected_milestones)
+        last_milestones(selected_milestones())
         w$hide()
       }
       show_table(TRUE)
       waiter_hide()
     } # run_generate
 
-    trigger_table <- function() {
-      show_table(TRUE)
-      w$show()
-      shinyjs::delay(500, w$hide())
-    }
 
-    observeEvent(input$generate, {
-      run_generate()
-      #trigger_table()
-    })
+    # observeEvent(input$generate, {
+    #   run_generate()
+    # })
 
-    observeEvent(input$selected_milestones, {
+    observeEvent(selected_milestones(), {
       if (is.null(cached_status())) {
         run_generate()
-        #shinyjs::delay(100, trigger_table())
       }
     }, once = TRUE)
+
+    observeEvent(selected_milestones(), {
+      run_generate()
+    })
 
 
     filtered_data <- reactive({
@@ -113,6 +112,8 @@ ghqc_status_server <- function(id,
       df
     })
 
+
+
     ############ OUTPUT
     output$sidebar <- renderUI({
       tagList(
@@ -125,22 +126,18 @@ ghqc_status_server <- function(id,
                        options = list(placeholder = "(required)")
         ),
 
+        # button to generate table
+        #actionButton(ns("generate"), "Generate with Milestones", class = "btn-primary"),
+
         selectInput(
           ns("diagnostics_filter"),
           "Diagnostics Filter",
           choices = c("All", "None", "Available"),
           selected = "All"
         ),
-
-        # button to generate table
-        actionButton(ns("generate"), "Generate Table", class = "btn-primary")
-      )
+      ) # tagList
     }) # output$sidebar
 
-    # output$main_panel_dynamic <- renderUI({
-    #   if (!show_table()) return(NULL)
-    #   DT::dataTableOutput(ns("status_table"))
-    # })
     observeEvent(show_table(), {
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
