@@ -195,7 +195,7 @@ file_changed_in_remote_commits <- function(file, remote_commits) {
 
 get_file_git_status <- function(file, local_commits, remote_commits) {
   if (!file.exists(file)) {
-    rlang::abort(glue::glue("file {file} does not exist"))
+    return("file does not exist locally")
   }
 
   if (file_changed_in_remote_commits(file, remote_commits)) {
@@ -318,7 +318,7 @@ get_file_qc_status <- function(file,
     # if local commit is older than the latest_qc_commit (even if it didn't change the file)
     # if the file has changed remotely and the latest_qc_commit isn't in the local git log history, then QC update to pull
     if (git_status == "remote file changes" && !latest_qc_commit %in% local_commits) {
-      local_commit_short <- local_commits[1]
+      local_commit_short <- substr(local_commits[1], 1, 7)
       return(list(qc_status = "QC update to pull",
                   diagnostics = glue::glue("current qc commit: {latest_qc_commit_short}, local commit: {local_commit_short}")
                   ))
