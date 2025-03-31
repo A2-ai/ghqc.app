@@ -82,34 +82,35 @@ ghqc_status_server <- function(id,
     run_generate <- function() {
       req(selected_milestones())
       current_milestones <- selected_milestones()
-      key <- milestone_key(current_milestones)
-
       cache <- status_cache()
 
+      missing <- setdiff(current_milestones, names(cache))
+
       # if milestones cnot in cache, re-run ghqc_status
-      if (!key %in% names(cache)) {
+      if (length(missing) > 0) {
         w$show()
-        status <- ghqc_status(
-          milestone_names = selected_milestones(),
-          org,
-          repo,
-          root_dir,
-          remote_name,
-          local_commit_log,
-          current_branch,
-          include_non_issue_repo_files = FALSE
-        )
-        # add generated status to cache
-        cache[[key]] <- status
+        for (milestone in missing) {
+          debug(.le$logger, glue("Fetching milestone: {milestone}"))
+          result <- ghqc_status(
+            milestone_names = milestone,
+            org,
+            repo,
+            root_dir,
+            remote_name,
+            local_commit_log,
+            current_branch,
+            include_non_issue_repo_files = FALSE
+          )
+          cache[[milestone]] <- result
+        }
+
         status_cache(cache)
         w$hide()
       }
-      # if milestones are in cache, use it
-      else {
-        status <- cache[[key]]
-      }
 
-      cached_status(status)
+      combined <- do.call(rbind, cache[current_milestones])
+      cached_status(combined)
+
       last_milestones(current_milestones)
       show_table(TRUE)
       waiter_hide()
