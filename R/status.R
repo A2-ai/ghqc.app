@@ -1,5 +1,5 @@
 #' @import dplyr purrr
-#' @import log4r info debug warn error
+#' @importFrom log4r info debug warn error
 ghqc_status <- function(milestone_names,
                         org,
                         repo,

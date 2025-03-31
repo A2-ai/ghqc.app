@@ -5,7 +5,7 @@
 #'
 #' @return Starts a Shiny app and does not return any value.
 #' @import shiny
-#' @import log4r info debug warn error
+#' @importFrom log4r info debug warn error
 #' @export
 ghqc_status_app <- function(milestones = NULL) {
   if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
