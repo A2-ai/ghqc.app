@@ -1,4 +1,5 @@
 #' @import dplyr purrr
+#' @import log4r info debug warn error
 ghqc_status <- function(milestone_names,
                         org,
                         repo,
@@ -18,9 +19,16 @@ ghqc_status <- function(milestone_names,
   status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     issues_df <- map_df(issues, function(issue) {
+      # get column values for file
+      file_name <- issue$title
+      debug(.le$logger, glue::glue("Retrieving QC status for {file_name}..."))
+      file_url <- issue$html_url
+      file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
+
       # update relevant files list
       relevant_files_in_issue <- get_relevant_files(issue, milestone_name)
       all_relevant_files <<- dplyr::bind_rows(all_relevant_files, relevant_files_in_issue)
+      debug(.le$logger, glue::glue("Updated relevant files list"))
 
       issue_number <- issue$number
       # branch from metadata might be different from current branch
@@ -29,14 +37,13 @@ ghqc_status <- function(milestone_names,
       remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
       remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
       names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+      debug(.le$logger, glue::glue("Retrieved remote commit log"))
+
+
 
       # latest_qc_commit is the most recent commented commit in file's issue
       latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number)
-
-      # get column values for file
-      file_name <- issue$title
-      file_url <- issue$html_url
-      file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
+      debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
 
       repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
 
@@ -44,6 +51,8 @@ ghqc_status <- function(milestone_names,
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
+      debug(.le$logger, glue::glue("Retrieved git status for {file_name}"))
+
       tryCatch({
         qc_status_info <- get_file_qc_status(file = file_name,
                                              issue_state = issue_state,
@@ -56,6 +65,8 @@ ghqc_status <- function(milestone_names,
                                              current_branch = current_branch,
                                              repo_url = repo_url
         )
+
+        debug(.le$logger, glue::glue("Retrieved QC status info for {file_name}"))
       }, error = function(e) {
         qc_status_info <- list(
           qc_status = "Error",
@@ -70,7 +81,7 @@ ghqc_status <- function(milestone_names,
       milestone_url <- get_milestone_url(org, repo, milestone_name)
       milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
 
-      tibble(
+      res <- tibble(
         milestone_name = milestone_name,
         milestone_with_url = milestone_with_url,
         file_name = file_name,
@@ -80,8 +91,12 @@ ghqc_status <- function(milestone_names,
         git_status = git_status,
         diagnostics = diagnostics,
         qcer = qcer
-      )
-    })
+      ) # tibble
+
+      info(.le$logger, glue::glue("Retrieved QC status for {file_name}"))
+
+      return(res)
+    }) # issues_df
   }) # status_df
 
   if (include_non_issue_repo_files) {

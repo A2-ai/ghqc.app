@@ -131,13 +131,13 @@ ghqc_status_server <- function(id,
     filtered_data <- reactive({
       req(show_table())
       req(cached_status())
-      req(input$diagnostics_filter)
+      req(input$qc_status_filter)
 
       df <- cached_status()
 
-      if (input$diagnostics_filter == "On track ✅") {
+      if (input$qc_status_filter == "On track ✅") {
         df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
-      } else if (input$diagnostics_filter == "Needs attention ❌") {
+      } else if (input$qc_status_filter == "Needs attention ❌") {
         df <- df[!df$`QC Status` %in% c("QC in progress", "QC complete"), ]
       }
 
@@ -149,6 +149,13 @@ ghqc_status_server <- function(id,
     ############ OUTPUT
     output$sidebar <- renderUI({
       tagList(
+        tags$style(HTML("
+        table.dataTable thead input {
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+                        ")),
+
         selectizeInput(ns("selected_milestones"),
                        "Milestone",
                        choices = all_ghqc_milestone_names,
@@ -162,7 +169,7 @@ ghqc_status_server <- function(id,
         #actionButton(ns("generate"), "Generate with Milestones", class = "btn-primary"),
 
         selectInput(
-          ns("diagnostics_filter"),
+          ns("qc_status_filter"),
           "QC Status Filter",
           choices = c("All", "On track ✅", "Needs attention ❌"),
           selected = "All"
