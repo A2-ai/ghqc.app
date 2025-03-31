@@ -35,8 +35,10 @@ ghqc_status <- function(milestone_names,
 
       # get column values for file
       file_name <- issue$title
-      url <- issue$html_url
-      file_with_url <- glue::glue('<a href="{url}" target="_blank">{file_name}</a>')
+      file_url <- issue$html_url
+      file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
+
+      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
 
       issue_state <- issue$state
       git_status <- get_file_git_status(file_name,
@@ -50,21 +52,26 @@ ghqc_status <- function(milestone_names,
                                            latest_qc_commit = latest_qc_commit,
                                            issue_closed_at = issue$closed_at,
                                            metadata_branch = metadata_branch,
-                                           current_branch = current_branch
+                                           current_branch = current_branch,
+                                           repo_url = repo_url
                                            )
       qc_status <- qc_status_info$qc_status
       diagnostics <- qc_status_info$diagnostics
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
 
+      milestone_url <- get_milestone_url(org, repo, milestone_name)
+      milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
+
       tibble(
         milestone_name = milestone_name,
+        milestone_with_url = milestone_with_url,
         file_name = file_name,
         file_with_url = file_with_url,
         issue_state = issue_state,
         qc_status = qc_status,
         git_status = git_status,
-        qcer = qcer,
-        diagnostics = diagnostics
+        diagnostics = diagnostics,
+        qcer = qcer
       )
     })
   }) # status_df
@@ -75,10 +82,10 @@ ghqc_status <- function(milestone_names,
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
 
-  # table editting: add filters, sort, etc
+  # table editing: add filters, sort, etc
 
   # rename columns
-  colnames(status_df) <- c("Milestone", "File without url", "File", "Issue State", "QC Status", "Git Status", "QCer", "Diagnostics")
+  colnames(status_df) <- c("Milestone without url", "Milestone", "File without url", "File", "Issue State", "QC Status", "Git Status", "Diagnostics", "QCer")
 
   # make factors
   status_df <- status_df %>%
@@ -116,7 +123,6 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
           milestone_name <- relevant_file_instance$milestone_name
           qc_file_string <- glue::glue("#{issue_number}: {qc_file} ({milestone_name})")
           return(qc_file_string)
-
         })
 
         qc_status_string <- glue::glue_collapse(qc_file_strings, sep = ", ", last = " and ")
@@ -195,20 +201,20 @@ file_changed_in_remote_commits <- function(file, remote_commits) {
 
 get_file_git_status <- function(file, local_commits, remote_commits) {
   if (!file.exists(file)) {
-    return("file does not exist locally")
+    return("File does not exist locally")
   }
 
   if (file_changed_in_remote_commits(file, remote_commits)) {
-    return("remote file changes")
+    return("Remote file changes")
   }
   else if (file_changed_in_unpushed_local_commits(file, local_commits)) {
-    return("local unpushed commits with file changes")
+    return("Local unpushed commits with file changes")
   }
   else if (file_has_uncommitted_local_changes(file)) {
-    return("local uncommitted file changes")
+    return("Local uncommitted file changes")
   }
   else {
-    return("up-to-date")
+    return("Up-to-date")
   }
 }
 
@@ -291,6 +297,19 @@ get_comment_metadata <- function(body) {
   return(metadata)
 }
 
+get_hyperlinked_commit <- function(long_commit, file, repo_url) {
+  short_commit <- substr(long_commit, 1, 7)
+  sha_url <- file.path(repo_url, "blob", short_commit, file)
+  hyperlinked_commit <- glue::glue('<a href="{sha_url}" target="_blank">{short_commit}</a>')
+  return(hyperlinked_commit)
+}
+
+get_hyperlinked_commit_diff <- function(repo_url, old_commit, new_commit) {
+  commit_diff_url <- file.path(repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
+  hyperlinked_commit_diff <- glue::glue('<a href="{commit_diff_url}" target="_blank">Commit difference</a>')
+  return(hyperlinked_commit_diff)
+}
+
 get_file_qc_status <- function(file,
                                issue_state,
                                git_status,
@@ -299,66 +318,113 @@ get_file_qc_status <- function(file,
                                latest_qc_commit,
                                issue_closed_at,
                                metadata_branch,
-                               current_branch) {
+                               current_branch,
+                               repo_url) {
 
   if (metadata_branch != current_branch) {
     return(list(
       qc_status = "QC Status not available",
-      diagnostics = glue::glue("QC initialized on branch: {metadata_branch}, current branch: {current_branch}. Switch to {metadata_branch} to view QC status")
+      diagnostics = glue::glue("QC initialized on branch: {metadata_branch}<br>
+                               Current branch: {current_branch}<br>
+                               Switch to {metadata_branch} to view QC status.")
     ))
   }
 
   local_commits <- local_commit_log$commit
   remote_commits <- remote_commit_log$commit
 
-  latest_qc_commit_short <- substr(latest_qc_commit, 1, 7)
+  latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
 
   ## For open issues
   if (issue_state == "open") {
-    # if local commit is older than the latest_qc_commit (even if it didn't change the file)
-    # if the file has changed remotely and the latest_qc_commit isn't in the local git log history, then QC update to pull
-    if (git_status == "remote file changes" && !latest_qc_commit %in% local_commits) {
-      local_commit_short <- substr(local_commits[1], 1, 7)
-      return(list(qc_status = "QC update to pull",
-                  diagnostics = glue::glue("current qc commit: {latest_qc_commit_short}, local commit: {local_commit_short}")
-                  ))
-    }
 
+    ### # Pull current QC commit
+    if (!latest_qc_commit %in% local_commits) {  # if local commit is older than the latest_qc_commit (even if it didn't change the file - "No file difference" is possible)
+      latest_local_commit <- local_commits[1]
+      local_commit_pushed <- latest_local_commit %in% remote_commits
+
+      # give hyperlink if latest local commit is pushed to remote
+      local_commit_short <- ifelse(local_commit_pushed,
+                                   get_hyperlinked_commit(latest_local_commit, file, repo_url),
+                                   substr(latest_local_commit, 1, 7))
+
+      # likewise, only give commit diff if local commit is pushed
+      commit_diff_url <- ifelse(local_commit_pushed,
+                            paste0("<br>", get_hyperlinked_commit_diff(repo_url, latest_qc_commit, latest_local_commit)),
+                            "")
+
+
+      return(list(qc_status = "Pull current QC commit",
+                  diagnostics = glue::glue("Local commit is behind current QC commit.<br>
+                                           Current QC commit was updated with ghqc_resolve_app.<br>
+                                           Current QC commit: {latest_qc_commit_short}<br>
+                                           Local commit: {local_commit_short}
+                                           {commit_diff_url}") # no <br> in above line^ because there might not be a commit_diff_url
+                  ))
+    } # Pull current QC commit
+
+    ### Comment current QC commit
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             commit_log = remote_commit_log)$last_commit_that_changed_file
     if (!is.null(last_remote_commit_that_changed_file)) {
-      last_commit_that_changed_file_short <- substr(last_remote_commit_that_changed_file, 1, 7)
-      return(list(qc_status = "QC update to comment",
-                  diagnostics = glue::glue("current qc commit: {latest_qc_commit_short}, most recent remote file change in commit: {last_commit_that_changed_file_short}")
-                  ))
-    }
+      last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
+      commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
 
+
+      return(list(qc_status = "Comment current QC commit",
+                  diagnostics = glue::glue("Remote file commit is ahead of current QC commit.<br>
+                                           Update the current QC commit with ghqc_resolve_app.<br>
+                                           Current QC commit: {latest_qc_commit_short}<br>
+                                           Most recent remote file change in commit: {last_commit_that_changed_file_short}<br>
+                                           {commit_diff_url}")
+                  ))
+    } # Comment current QC commit
+
+    ### QC in progress
     return(list(qc_status = "QC in progress",
-                diagnostics = NA
+                diagnostics = glue::glue("Current QC commit: {latest_qc_commit_short}")
                 ))
   } # open
 
   ## For closed issues
   else if (issue_state == "closed") {
-    if (git_status == "local uncommitted file changes") {
-      return(list(qc_status = "local uncommitted file changes after Issue closure",
-                  diagnostics = glue::glue("final qc commit: {latest_qc_commit_short}, local uncommitted file changes after final qc commit")
+    ### Local uncommitted file changes after Issue closure
+    if (git_status == "Local uncommitted file changes") {
+      return(list(qc_status = "Local uncommitted file changes after Issue closure",
+                  diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
+                                           Local uncommitted file changes after final QC commit")
                   ))
     }
 
-    if (git_status == "local unpushed commits with file changes") {
+    ### Local unpushed commits with file changes with file changes after Issue closure
+    if (git_status == "Local unpushed commits with file changes") {
       last_local_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             commit_log = local_commit_log)$last_commit_that_changed_file
       last_local_commit_that_changed_file_short <-  substr(last_local_commit_that_changed_file, 1, 7)
 
-      return(list(qc_status = "local unpushed commits with file changes with file changes after Issue closure",
-                  diagnostics = glue::glue("final qc commit: {latest_qc_commit_short}, most recent local file change in commit: {last_local_commit_that_changed_file_short}")
+      last_local_commit_that_changed_file_pushed <- last_local_commit_that_changed_file %in% remote_commits
+
+      # give hyperlink if latest local commit is pushed to remote
+      local_commit_short <- ifelse(last_local_commit_that_changed_file_pushed,
+                                   get_hyperlinked_commit(last_local_commit_that_changed_file, file, repo_url),
+                                   substr(last_local_commit_that_changed_file, 1, 7))
+
+      # likewise, only give commit diff if local commit is pushed
+      commit_diff_url <- ifelse(last_local_commit_that_changed_file_pushed,
+                                paste0("<br>", get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_local_commit_that_changed_file)),
+                                "")
+
+      return(list(qc_status = "Local unpushed commits with file changes with file changes after Issue closure",
+                  diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
+                                           Most recent local file change in commit: {last_local_commit_that_changed_file_short}
+                                           {commit_diff_url}")
                                            ))
     }
 
-    # if there exists a commit that changed the file after the latest qc commit,
+    ### Pushed file changes
+    # if there exists a remote commit that changed the file after the latest qc commit,
     file_change_info <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                               latest_qc_commit,
                                                                               commit_log = remote_commit_log)
@@ -369,27 +435,29 @@ get_file_qc_status <- function(file,
       commit_time <- as.POSIXct(file_change_info$commit_time)
       issue_close_time <- as.POSIXct(issue_closed_at, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
-      last_commit_that_changed_file_short <- substr(last_remote_commit_that_changed_file, 1, 7)
+      last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
+      commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
 
       if (commit_time < issue_close_time) {
-        return(list(qc_status = "uncommented pushed file changes before Issue closure",
-                    diagnostics = glue::glue("final qc commit: {latest_qc_commit_short}, most recent file change in commit: {last_commit_that_changed_file_short}")
+        return(list(qc_status = "Uncommented pushed file changes before Issue closure",
+                    diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
+                                             Most recent remote file change in commit: {last_commit_that_changed_file_short}<br>
+                                             {commit_diff_url}")
                     ))
       }
-      return(list(qc_status = "pushed file changes after Issue closure",
-             diagnostics = glue::glue("final qc commit: {latest_qc_commit_short}, most recent file change in commit: {last_commit_that_changed_file_short}")
+      return(list(qc_status = "Pushed file changes after Issue closure",
+             diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
+                                      Most recent remote file change in commit: {last_commit_that_changed_file_short}<br>
+                                      {commit_diff_url}")
              ))
     } # if file changed
 
    return(list(qc_status = "QC Complete",
-               diagnostics = NA))
+               diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}")))
   } # closed
 
   ## For non-issue files
   else if (issue_state == "no issue") {
-    # TODO: Associated file
-
-    # NA
     return(list(qc_status = NA,
                 diagnostics = NA
                 ))

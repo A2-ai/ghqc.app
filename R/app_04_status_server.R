@@ -135,9 +135,9 @@ ghqc_status_server <- function(id,
       df <- cached_status()
 
       if (input$diagnostics_filter == "On track ✅") {
-        df <- df[is.na(df$Diagnostics), ]
+        df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
       } else if (input$diagnostics_filter == "Needs attention ❌") {
-        df <- df[!is.na(df$Diagnostics), ]
+        df <- df[!df$`QC Status` %in% c("QC in progress", "QC complete"), ]
       }
 
       df
@@ -186,13 +186,14 @@ ghqc_status_server <- function(id,
       req(show_table())
       df <- filtered_data()
 
+      # milestone without url and  file without url columns
+      df <- df[, !colnames(df) %in% c("Milestone without url", "File without url")]
+
+
       # if only one milestone, don't need milestone column
       if (length(input$selected_milestones) == 1) {
         df <- df[, colnames(df) != "Milestone"]
       }
-
-      # remove file without url column
-      df <- df[, colnames(df) != "File without url"]
 
       pretty_table <- DT::datatable(
         df,
@@ -206,10 +207,7 @@ ghqc_status_server <- function(id,
           paging = FALSE,
           searching = TRUE,
           info = TRUE,
-          dom = 'fit',
-          columnDefs = list(
-            list(visible = FALSE, targets = which(colnames(df) == "Diagnostics_Filter") - 1)
-          )
+          dom = 'fit'
         )
       ) %>%
         # format Issue State column
@@ -233,7 +231,7 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "Git Status",
           color = DT::styleEqual(
-            c("up-to-date"),
+            c("Up-to-date"),
             c("green"),
             default = "#a94442"
           )
