@@ -392,8 +392,7 @@ get_file_qc_status <- function(file,
     ### Local uncommitted file changes after Issue closure
     if (git_status == "Local uncommitted file changes") {
       return(list(qc_status = "Local uncommitted file changes after Issue closure",
-                  diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
-                                           Local uncommitted file changes after final QC commit")
+                  diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}")
                   ))
     }
 
@@ -416,7 +415,7 @@ get_file_qc_status <- function(file,
                                 paste0("<br>", get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_local_commit_that_changed_file)),
                                 "")
 
-      return(list(qc_status = "Local unpushed commits with file changes with file changes after Issue closure",
+      return(list(qc_status = "Local unpushed commits with file changes after Issue closure",
                   diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}<br>
                                            Most recent local file change in commit: {last_local_commit_that_changed_file_short}
                                            {commit_diff_url}")
