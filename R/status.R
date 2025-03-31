@@ -44,17 +44,25 @@ ghqc_status <- function(milestone_names,
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
-      qc_status_info <- get_file_qc_status(file = file_name,
-                                           issue_state = issue_state,
-                                           git_status = git_status,
-                                           local_commit_log = local_commit_log,
-                                           remote_commit_log = remote_commit_log,
-                                           latest_qc_commit = latest_qc_commit,
-                                           issue_closed_at = issue$closed_at,
-                                           metadata_branch = metadata_branch,
-                                           current_branch = current_branch,
-                                           repo_url = repo_url
-                                           )
+      tryCatch({
+        qc_status_info <- get_file_qc_status(file = file_name,
+                                             issue_state = issue_state,
+                                             git_status = git_status,
+                                             local_commit_log = local_commit_log,
+                                             remote_commit_log = remote_commit_log,
+                                             latest_qc_commit = latest_qc_commit,
+                                             issue_closed_at = issue$closed_at,
+                                             metadata_branch = metadata_branch,
+                                             current_branch = current_branch,
+                                             repo_url = repo_url
+        )
+      }, error = function(e) {
+        qc_status_info <- list(
+          qc_status = "Error",
+          diagnostics = conditionMessage(e)
+        )
+      })
+
       qc_status <- qc_status_info$qc_status
       diagnostics <- qc_status_info$diagnostics
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
