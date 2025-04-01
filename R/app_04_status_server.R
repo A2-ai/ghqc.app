@@ -135,9 +135,9 @@ ghqc_status_server <- function(id,
 
       df <- cached_status()
 
-      if (input$qc_status_filter == "On track ✅") {
+      if (input$qc_status_filter == "On track") {
         df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
-      } else if (input$qc_status_filter == "Needs attention ❌") {
+      } else if (input$qc_status_filter == "Needs attention") {
         df <- df[!df$`QC Status` %in% c("QC in progress", "QC complete"), ]
       }
 
@@ -149,13 +149,6 @@ ghqc_status_server <- function(id,
     ############ OUTPUT
     output$sidebar <- renderUI({
       tagList(
-        tags$style(HTML("
-        table.dataTable thead input {
-          width: 100% !important;
-          box-sizing: border-box;
-        }
-                        ")),
-
         selectizeInput(ns("selected_milestones"),
                        "Milestone",
                        choices = all_ghqc_milestone_names,
@@ -164,18 +157,13 @@ ghqc_status_server <- function(id,
                        width = "100%",
                        options = list(placeholder = "(required)")
         ),
-
-        # button to generate table
-        #actionButton(ns("generate"), "Generate with Milestones", class = "btn-primary"),
-
         selectInput(
           ns("qc_status_filter"),
           "QC Status Filter",
-          choices = c("All", "On track ✅", "Needs attention ❌"),
+          choices = c("All", "On track", "Needs attention"),
           selected = "All"
         )
       )
-
 
     }) # output$sidebar
 
@@ -183,7 +171,6 @@ ghqc_status_server <- function(id,
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
           div(
-            style = "height: calc(100vh - 100px); padding: 10px;", #  overflow-y: auto;
             DT::dataTableOutput(ns("status_table"))
           )
         })
