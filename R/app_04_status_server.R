@@ -183,7 +183,7 @@ ghqc_status_server <- function(id,
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
           div(
-            style = "height: calc(100vh - 180px); overflow-y: auto; padding: 10px;",
+            style = "height: calc(100vh - 100px); padding: 10px;", #  overflow-y: auto;
             DT::dataTableOutput(ns("status_table"))
           )
         })
