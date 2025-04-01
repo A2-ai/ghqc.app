@@ -30,6 +30,7 @@ ghqc_status_server <- function(id,
       }
     })
 
+    # makes sure the column headers re-align with the columns when sidebar is toggled in and out
     observeEvent(input$toggle_sidebar, {
       show_table(FALSE)
 
@@ -41,7 +42,7 @@ ghqc_status_server <- function(id,
     })
 
     w <- waiter::Waiter$new(
-      id = ns("main_panel_dynamic"),
+      id = ns("content"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
       color = "rgba(0,0,0,0.5)"
     )
@@ -220,7 +221,7 @@ ghqc_status_server <- function(id,
           dom = 'fit',
           scrollY = "calc(100vh - 240px)",
           scrollCollapse = TRUE,
-          destroy = TRUE  # <-- important
+          destroy = TRUE
         ),
         callback = DT::JS("
   var table = this.api();
