@@ -6,7 +6,7 @@ NULL
 
 ghqc_status_ui <- function(id) {
   ns <- NS(id)
-  ui <- fillPage(
+  ui <- miniPage(
     use_waiter(),
     useShinyjs(),
     # tags$head(tags$style(HTML(brio::read_file(system.file("css/styles.css", package = "ghqc.app"))))),
@@ -47,9 +47,10 @@ ghqc_status_ui <- function(id) {
           id = ns("divider"),
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-        miniContentPanel(tagList(
+        miniContentPanel(
+          style = "height: calc(100vh - 100px); overflow-y: auto;",
           uiOutput(ns("main_panel_dynamic"))  # Reactive content
-        ))
+        )
       )
     )
   ) # miniPage
