@@ -42,14 +42,19 @@ ghqc_status_ui <- function(id) {
       ),
       div(
         id = ns("content"),
-        uiOutput(ns("sidebar")),
+        style = "display: flex; flex-direction: row; height: calc(100vh - 60px);",
+        div(
+          style = "width: 300px; padding: 10px; overflow-y: auto;",
+          uiOutput(ns("sidebar"))
+        ),
         div(
           id = ns("divider"),
+          style = "width: 10px;",
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-        miniContentPanel(
-          style = "height: calc(100vh - 100px); overflow-y: auto;",
-          uiOutput(ns("main_panel_dynamic"))  # Reactive content
+        div(
+          style = "flex-grow: 1; overflow-y: auto; padding: 10px;",
+          uiOutput(ns("main_panel_dynamic"))
         )
       )
     )
