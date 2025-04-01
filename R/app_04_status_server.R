@@ -30,10 +30,14 @@ ghqc_status_server <- function(id,
       }
     })
 
-    observeEvent(input$layout_updated, {
-      session$onFlushed(function() {
-        session$sendCustomMessage("redraw-dt", list(id = ns("status_table")))
-      }, once = TRUE)
+    observeEvent(input$toggle_sidebar, {
+      show_table(FALSE)
+
+      shinyjs::delay(150, {
+        session$onFlushed(function() {
+          show_table(TRUE)
+        }, once = TRUE)
+      })
     })
 
     w <- waiter::Waiter$new(
@@ -176,7 +180,11 @@ ghqc_status_server <- function(id,
     observeEvent(show_table(), {
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
+          div(
+            id = ns("main_panel_wrapper"),
+            style = "flex-grow: 1; overflow: hidden;",
             DT::dataTableOutput(ns("status_table"))
+          )
         })
       } else {
         output$main_panel_dynamic <- renderUI({ NULL })
@@ -209,9 +217,34 @@ ghqc_status_server <- function(id,
           paging = FALSE,
           searching = TRUE,
           info = TRUE,
-          dom = 'fit'#,
-          #scrollY = "100%"
-        )
+          dom = 'fit',
+          scrollY = "calc(100vh - 240px)",
+          scrollCollapse = TRUE,
+          destroy = TRUE  # <-- important
+        ),
+        callback = DT::JS("
+  var table = this.api();
+
+  function fixHeaderAlignment() {
+    table.columns.adjust().draw(false);
+  }
+
+  // Redraw on init
+  setTimeout(fixHeaderAlignment, 300);
+
+  // Redraw on window resize
+  $(window).off('resize.dt').on('resize.dt', function() {
+    fixHeaderAlignment();
+  });
+
+  // Observe the sidebar div collapsing/expanding
+  const sidebar = document.querySelector('[id$=\"-sidebar\"]');
+  if (sidebar && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      setTimeout(fixHeaderAlignment, 300);
+    }).observe(sidebar);
+  }
+")
 
       ) %>%
         # format Issue State column
