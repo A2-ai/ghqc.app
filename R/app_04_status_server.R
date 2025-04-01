@@ -215,7 +215,8 @@ ghqc_status_server <- function(id,
           paging = FALSE,
           searching = TRUE,
           info = TRUE,
-          dom = 'fit'
+          dom = 'fit',
+          scrollY = "calc(100vh - 240px)"
         )
       ) %>%
         # format Issue State column
