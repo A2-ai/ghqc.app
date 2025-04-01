@@ -30,6 +30,12 @@ ghqc_status_server <- function(id,
       }
     })
 
+    observeEvent(input$layout_updated, {
+      session$onFlushed(function() {
+        session$sendCustomMessage("redraw-dt", list(id = ns("status_table")))
+      }, once = TRUE)
+    })
+
     w <- waiter::Waiter$new(
       id = ns("main_panel_dynamic"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
@@ -170,9 +176,7 @@ ghqc_status_server <- function(id,
     observeEvent(show_table(), {
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
-          div(
             DT::dataTableOutput(ns("status_table"))
-          )
         })
       } else {
         output$main_panel_dynamic <- renderUI({ NULL })
@@ -205,9 +209,10 @@ ghqc_status_server <- function(id,
           paging = FALSE,
           searching = TRUE,
           info = TRUE,
-          dom = 'fit',
-          scrollY = "calc(100vh - 240px)"
+          dom = 'fit'#,
+          #scrollY = "100%"
         )
+
       ) %>%
         # format Issue State column
         DT::formatStyle(

@@ -47,9 +47,9 @@ ghqc_status_ui <- function(id) {
           id = ns("divider"),
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-        miniContentPanel(tagList(
+        miniContentPanel(
           uiOutput(ns("main_panel_dynamic"))  # Reactive content
-        ))
+        )
       )
     )
   ) # miniPage
