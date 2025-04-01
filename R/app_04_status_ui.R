@@ -18,7 +18,29 @@ ghqc_status_ui <- function(id) {
     ::placeholder {
       color: #8e8e8e; /* match colors of placeholders */
     }
-  "))
+  ")),
+      tags$style(HTML("
+  .checkbox label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+  }
+
+  .checkbox input[type='checkbox'] {
+    margin: 0;
+    transform: scale(1.2); /* Optional: makes the checkbox more visible */
+  }
+")),
+      tags$script(HTML(glue::glue("
+  Shiny.onInputChange('{ns('show_qcer')}', document.getElementById('{ns('show_qcer')}').checked);
+  document.getElementById('{ns('show_qcer')}').addEventListener('change', function() {{
+    Shiny.setInputValue('{ns('show_qcer')}', this.checked);
+  }});
+")))
     ),
     waiter_show_on_load(
       html = tagList(

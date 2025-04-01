@@ -47,7 +47,8 @@ ghqc_status <- function(milestone_names,
 
       repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
 
-      issue_state <- issue$state
+      # capitalize Open and Closed
+      issue_state <- ifelse(issue$state == "open", "Open", "Closed")
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
@@ -359,7 +360,7 @@ get_file_qc_status <- function(file,
   latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
 
   ## For open issues
-  if (issue_state == "open") {
+  if (issue_state == "Open") {
 
     ### # Pull current QC commit
     if (!latest_qc_commit %in% local_commits) {  # if local commit is older than the latest_qc_commit (even if it didn't change the file - "No file difference" is possible)
@@ -411,7 +412,7 @@ get_file_qc_status <- function(file,
   } # open
 
   ## For closed issues
-  else if (issue_state == "closed") {
+  else if (issue_state == "Closed") {
     ### Local uncommitted file changes after Issue closure
     if (git_status == "Local uncommitted file changes") {
       return(list(qc_status = "Local uncommitted file changes after Issue closure",

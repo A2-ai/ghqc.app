@@ -42,7 +42,7 @@ ghqc_status_server <- function(id,
     })
 
     w <- waiter::Waiter$new(
-      id = ns("content"),
+      id = ns("main_container"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
       color = "rgba(0,0,0,0.5)"
     )
@@ -90,9 +90,9 @@ ghqc_status_server <- function(id,
     })
 
 
-    run_generate <- function() {
-      req(selected_milestones())
-      current_milestones <- selected_milestones()
+    run_generate <- function(milestones = selected_milestones()) {
+      req(milestones)
+      current_milestones <- milestones
       cache <- status_cache()
 
       missing <- setdiff(current_milestones, names(cache))
@@ -173,9 +173,22 @@ ghqc_status_server <- function(id,
           "QC Status Filter",
           choices = c("All", "On track", "Needs attention"),
           selected = "All"
+        ),
+        #checkboxInput(ns("show_qcer"), "Show QCer", value = FALSE)
+        div(
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            "Show QCer",
+            tags$input(
+              id = ns("show_qcer"),
+              type = "checkbox",
+              style = "transform: translateY(-1px);"
+            )
+          )
         )
-      )
 
+      ) # tagList
     }) # output$sidebar
 
     observeEvent(show_table(), {
@@ -204,6 +217,10 @@ ghqc_status_server <- function(id,
       # if only one milestone, don't need milestone column
       if (length(input$selected_milestones) == 1) {
         df <- df[, colnames(df) != "Milestone"]
+      }
+
+      if (!isTruthy(input$show_qcer)) {
+        df <- df[, colnames(df) != "QCer", drop = FALSE]
       }
 
       pretty_table <- DT::datatable(
@@ -252,7 +269,7 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "Issue State",
           color = DT::styleEqual(
-            c("open", "closed"),
+            c("Open", "Closed"),
             c("#a94442", "green")
           )
         ) %>%
@@ -283,13 +300,34 @@ ghqc_status_server <- function(id,
       stopApp()
     })
 
+
+
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
+
+      current_milestones <- input$selected_milestones
+
       reset_triggered(TRUE)
       cached_status(NULL)
       last_milestones(NULL)
-      session$reload()
-    })
+      status_cache(list())
+
+      show_table(FALSE)
+
+      # keep the current milestones selected, but regenerate the statuses
+      shinyjs::delay(100, {
+        updateSelectizeInput(
+          session,
+          inputId = "selected_milestones",
+          selected = current_milestones
+        )
+      })
+
+      shinyjs::delay(300, {
+        show_table(TRUE)
+        run_generate(current_milestones)
+      })
+    }) # input$reset
 
     return(input)
   }) # moduleServer
