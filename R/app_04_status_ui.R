@@ -6,7 +6,7 @@ NULL
 
 ghqc_status_ui <- function(id) {
   ns <- NS(id)
-  ui <- miniPage(
+  ui <- fillPage(
     use_waiter(),
     useShinyjs(),
     # tags$head(tags$style(HTML(brio::read_file(system.file("css/styles.css", package = "ghqc.app"))))),
