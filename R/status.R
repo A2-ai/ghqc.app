@@ -16,6 +16,8 @@ ghqc_status <- function(milestone_names,
 
   all_relevant_files <- list()
 
+
+
   status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     issues_df <- map_df(issues, function(issue) {
@@ -114,17 +116,24 @@ ghqc_status <- function(milestone_names,
   # make factors
   status_df <- status_df %>%
     dplyr::mutate(across(
-      c(Milestone, `File without url`, `Issue State`, `QC Status`, `Git Status`, QCer),
+      c(`Issue State`, `QC Status`, `Git Status`, QCer),
       as.factor
     ))
 
-  return(status_df)
+  return(list(
+    status = status_df,
+    relevant_files = all_relevant_files
+    )
+  )
 }
 
 
 create_non_issue_repo_files_df <- function(files_with_issues, remote_name, current_branch, local_commit_log, root_dir, all_relevant_files) {
+  files_with_issues <- unique(files_with_issues)
+
   # add rest of repo files, determine whether they're relevant files or not
-  files_in_repo <- list.files(path = root_dir, recursive = TRUE)
+  git_files <- gert::git_ls(repo = root_dir)$path
+  files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 
   repo_files_df <- map_df(files_without_issues, function(file) {
@@ -151,7 +160,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
 
         qc_status_string <- glue::glue_collapse(qc_file_strings, sep = ", ", last = " and ")
 
-        list(qc_status = "Associated relevant file",
+        list(qc_status = "Relevant file",
              diagnostics = glue::glue("Relevant file in Issues: {qc_status_string}")
         )
       }
@@ -162,14 +171,15 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
     } # qc_status_info
 
     tibble(
-      milestone_name = NA,
-      file_name = file,
-      url = NA,
-      issue_state = "no Issue",
-      qc_status = qc_status_info$qc_status,
-      git_status = git_status,
-      qcer = NA,
-      diagnostics = qc_status_info$diagnostics
+      `Milestone without url` = "No Milestone",
+      Milestone = "No Milestone",
+      `File without url` = file,
+      File = file,
+      `Issue State` = "No Issue",
+      `QC Status` = qc_status_info$qc_status,
+      `Git Status` = git_status,
+      Diagnostics = qc_status_info$diagnostics,
+      QCer = NA
     )
   })
 }

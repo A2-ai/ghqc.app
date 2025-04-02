@@ -53,6 +53,7 @@ ghqc_status_server <- function(id,
     cached_status <- reactiveVal(NULL)
     last_milestones <- reactiveVal(NULL)
     status_cache <- reactiveVal(list())
+    non_qc_repo_cache <- reactiveVal(list())
 
     # cache previously rendered sets of milestones
     milestone_key <- function(milestones) {
@@ -112,15 +113,19 @@ ghqc_status_server <- function(id,
             current_branch,
             include_non_issue_repo_files = FALSE
           )
-          cache[[milestone]] <- result
+          cache[[milestone]] <- list(
+            status = result$status,
+            relevant_files = result$relevant_files,
+            repo_files = NULL
+          )
         }
 
         status_cache(cache)
         w$hide()
       }
 
-      combined <- do.call(rbind, cache[current_milestones])
-      cached_status(combined)
+      combined_status <- do.call(rbind, lapply(cache[milestones], `[[`, "status"))
+      cached_status(combined_status)
 
       last_milestones(current_milestones)
       show_table(TRUE)
@@ -144,7 +149,7 @@ ghqc_status_server <- function(id,
       req(cached_status())
       req(input$qc_status_filter)
 
-      df <- cached_status()
+      df <- combined_status_with_repo_files()
 
       if (input$qc_status_filter == "On track") {
         df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
@@ -155,26 +160,96 @@ ghqc_status_server <- function(id,
       df
     })
 
+    relevant_files <- reactive({
+      req(last_milestones())
+      cache <- status_cache()
+      do.call(rbind, lapply(cache[last_milestones()], `[[`, "relevant_files"))
+    })
+
+    # combined_status_with_repo_files <- reactive({
+    #   req(cached_status())
+    #   df <- cached_status()
+    #
+    #   if (isTruthy(input$show_repo_files)) {
+    #     w$show()
+    #     relevant_files <- relevant_files()
+    #     # get files without issues from status table
+    #     files_with_issues <- df$`File without url`
+    #
+    #     if (length(files_with_issues) > 0) {
+    #       repo_df <- create_non_issue_repo_files_df(
+    #         files_with_issues = files_with_issues,
+    #         remote_name = remote_name,
+    #         current_branch = current_branch,
+    #         local_commit_log = local_commit_log,
+    #         root_dir = root_dir,
+    #         all_relevant_files = relevant_files
+    #       )
+    #
+    #       df <- rbind(df, repo_df)
+    #       w$hide()
+    #     }
+    #   } # if show_repo_files
+    #
+    #   df
+    # })
+
+    combined_status_with_repo_files <- reactive({
+      req(cached_status())
+      df <- cached_status()
+      current_milestones <- last_milestones()
+      key <- milestone_key(current_milestones)
+
+      if (isTruthy(input$show_repo_files)) {
+        repo_cache <- non_qc_repo_cache()
+
+        if (!key %in% names(repo_cache)) {
+          relevant <- relevant_files()
+          files_with_issues <- df$`File without url`
+
+          repo_df <- create_non_issue_repo_files_df(
+            files_with_issues = files_with_issues,
+            remote_name = remote_name,
+            current_branch = current_branch,
+            local_commit_log = local_commit_log,
+            root_dir = root_dir,
+            all_relevant_files = relevant
+          )
+
+          repo_cache[[key]] <- repo_df
+          non_qc_repo_cache(repo_cache)
+        }
+
+        df <- rbind(df, repo_cache[[key]])
+      }
+
+      df
+    })
+
+
+
 
 
     ############ OUTPUT
     output$sidebar <- renderUI({
       tagList(
+        # Milestones
         selectizeInput(ns("selected_milestones"),
-                       "Milestone",
+                       "Milestones",
                        choices = all_ghqc_milestone_names,
                        selected = c(default_milestones),
                        multiple = TRUE,
                        width = "100%",
                        options = list(placeholder = "(required)")
         ),
+        # QC Status Filter
         selectInput(
           ns("qc_status_filter"),
           "QC Status Filter",
           choices = c("All", "On track", "Needs attention"),
           selected = "All"
         ),
-        #checkboxInput(ns("show_qcer"), "Show QCer", value = FALSE)
+        # Show QCer
         div(
           class = "form-group shiny-input-container",
           tags$label(
@@ -186,7 +261,21 @@ ghqc_status_server <- function(id,
               style = "transform: translateY(-1px);"
             )
           )
-        )
+        ),
+        # Show non-QC repo files
+        div(
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            "Show non-QC repo files",
+            tags$input(
+              id = ns("show_repo_files"),
+              type = "checkbox",
+              style = "transform: translateY(-1px);"
+            )
+          )
+        ),
+
 
       ) # tagList
     }) # output$sidebar
@@ -277,8 +366,8 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("QC in progress", "QC Complete"),
-            c("green", "green"),
+            c("QC in progress", "QC Complete", "Relevant file"),
+            c("green", "green", "black"),
             default = "#a94442"
           )
         ) %>%
@@ -311,6 +400,7 @@ ghqc_status_server <- function(id,
       cached_status(NULL)
       last_milestones(NULL)
       status_cache(list())
+      non_qc_repo_cache(list())
 
       show_table(FALSE)
 
