@@ -151,10 +151,16 @@ ghqc_status_server <- function(id,
 
       df <- combined_status_with_repo_files()
 
+      # QC Status Filter
       if (input$qc_status_filter == "On track") {
         df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
-      } else if (input$qc_status_filter == "Needs attention") {
+      }
+      else if (input$qc_status_filter == "Needs attention") {
         df <- df[!df$`QC Status` %in% c("QC in progress", "QC complete"), ]
+      }
+
+      if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
+        df <- df[dirname(df$`File without url`) %in% input$file_directory_filter, ]
       }
 
       df
@@ -165,34 +171,6 @@ ghqc_status_server <- function(id,
       cache <- status_cache()
       do.call(rbind, lapply(cache[last_milestones()], `[[`, "relevant_files"))
     })
-
-    # combined_status_with_repo_files <- reactive({
-    #   req(cached_status())
-    #   df <- cached_status()
-    #
-    #   if (isTruthy(input$show_repo_files)) {
-    #     w$show()
-    #     relevant_files <- relevant_files()
-    #     # get files without issues from status table
-    #     files_with_issues <- df$`File without url`
-    #
-    #     if (length(files_with_issues) > 0) {
-    #       repo_df <- create_non_issue_repo_files_df(
-    #         files_with_issues = files_with_issues,
-    #         remote_name = remote_name,
-    #         current_branch = current_branch,
-    #         local_commit_log = local_commit_log,
-    #         root_dir = root_dir,
-    #         all_relevant_files = relevant_files
-    #       )
-    #
-    #       df <- rbind(df, repo_df)
-    #       w$hide()
-    #     }
-    #   } # if show_repo_files
-    #
-    #   df
-    # })
 
     combined_status_with_repo_files <- reactive({
       req(cached_status())
@@ -224,10 +202,36 @@ ghqc_status_server <- function(id,
       }
 
       df
+    }) # combined_status_with_repo_files
+
+    file_directories <- reactive({
+      req(combined_status_with_repo_files())
+      # get unique dirs of files in status df
+      #browser()
+      dirs <- unique(dirname(combined_status_with_repo_files()$`File without url`))
+      dirs
     })
 
+    observeEvent(file_directories(), {
+      #browser()
+      directories <- file_directories()
+
+      shinyjs::delay(200, {
+        updateSelectizeInput(
+          session,
+          inputId = "file_directory_filter",
+          server = TRUE,
+          choices = directories,
+          selected = isolate(input$file_directory_filter),
+          label = "File Directory Filter",
+          options = list(
+            placeholder = "(Optional)"
+          )
+        )
+      })
 
 
+    }) # file_directory_filter
 
 
     ############ OUTPUT
@@ -262,6 +266,14 @@ ghqc_status_server <- function(id,
             )
           )
         ),
+        # File Directory Filter
+        selectizeInput(
+          ns("file_directory_filter"),
+          label = NULL,
+          choices = NULL,
+          multiple = TRUE,
+          width = "100%"
+        ),
         # Show non-QC repo files
         div(
           class = "form-group shiny-input-container",
@@ -279,6 +291,7 @@ ghqc_status_server <- function(id,
 
       ) # tagList
     }) # output$sidebar
+
 
     observeEvent(show_table(), {
       if (show_table()) {
