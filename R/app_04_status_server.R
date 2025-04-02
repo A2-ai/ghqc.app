@@ -251,7 +251,8 @@ ghqc_status_server <- function(id,
           ns("qc_status_filter"),
           "QC Status Filter",
           choices = c("All", "On track", "Needs attention"),
-          selected = "All"
+          selected = "All",
+          width = "100%"
         ),
         # Show QCer
         div(

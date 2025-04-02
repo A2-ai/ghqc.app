@@ -51,6 +51,7 @@ ghqc_status <- function(milestone_names,
 
       # capitalize Open and Closed
       issue_state <- ifelse(issue$state == "open", "Open", "Closed")
+      debug(.le$logger, glue::glue("Retrieving git status for {file_name}..."))
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
@@ -141,9 +142,14 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
   names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
   repo_files_df <- map_df(files_without_issues, function(file) {
+    debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
+    start_time <- Sys.time()
     git_status <- get_file_git_status(file,
                                       local_commits = local_commit_log$commit,
                                       remote_commits = remote_commit_log$commit)
+    end_time <- Sys.time()
+    elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+    debug(.le$logger, glue::glue("Retrieved git status for {file} in {elapsed} seconds"))
 
     qc_status_info <- {
       if (file %in% all_relevant_files$relevant_file_name) {
