@@ -52,12 +52,17 @@ ghqc_status <- function(milestone_names,
       # capitalize Open and Closed
       issue_state <- ifelse(issue$state == "open", "Open", "Closed")
       debug(.le$logger, glue::glue("Retrieving git status for {file_name}..."))
+      start_time <-  Sys.time()
       git_status <- get_file_git_status(file_name,
                                         local_commits = local_commit_log$commit,
                                         remote_commits = remote_commit_log$commit)
-      debug(.le$logger, glue::glue("Retrieved git status for {file_name}"))
+      end_time <- Sys.time()
+      elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+      debug(.le$logger, glue::glue("Retrieved git status for {file_name} in {elapsed} seconds"))
 
       tryCatch({
+        debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
+        start_time <-  Sys.time()
         qc_status_info <- get_file_qc_status(file = file_name,
                                              issue_state = issue_state,
                                              git_status = git_status,
@@ -69,8 +74,9 @@ ghqc_status <- function(milestone_names,
                                              current_branch = current_branch,
                                              repo_url = repo_url
         )
-
-        debug(.le$logger, glue::glue("Retrieved QC status info for {file_name}"))
+        end_time <- Sys.time()
+        elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+        debug(.le$logger, glue::glue("Retrieved QC status info for {file_name} in {elapsed} seconds"))
       }, error = function(e) {
         qc_status_info <- list(
           qc_status = "Error",
