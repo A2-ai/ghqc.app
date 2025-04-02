@@ -136,11 +136,11 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
   files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 
-  repo_files_df <- map_df(files_without_issues, function(file) {
-    remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-    remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-    names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+  remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
+  repo_files_df <- map_df(files_without_issues, function(file) {
     git_status <- get_file_git_status(file,
                                       local_commits = local_commit_log$commit,
                                       remote_commits = remote_commit_log$commit)
