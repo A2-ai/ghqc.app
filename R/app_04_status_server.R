@@ -14,8 +14,8 @@ ghqc_status_server <- function(id,
                                org,
                                repo,
                                root_dir,
-                               remote_name,
                                local_commit_log,
+                               remote_commit_log,
                                current_branch) {
 
   moduleServer(id, function(input, output, session) {
@@ -85,8 +85,8 @@ ghqc_status_server <- function(id,
           org,
           repo,
           root_dir,
-          remote_name,
           local_commit_log,
+          remote_commit_log,
           current_branch)
     })
 
@@ -108,9 +108,9 @@ ghqc_status_server <- function(id,
             org,
             repo,
             root_dir,
-            remote_name,
-            local_commit_log,
             current_branch,
+            local_commit_log,
+            remote_commit_log,
             include_non_issue_repo_files = FALSE
           )
           cache[[milestone]] <- list(
@@ -187,9 +187,8 @@ ghqc_status_server <- function(id,
 
           repo_df <- create_non_issue_repo_files_df(
             files_with_issues = files_with_issues,
-            remote_name = remote_name,
-            current_branch = current_branch,
             local_commit_log = local_commit_log,
+            remote_commit_log = remote_commit_log,
             root_dir = root_dir,
             all_relevant_files = relevant
           )

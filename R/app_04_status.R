@@ -20,13 +20,6 @@ ghqc_status_app <- function(milestones = NULL) {
   org <- get_org_errors(remote)
   repo <- get_repo_errors(remote)
 
-  # collect inputs for app
-  local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
-  local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
-
-  current_branch <- gert::git_branch()
-
   all_ghqc_milestones <- list_ghqc_milestones(org, repo)
   all_ghqc_milestone_names <- purrr::map_chr(all_ghqc_milestones, "title")
 
@@ -43,6 +36,10 @@ ghqc_status_app <- function(milestones = NULL) {
     }
   }
 
+  current_branch <- gert::git_branch()
+  local_commit_log <- get_local_commit_log()
+  remote_commit_log <- get_remote_commit_log(remote_name, current_branch)
+
   app <- shinyApp(
     ui = ghqc_status_ui(
       id = "ghqc_status_app"
@@ -55,8 +52,8 @@ ghqc_status_app <- function(milestones = NULL) {
         org,
         repo,
         root_dir,
-        remote_name,
         local_commit_log,
+        remote_commit_log,
         current_branch
       )
     }

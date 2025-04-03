@@ -1,96 +1,113 @@
+
+
 #' @import dplyr purrr
 #' @importFrom log4r info debug warn error
 ghqc_status <- function(milestone_names,
                         org,
                         repo,
                         root_dir,
-                        remote_name,
-                        local_commit_log,
                         current_branch,
+                        local_commit_log,
+                        remote_commit_log,
                         include_non_issue_repo_files) {
-
-  local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
-  local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
 
   all_relevant_files <- list()
 
-
-
   status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
+    files <- purrr::map_chr(issues, "title")
+    git_statuses <- get_git_statuses(files = files,
+                                     local_commits = local_commit_log$commit,
+                                     remote_commits = remote_commit_log$commit
+                                     )
+
     issues_df <- map_df(issues, function(issue) {
       # get column values for file
       file_name <- issue$title
-      debug(.le$logger, glue::glue("Retrieving QC status for {file_name}..."))
+      issue_number <- issue$number
+      issue_state <- ifelse(issue$state == "open", "Open", "Closed") # capitalize Open and Closed
+      qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
       file_url <- issue$html_url
+
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
+
+      milestone_url <- get_milestone_url(org, repo, milestone_name)
+      milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
+
+      # branch from metadata might be different from current branch
+      metadata_branch <- get_branch_from_metadata(org, repo, issue_number)
+      # if it is different, don't get git status or qc status
+      if (metadata_branch != current_branch) {
+        qc_status <-  "QC Status not available"
+        diagnostics <- glue::glue("QC initialized on branch: {metadata_branch}<br>
+                             Current branch: {current_branch}<br>
+                             Switch to {metadata_branch} to view QC status.")
+        return(
+          tibble(
+            milestone_name = milestone_name,
+            milestone_with_url = milestone_with_url,
+            file_name = file_name,
+            file_with_url = file_with_url,
+            issue_state = issue_state,
+            qc_status = qc_status,
+            git_status = NA,
+            diagnostics = diagnostics,
+            qcer = qcer
+          ) # tibble
+        )
+      } # metadata_branch != current_branch
+
+      # git status
+      debug(.le$logger, glue::glue("Retrieving git status for {file_name}..."))
+      start_time <-  Sys.time()
+
+      git_status <- git_statuses[which(git_statuses$file_name == file_name), ]$git_status
+
+      end_time <- Sys.time()
+      elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+      debug(.le$logger, glue::glue("Retrieved git status for {file_name} in {elapsed} seconds"))
+
+
+      # qc status
+      qc_status_info <- tryCatch({
+        # latest_qc_commit is the most recent commented commit in file's issue
+        latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number)
+        debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
+
+        repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
+
+        debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
+        start_time <-  Sys.time()
+        qc_status_res <- get_file_qc_status(file = file_name,
+                                  issue_state = issue_state,
+                                  git_status = git_status,
+                                  local_commit_log = local_commit_log,
+                                  remote_commit_log = remote_commit_log,
+                                  latest_qc_commit = latest_qc_commit,
+                                  issue_closed_at = issue$closed_at,
+                                  repo_url = repo_url
+        )
+        end_time <- Sys.time()
+        elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+        debug(.le$logger, glue::glue("Retrieved QC status info for {file_name} in {elapsed} seconds"))
+        qc_status_res
+      }, error = function(e) {
+        list(
+          qc_status = "Error",
+          diagnostics = conditionMessage(e)
+        )
+      }) # qc status
+
+      qc_status <- qc_status_info$qc_status
+      diagnostics <- qc_status_info$diagnostics
 
       # update relevant files list
       relevant_files_in_issue <- get_relevant_files(issue, milestone_name)
       all_relevant_files <<- dplyr::bind_rows(all_relevant_files, relevant_files_in_issue)
       debug(.le$logger, glue::glue("Updated relevant files list"))
 
-      issue_number <- issue$number
-      # branch from metadata might be different from current branch
-      metadata_branch <- get_branch_from_metadata(org, repo, issue_number)
-
-      remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-      remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-      names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
-      debug(.le$logger, glue::glue("Retrieved remote commit log"))
-
-
-
-      # latest_qc_commit is the most recent commented commit in file's issue
-      latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number)
-      debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
-
-      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
-
-      # capitalize Open and Closed
-      issue_state <- ifelse(issue$state == "open", "Open", "Closed")
-      debug(.le$logger, glue::glue("Retrieving git status for {file_name}..."))
-      start_time <-  Sys.time()
-      git_status <- get_file_git_status(file_name,
-                                        local_commits = local_commit_log$commit,
-                                        remote_commits = remote_commit_log$commit)
-      end_time <- Sys.time()
-      elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
-      debug(.le$logger, glue::glue("Retrieved git status for {file_name} in {elapsed} seconds"))
-
-      tryCatch({
-        debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
-        start_time <-  Sys.time()
-        qc_status_info <- get_file_qc_status(file = file_name,
-                                             issue_state = issue_state,
-                                             git_status = git_status,
-                                             local_commit_log = local_commit_log,
-                                             remote_commit_log = remote_commit_log,
-                                             latest_qc_commit = latest_qc_commit,
-                                             issue_closed_at = issue$closed_at,
-                                             metadata_branch = metadata_branch,
-                                             current_branch = current_branch,
-                                             repo_url = repo_url
-        )
-        end_time <- Sys.time()
-        elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
-        debug(.le$logger, glue::glue("Retrieved QC status info for {file_name} in {elapsed} seconds"))
-      }, error = function(e) {
-        qc_status_info <- list(
-          qc_status = "Error",
-          diagnostics = conditionMessage(e)
-        )
-      })
-
-      qc_status <- qc_status_info$qc_status
-      diagnostics <- qc_status_info$diagnostics
-      qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
-
-      milestone_url <- get_milestone_url(org, repo, milestone_name)
-      milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
-
+      # return res
       res <- tibble(
         milestone_name = milestone_name,
         milestone_with_url = milestone_with_url,
@@ -111,10 +128,11 @@ ghqc_status <- function(milestone_names,
 
   if (include_non_issue_repo_files) {
     files_with_issues <- unique(status_df$file_name)
-    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, remote_name, current_branch, local_commit_log, root_dir, all_relevant_files)
+    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commit_log, remote_commit_log, root_dir, all_relevant_files)
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
 
+  browser()
   # table editing: add filters, sort, etc
 
   # rename columns
@@ -135,17 +153,13 @@ ghqc_status <- function(milestone_names,
 }
 
 
-create_non_issue_repo_files_df <- function(files_with_issues, remote_name, current_branch, local_commit_log, root_dir, all_relevant_files) {
+create_non_issue_repo_files_df <- function(files_with_issues, local_commit_log, remote_commit_log, root_dir, all_relevant_files) {
   files_with_issues <- unique(files_with_issues)
 
   # add rest of repo files, determine whether they're relevant files or not
   git_files <- gert::git_ls(repo = root_dir)$path
   files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
-
-  remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-  remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 
   repo_files_df <- map_df(files_without_issues, function(file) {
     debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
@@ -196,73 +210,6 @@ create_non_issue_repo_files_df <- function(files_with_issues, remote_name, curre
   })
 }
 
-file_has_uncommitted_local_changes <- function(file) {
-  status <- gert::git_status()
-  uncommitted_local_changes <- ifelse(file %in% status$file, TRUE, FALSE)
-  return(uncommitted_local_changes)
-}
-
-file_changed_in_unpushed_local_commits <- function(file, local_commits) {
-  ahead_behind_status <- check_ahead_behind()
-  if (ahead_behind_status$ahead == 0) {
-    return(FALSE)
-  }
-
-  # get latest pushed remote commit
-  remote_commit <- local_commits[1 + ahead_behind_status$ahead]
-
-  # get set of unpushed commits
-  unpushed_commits <- local_commits[1:(which(local_commits == remote_commit) - 1)]
-
-  # check if file in set of unpushed commits
-  if (length(unpushed_commits > 0)) {
-    file_changed_in_unpushed_commit <- any(sapply(unpushed_commits, function(unpushed_commit) {
-      diff <- gert::git_diff(unpushed_commit) # get the set of files that changed in this commit
-      file %in% diff$old # check if the file is in the set of files
-    }))
-    return(file_changed_in_unpushed_commit)
-  }
-  return(FALSE) # no unpushed local commits
-}
-
-file_changed_in_remote_commits <- function(file, remote_commits) {
-  ahead_behind_status <- check_ahead_behind()
-  if (ahead_behind_status$behind == 0) {
-    return(FALSE)
-  }
-
-  # get latest pushed local commit
-  local_commit <- remote_commits[1 + ahead_behind_status$behind]
-  unpulled_commits <- remote_commits[1:(which(remote_commits == local_commit) - 1)]
-
-  if (length(unpulled_commits > 0)) {
-    file_changed_in_unpulled_commit <- any(sapply(unpulled_commits, function(unpulled_commit) {
-      diff <- gert::git_diff(unpulled_commit) # get the set of files that changed in this commit
-      file %in% diff$old # check if the file is in the set of files
-    }))
-    return(file_changed_in_unpulled_commit)
-  }
-  return(FALSE) # no unpulled local commits
-}
-
-get_file_git_status <- function(file, local_commits, remote_commits) {
-  if (!file.exists(file)) {
-    return("File does not exist locally")
-  }
-
-  if (file_changed_in_remote_commits(file, remote_commits)) {
-    return("Remote file changes")
-  }
-  else if (file_changed_in_unpushed_local_commits(file, local_commits)) {
-    return("Local unpushed commits with file changes")
-  }
-  else if (file_has_uncommitted_local_changes(file)) {
-    return("Local uncommitted file changes")
-  }
-  else {
-    return("Up-to-date")
-  }
-}
 
 # commit log may be remote commits, local commits, etc
 last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
@@ -363,18 +310,7 @@ get_file_qc_status <- function(file,
                                remote_commit_log,
                                latest_qc_commit,
                                issue_closed_at,
-                               metadata_branch,
-                               current_branch,
                                repo_url) {
-
-  if (metadata_branch != current_branch) {
-    return(list(
-      qc_status = "QC Status not available",
-      diagnostics = glue::glue("QC initialized on branch: {metadata_branch}<br>
-                               Current branch: {current_branch}<br>
-                               Switch to {metadata_branch} to view QC status.")
-    ))
-  }
 
   local_commits <- local_commit_log$commit
   remote_commits <- remote_commit_log$commit
