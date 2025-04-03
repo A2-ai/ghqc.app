@@ -206,13 +206,11 @@ ghqc_status_server <- function(id,
     file_directories <- reactive({
       req(combined_status_with_repo_files())
       # get unique dirs of files in status df
-      #browser()
       dirs <- unique(dirname(combined_status_with_repo_files()$`File without url`))
       dirs
     })
 
     observeEvent(file_directories(), {
-      #browser()
       directories <- file_directories()
 
       shinyjs::delay(200, {

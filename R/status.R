@@ -17,10 +17,15 @@ ghqc_status <- function(milestone_names,
   status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     files <- purrr::map_chr(issues, "title")
+    debug(.le$logger, glue::glue("Retrieving all git statuses..."))
+    start_time <- Sys.time
     git_statuses <- get_git_statuses(files = files,
                                      local_commits = local_commit_log$commit,
                                      remote_commits = remote_commit_log$commit
                                      )
+    end_time <- Sys.time()
+    elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
+    debug(.le$logger, glue::glue("Retrieved all git statuses in {elapsed} seconds"))
 
     issues_df <- map_df(issues, function(issue) {
       # get column values for file
@@ -132,7 +137,6 @@ ghqc_status <- function(milestone_names,
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
 
-  browser()
   # table editing: add filters, sort, etc
 
   # rename columns
