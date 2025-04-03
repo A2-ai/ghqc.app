@@ -18,7 +18,7 @@ ghqc_status <- function(milestone_names,
     issues <- get_all_issues_in_milestone(org, repo, milestone_name)
     files <- purrr::map_chr(issues, "title")
     debug(.le$logger, glue::glue("Retrieving all git statuses..."))
-    start_time_git <- Sys.time
+    start_time_git <- Sys.time()
     git_statuses <- get_git_statuses(files = files,
                                      local_commits = local_commit_log$commit,
                                      remote_commits = remote_commit_log$commit

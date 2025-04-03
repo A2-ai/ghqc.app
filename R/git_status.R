@@ -20,11 +20,13 @@
 
 
 get_git_statuses <- function(files, local_commits, remote_commits) {
+  ahead_behind_status <- check_ahead_behind()
+
   # get files with remote changes
-  files_changed_in_remote_commits <- get_files_changed_in_remote_commits(remote_commits)
+  files_changed_in_remote_commits <- get_files_changed_in_remote_commits(remote_commits, ahead_behind_status)
 
   # get files with local unpushed commits
-  files_changed_in_unpushed_local_commits <- get_files_changed_in_unpushed_local_commits(local_commits)
+  files_changed_in_unpushed_local_commits <- get_files_changed_in_unpushed_local_commits(local_commits, ahead_behind_status)
 
   # get files with local uncommitted file changes
   files_with_uncommitted_local_changes <- get_files_with_uncommitted_local_changes()
@@ -36,13 +38,17 @@ get_git_statuses <- function(files, local_commits, remote_commits) {
   git_statuses <- purrr::map2_chr(files, files_exist_locally, function(file, exists) {
     if (!exists) {
       return("File does not exist locally")
-    } else if (file %in% files_changed_in_remote_commits) {
+    }
+    else if (file %in% files_changed_in_remote_commits) {
       return("Remote file changes")
-    } else if (file %in% files_changed_in_unpushed_local_commits) {
+    }
+    else if (file %in% files_changed_in_unpushed_local_commits) {
       return("Local unpushed commits with file changes")
-    } else if (file %in% files_with_uncommitted_local_changes) {
+    }
+    else if (file %in% files_with_uncommitted_local_changes) {
       return("Local uncommitted file changes")
-    } else {
+    }
+    else {
       return("Up-to-date")
     }
   })
@@ -56,9 +62,9 @@ get_git_statuses <- function(files, local_commits, remote_commits) {
 
 } # assign_git_statuses_to_milestone_files
 
-get_files_changed_in_remote_commits <- function(remote_commits) {
+get_files_changed_in_remote_commits <- function(remote_commits, ahead_behind_status) {
+  debug(.le$logger, "get_files_changed_in_remote_commits")
   # if there aren't any unpulled commits, there cant be any files with changes in remote commits
-  ahead_behind_status <- check_ahead_behind()
   if (ahead_behind_status$behind == 0) {
     return(character(0))
   }
@@ -67,20 +73,27 @@ get_files_changed_in_remote_commits <- function(remote_commits) {
   local_commit <- remote_commits[1 + ahead_behind_status$behind]
   unpulled_commits <- remote_commits[1:(which(remote_commits == local_commit) - 1)]
 
-  changed_files <- unique(unlist(lapply(unpulled_commits, function(commit) {
+  start_time <- Sys.time()
+  changed_files <- unique(unlist(lapply(unpulled_commits, function(commit) { # benchmark how long it takes per commit
+
+    start_time <- Sys.time()
     diff <- gert::git_diff(commit)
+
+    message(glue::glue("diffing unpulled commit: {commit} took {difftime(Sys.time(), start_time)}"))
     c(diff$old, diff$new)
   })))
 
+
   # filter na and empty values
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
+  message(glue::glue("get_files_changed_in_remote_commits total time: {difftime(Sys.time(), start_time)}"))
 
   return(changed_files)
 } # get_files_changed_in_remote_commits
 
-get_files_changed_in_unpushed_local_commits <- function(local_commits) {
+get_files_changed_in_unpushed_local_commits <- function(local_commits, ahead_behind_status) {
+  debug(.le$logger, "get_files_changed_in_unpushed_local_commits")
   # if there aren't any unpushed commits, there cant be any files with changes in local commits
-  ahead_behind_status <- check_ahead_behind()
   if (ahead_behind_status$ahead == 0) {
     return(character(0))
   }
@@ -91,22 +104,29 @@ get_files_changed_in_unpushed_local_commits <- function(local_commits) {
   # get set of unpushed commits
   unpushed_commits <- local_commits[1:(which(local_commits == remote_commit) - 1)]
 
+  start_time <- Sys.time()
   changed_files <- unique(unlist(lapply(unpushed_commits, function(commit) {
+    start_time <- Sys.time()
     diff <- gert::git_diff(commit)
+    message(glue::glue("diffing unpushed commit: {commit} took {difftime(Sys.time(), start_time)}"))
     c(diff$old, diff$new)
   })))
 
   # filter changed files
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
 
+  message(glue::glue("get_files_changed_in_unpushed_local_commits total time: {difftime(Sys.time(), start_time)}"))
   return(changed_files)
 } # get_files_changed_in_unpushed_local_commits
 
 get_files_with_uncommitted_local_changes <- function() {
+  debug(.le$logger, "get_files_with_uncommitted_local_changes")
+  start_time <- Sys.time()
   status <- gert::git_status()
   changed_files <- unique(status$file)
 
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
+  message(glue::glue("get_files_with_uncommitted_local_changes total time {difftime(Sys.time(), start_time)}"))
 
   return(changed_files)
 }
