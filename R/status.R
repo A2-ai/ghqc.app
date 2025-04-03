@@ -24,8 +24,8 @@ ghqc_status <- function(milestone_names,
                                      remote_commits = remote_commit_log$commit
                                      )
     end_time_git <- Sys.time()
-    elapsed <- round(as.numeric(difftime(end_time_git, start_time_git, units = "secs")), 3)
-    debug(.le$logger, glue::glue("Retrieved all git statuses in {elapsed} seconds"))
+    elapsed_git <- round(as.numeric(difftime(end_time_git, start_time_git, units = "secs")), 3)
+    debug(.le$logger, glue::glue("Retrieved all git statuses in {elapsed_git} seconds"))
 
     issues_df <- map_df(issues, function(issue) {
       # get column values for file
