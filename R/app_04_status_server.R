@@ -76,7 +76,7 @@ ghqc_status_server <- function(id,
       input$selected_milestones
     })
 
-    selected_debounced <- selected_raw %>% debounce(2000)
+    selected_debounced <- selected_raw %>% debounce(1000)
 
     # make sure inputs are loaded
     observe({

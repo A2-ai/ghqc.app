@@ -102,7 +102,7 @@ get_files_changed_in_remote_commits <- function(remote_commits, ahead_behind_sta
 
   # filter na and empty values
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
-  message(glue::glue("get_files_changed_in_remote_commits total time: {difftime(Sys.time(), start_time)}"))
+  debug(.le$logger, glue::glue("get_files_changed_in_remote_commits total time: {difftime(Sys.time(), start_time)}"))
 
   return(changed_files)
 } # get_files_changed_in_remote_commits
@@ -131,7 +131,7 @@ get_files_changed_in_unpushed_local_commits <- function(local_commits, ahead_beh
   # filter changed files
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
 
-  message(glue::glue("get_files_changed_in_unpushed_local_commits total time: {difftime(Sys.time(), start_time)}"))
+  debug(.le$logger, glue::glue("get_files_changed_in_unpushed_local_commits total time: {difftime(Sys.time(), start_time)}"))
   return(changed_files)
 } # get_files_changed_in_unpushed_local_commits
 
@@ -142,7 +142,7 @@ get_files_with_uncommitted_local_changes <- function() {
   changed_files <- unique(status$file)
 
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
-  message(glue::glue("get_files_with_uncommitted_local_changes total time {difftime(Sys.time(), start_time)}"))
+  debug(.le$logger, glue::glue("get_files_with_uncommitted_local_changes total time {difftime(Sys.time(), start_time)}"))
 
   return(changed_files)
 }
