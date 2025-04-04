@@ -1,33 +1,21 @@
 get_init_qc_commit <- function(owner, repo, issue_number) {
   issue <- get_issue(owner, repo, issue_number)
-  init_commit <- get_issue_body_metadata(issue$body)$`initial qc commit`
+  get_init_qc_commit_from_issue_body(issue_body)
+
+}
+
+get_init_qc_commit_from_issue_body <- function(issue_body) {
+  init_commit <- get_issue_body_metadata(issue_body)$`initial qc commit`
   if (is.null(init_commit)) {
-    init_commit <- get_issue_body_metadata(issue$body)$`git sha`
+    init_commit <- get_issue_body_metadata(issue_body)$`git sha`
   }
   if (is.null(init_commit)) {
-    init_commit <- get_issue_body_metadata(issue$body)$`git_sha`
+    init_commit <- get_issue_body_metadata(issue_body)$`git_sha`
   }
   return(init_commit)
 }
 
-get_branch_from_metadata <- function(owner, repo, issue_number) {
-  tryCatch({
-    issue <- get_issue(owner, repo, issue_number)
-    text <- get_issue_body_metadata(issue$body)$`git branch`
-    branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
 
-    if (length(branch) == 0) {
-      shiny::stopApp()
-      rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
-    }
-
-    return(branch)
-  }, error = function(e) {
-    shiny::stopApp()
-    rlang::abort(conditionMessage(e))
-  })
-
-}
 
 create_assignees_list <- function(assignees) {
   sapply(assignees, function(assignee) glue::glue("@{assignee$login}"))

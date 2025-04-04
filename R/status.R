@@ -27,6 +27,9 @@ ghqc_status <- function(milestone_names,
     elapsed_git <- round(as.numeric(difftime(end_time_git, start_time_git, units = "secs")), 3)
     debug(.le$logger, glue::glue("Retrieved all git statuses in {elapsed_git} seconds"))
 
+    milestone_url <- issues[[1]]$milestone$html_url
+    milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
+
     issues_df <- map_df(issues, function(issue) {
       # get column values for file
       file_name <- issue$title
@@ -37,11 +40,8 @@ ghqc_status <- function(milestone_names,
 
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
 
-      milestone_url <- get_milestone_url(org, repo, milestone_name)
-      milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
-
       # branch from metadata might be different from current branch
-      metadata_branch <- get_branch_from_metadata(org, repo, issue_number)
+      metadata_branch <- get_branch_from_issue_body(issue$body)
       # if it is different, don't get git status or qc status
       if (metadata_branch != current_branch) {
         qc_status <-  "QC Status not available"
@@ -59,7 +59,7 @@ ghqc_status <- function(milestone_names,
             git_status = NA,
             diagnostics = diagnostics,
             qcer = qcer
-          ) # tibble
+          )
         )
       } # metadata_branch != current_branch
 
@@ -77,7 +77,7 @@ ghqc_status <- function(milestone_names,
       # qc status
       qc_status_info <- tryCatch({
         # latest_qc_commit is the most recent commented commit in file's issue
-        latest_qc_commit <- get_latest_qc_commit(org, repo, issue_number)
+        latest_qc_commit <- get_latest_qc_commit(issue_body = issue$body, num_comments = issue$comments, comments_url = issue$comments_url)
         debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
 
         repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
@@ -248,21 +248,20 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
     ))
 }
 
-get_imageless_comments <- function(org, repo, issue_number) {
-  comments <- gh::gh(
-    "GET /repos/:org/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
-    org = org,
-    repo = repo,
-    issue_number = issue_number
-  )
+get_imageless_comments <- function(comments_url) {
+  comments <- gh::gh(comments_url, .api_url = .le$github_api_url)
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
 
-get_latest_qc_commit <- function(org, repo, issue_number) {
-  init_commit <- get_init_qc_commit(org, repo, issue_number)
-  latest_qc_commit <- init_commit
+get_latest_qc_commit <- function(issue_body, num_comments, comments_url) {
+  # start by initializing latest_qc_commit as init qc commit
+  latest_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
 
-  comments <- get_imageless_comments(org, repo, issue_number)$body
+  if (num_comments == 0) {
+    return(latest_qc_commit)
+  }
+
+  comments <- get_imageless_comments(comments_url)$body
 
   # start from latest comment, check if a resolve comment (i.e. if it has metadata)
   # if it does, get the current commit, then break
