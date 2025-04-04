@@ -81,7 +81,7 @@ ghqc_status <- function(milestone_names,
         latest_qc_commit <- get_latest_qc_commit(issue_body = issue$body, num_comments = issue$comments, comments_url = issue$comments_url)
         debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
 
-        repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
+        repo_url <- stringr::str_extract(file_url, ".*(?=/issues)") # TODO
 
         debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
         start_time <-  Sys.time()
@@ -170,15 +170,16 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
   files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 
+  git_statuses <- get_git_statuses(files = files_without_issues,
+                                   local_commits = local_commits,
+                                   remote_commits = remote_commits
+                                   )
+
   repo_files_df <- map_df(files_without_issues, function(file) {
     debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
     start_time <- Sys.time()
-    git_status <- get_file_git_status(file,
-                                      local_commits = local_commits,
-                                      remote_commits = remote_commits)
-    end_time <- Sys.time()
-    elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
-    debug(.le$logger, glue::glue("Retrieved git status for {file} in {elapsed} seconds"))
+    git_status <- git_statuses[which(git_statuses$file_name == file), ]$git_status
+    debug(.le$logger, glue::glue("Retrieved git status for {file} in {difftime(Sys.time(), start_time)} seconds"))
 
     qc_status_info <- {
       if (file %in% all_relevant_files$relevant_file_name) {
@@ -205,7 +206,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
       }
     } # qc_status_info
 
-    res <- tibble(
+    tibble(
       `Milestone without url` = "No Milestone",
       Milestone = "No Milestone",
       `File without url` = file,
@@ -217,8 +218,6 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
       QCer = NA
     )
   })
-
-  return(res)
 } # create_non_issue_repo_files_df
 
 
