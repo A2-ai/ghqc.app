@@ -60,6 +60,14 @@ ghqc_status_server <- function(id,
       paste(sort(milestones), collapse = "|")
     }
 
+    repo_cache_key <- function(milestones, directories) {
+      paste(
+        paste(sort(milestones), collapse = "|"),
+        paste(sort(directories), collapse = "|"),
+        sep = "::"
+      )
+    }
+
     # if there's no cache, wait 2 seconds to make sure user if actually done selecting multiple milestones
     selected_milestones <- reactive({
       current <- selected_raw()
@@ -172,13 +180,14 @@ ghqc_status_server <- function(id,
       do.call(rbind, lapply(cache[last_milestones()], `[[`, "relevant_files"))
     })
 
-    combined_status_with_repo_files <- reactive({
-      req(cached_status())
+    # Reactive that includes all files regardless of directory filter
+    base_file_list <- reactive({
       df <- cached_status()
-      current_milestones <- last_milestones()
-      key <- milestone_key(current_milestones)
 
       if (isTruthy(input$show_repo_files)) {
+        milestones <- last_milestones()
+        selected_dirs <- isolate(input$file_directory_filter)
+        key <- repo_cache_key(milestones, selected_dirs)
         repo_cache <- non_qc_repo_cache()
 
         if (!key %in% names(repo_cache)) {
@@ -190,7 +199,8 @@ ghqc_status_server <- function(id,
             local_commits = local_commits,
             remote_commits = remote_commits,
             root_dir = root_dir,
-            all_relevant_files = relevant
+            all_relevant_files = relevant,
+            selected_dirs = selected_dirs
           )
 
           repo_cache[[key]] <- repo_df
@@ -201,13 +211,26 @@ ghqc_status_server <- function(id,
       }
 
       df
-    }) # combined_status_with_repo_files
+    })
+
+    combined_status_with_repo_files <- reactive({
+      df <- base_file_list()
+
+      if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
+        df <- df[dirname(df$`File without url`) %in% input$file_directory_filter, ]
+      }
+
+      df
+    })
 
     file_directories <- reactive({
-      req(combined_status_with_repo_files())
-      # get unique dirs of files in status df
-      dirs <- unique(dirname(combined_status_with_repo_files()$`File without url`))
-      dirs
+      df <- base_file_list()
+
+      files <- df$`File without url`
+
+      if (is.null(files) || length(files) == 0 || !is.character(files)) return(character(0))
+
+      unique(dirname(files))
     })
 
     observeEvent(file_directories(), {
@@ -232,6 +255,16 @@ ghqc_status_server <- function(id,
 
 
     ############ OUTPUT
+
+    observe({
+      if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
+        shinyjs::show("show_repo_files_wrapper")
+      } else {
+        shinyjs::hide("show_repo_files_wrapper")
+      }
+    })
+
+
     output$sidebar <- renderUI({
       tagList(
         # Milestones
@@ -274,18 +307,21 @@ ghqc_status_server <- function(id,
         ),
         # Show non-QC repo files
         div(
-          class = "form-group shiny-input-container",
-          tags$label(
-            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
-            "Show non-QC repo files",
-            tags$input(
-              id = ns("show_repo_files"),
-              type = "checkbox",
-              style = "transform: translateY(-1px);"
+          id = ns("show_repo_files_wrapper"),
+          style = "display: none;",
+          div(
+            class = "form-group shiny-input-container",
+            tags$label(
+              style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+              "Show non-QC files",
+              tags$input(
+                id = ns("show_repo_files"),
+                type = "checkbox",
+                style = "transform: translateY(-1px);"
+              )
             )
           )
-        ),
-
+        ) #
 
       ) # tagList
     }) # output$sidebar
