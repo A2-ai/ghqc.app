@@ -147,22 +147,22 @@ get_files_with_uncommitted_local_changes <- function() {
   return(changed_files)
 }
 
-get_local_commit_log <- function() {
+get_local_commits <- function() {
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
   local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
   debug(.le$logger, glue::glue("Retrieved local commit log"))
 
-  return(local_commit_log)
+  return(local_commit_log$commit)
 }
 
-get_remote_commit_log <- function(remote_name, current_branch) {
+get_remote_commits <- function(remote_name, current_branch) {
   remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
   remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
 
-  return(remote_commit_log)
+  return(remote_commit_log$commit)
 }
 
 

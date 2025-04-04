@@ -37,8 +37,8 @@ ghqc_status_app <- function(milestones = NULL) {
   }
 
   current_branch <- gert::git_branch()
-  local_commit_log <- get_local_commit_log()
-  remote_commit_log <- get_remote_commit_log(remote_name, current_branch)
+  local_commits <- get_local_commits()
+  remote_commits <- get_remote_commits(remote_name, current_branch)
 
   app <- shinyApp(
     ui = ghqc_status_ui(
@@ -52,8 +52,8 @@ ghqc_status_app <- function(milestones = NULL) {
         org,
         repo,
         root_dir,
-        local_commit_log,
-        remote_commit_log,
+        local_commits,
+        remote_commits,
         current_branch
       )
     }
