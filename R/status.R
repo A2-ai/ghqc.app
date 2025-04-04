@@ -11,6 +11,7 @@ ghqc_status <- function(milestone_names,
                         remote_commit_log,
                         include_non_issue_repo_files) {
 
+  total_start_time <- Sys.time()
 
   all_relevant_files <- list()
 
@@ -149,12 +150,16 @@ ghqc_status <- function(milestone_names,
       as.factor
     ))
 
-  return(list(
+  res <- list(
     status = status_df,
     relevant_files = all_relevant_files
-    )
   )
-}
+
+  total_time <- difftime(Sys.time(), total_start_time, units = "secs")
+  debug(.le$logger, glue::glue("Total ghqc_status time: {total_time} seconds ({total_time/60} minutes)"))
+  return(res)
+} # ghqc_status
+
 
 
 create_non_issue_repo_files_df <- function(files_with_issues, local_commit_log, remote_commit_log, root_dir, all_relevant_files) {
@@ -200,7 +205,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commit_log, 
       }
     } # qc_status_info
 
-    tibble(
+    res <- tibble(
       `Milestone without url` = "No Milestone",
       Milestone = "No Milestone",
       `File without url` = file,
@@ -212,7 +217,9 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commit_log, 
       QCer = NA
     )
   })
-}
+
+  return(res)
+} # create_non_issue_repo_files_df
 
 
 
@@ -320,7 +327,7 @@ get_file_qc_status <- function(file,
     ### Comment current QC commit
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
-                                                                                            commit_log = remote_commit_log)$last_commit_that_changed_file
+                                                                                            head_commit = remote_commit_log$commit[1])$last_commit_that_changed_file
     if (!is.null(last_remote_commit_that_changed_file)) {
       last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
       commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
@@ -354,7 +361,7 @@ get_file_qc_status <- function(file,
     if (git_status == "Local unpushed commits with file changes") {
       last_local_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
-                                                                                            commit_log = local_commit_log)$last_commit_that_changed_file
+                                                                                            head_commit = local_commit_log$commit[1])$last_commit_that_changed_file
       last_local_commit_that_changed_file_short <-  substr(last_local_commit_that_changed_file, 1, 7)
 
       last_local_commit_that_changed_file_pushed <- last_local_commit_that_changed_file %in% remote_commits
@@ -379,8 +386,8 @@ get_file_qc_status <- function(file,
     ### Pushed file changes
     # if there exists a remote commit that changed the file after the latest qc commit,
     file_change_info <- last_commit_that_changed_file_after_latest_qc_commit(file,
-                                                                              latest_qc_commit,
-                                                                              commit_log = remote_commit_log)
+                                                                             latest_qc_commit,
+                                                                             head_commit = remote_commit_log$commit[1])
     last_remote_commit_that_changed_file <- file_change_info$last_commit_that_changed_file
 
     if (!is.null(last_remote_commit_that_changed_file)) {

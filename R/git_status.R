@@ -41,6 +41,44 @@ get_git_statuses <- function(files, local_commits, remote_commits) {
 
 } # assign_git_statuses_to_milestone_files
 
+# commit log may be remote commits, local commits, etc
+last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, head_commit) {
+  last_commit_that_changed_file <- NULL
+  commit_time <- NULL
+
+  # if there are any local commits newer than the latest_qc_commit
+  # did the file actually change in any of these commits?
+  commit_range <- paste0(latest_qc_commit, "..", head_commit)
+  args <- c("log",
+            "--pretty=format:'%h|%ad'",
+            "--date=iso",
+            commit_range,
+            "--",
+            file)
+
+  log_output <- tryCatch({
+    result <- system2("git", args = args, stdout = TRUE, stderr = TRUE)
+    status <- attr(result, "status")
+    if (!is.null(status) && status != 0) {
+      stop(glue::glue("Git log failed with status {status}: {paste(result, collapse = '\n')}"))
+    }
+    result
+  }, error = function(e) {
+    rlang::abort(glue::glue("Error running git log: {conditionMessage(e)}"))
+  })
+  #browser()
+
+  if (length(log_output) > 0) {
+    split_lines <- strsplit(log_output, "\\|")
+    last_commit_that_changed_file <- split_lines[[1]][1]
+    commit_time <- split_lines[[1]][2]
+  }
+  return(list(
+    last_commit_that_changed_file = last_commit_that_changed_file,
+    commit_time = commit_time
+  ))
+}
+
 get_files_changed_in_remote_commits <- function(remote_commits, ahead_behind_status) {
   debug(.le$logger, "get_files_changed_in_remote_commits")
   # if there aren't any unpulled commits, there cant be any files with changes in remote commits
@@ -50,18 +88,17 @@ get_files_changed_in_remote_commits <- function(remote_commits, ahead_behind_sta
 
   # get latest pushed local commit
   local_commit <- remote_commits[1 + ahead_behind_status$behind]
-  unpulled_commits <- remote_commits[1:(which(remote_commits == local_commit) - 1)]
+  most_recent_remote_commit <- remote_commits[1]
 
   start_time <- Sys.time()
-  changed_files <- unique(unlist(lapply(unpulled_commits, function(commit) { # benchmark how long it takes per commit
+  args <- c("diff", local_commit, most_recent_remote_commit, "--name-only")
 
-    start_time <- Sys.time()
-    diff <- gert::git_diff(commit)
-
-    message(glue::glue("diffing unpulled commit: {commit} took {difftime(Sys.time(), start_time)}"))
-    c(diff$old, diff$new)
-  })))
-
+  changed_files <- tryCatch(
+    system2("git", args = args, stdout = TRUE, stderr = NULL),
+    error = function(e) {
+      rlang::abort(glue::glue("Error running git diff between {local_commit} and {most_recent_remote_commit}: {conditionMessage(e)}"))
+    }
+  )
 
   # filter na and empty values
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
@@ -79,17 +116,17 @@ get_files_changed_in_unpushed_local_commits <- function(local_commits, ahead_beh
 
   # get latest pushed remote commit
   remote_commit <- local_commits[1 + ahead_behind_status$ahead]
-
-  # get set of unpushed commits
-  unpushed_commits <- local_commits[1:(which(local_commits == remote_commit) - 1)]
+  most_recent_local_commit <- local_commits[1]
 
   start_time <- Sys.time()
-  changed_files <- unique(unlist(lapply(unpushed_commits, function(commit) {
-    start_time <- Sys.time()
-    diff <- gert::git_diff(commit)
-    message(glue::glue("diffing unpushed commit: {commit} took {difftime(Sys.time(), start_time)}"))
-    c(diff$old, diff$new)
-  })))
+  args <- c("diff", remote_commit, most_recent_local_commit, "--name-only")
+
+  changed_files <- tryCatch(
+    system2("git", args = args, stdout = TRUE, stderr = NULL),
+    error = function(e) {
+      rlang::abort(glue::glue("Error running git diff between {remote_commit} and {most_recent_local_commit}: {conditionMessage(e)}"))
+    }
+  )
 
   # filter changed files
   changed_files <- changed_files[!is.na(changed_files) & changed_files != ""]
@@ -128,37 +165,4 @@ get_remote_commit_log <- function(remote_name, current_branch) {
   return(remote_commit_log)
 }
 
-# commit log may be remote commits, local commits, etc
-last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
-  commits <- commit_log$commit
 
-  # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
-  index_before_latest_qc_commit <- which(commits == latest_qc_commit) - 1
-
-  commits_after_latest_qc_commit <- {
-    if (index_before_latest_qc_commit == 0) list()
-    else commits[1:index_before_latest_qc_commit]
-  }
-
-  last_commit_that_changed_file <- NULL
-  commit_time <- NULL
-
-  # if there are any local commits newer than the latest_qc_commit
-  if (length(commits_after_latest_qc_commit > 0)) {
-    # did the file actually change in any of these commits?
-    for (commit in commits_after_latest_qc_commit) {
-      start_time <- Sys.time()
-      diff <- gert::git_diff(commit)  # get the set of files that changed in this commit
-      message(glue::glue("get diff for commit {commit} took {difftime(Sys.time(), start_time)}"))
-      if (file %in% diff$old) { # check if the file is in the set of files
-        last_commit_that_changed_file <- commit
-        commit_time <- commit_log[which(commit_log$commit == last_commit_that_changed_file), ]$time
-        break  # exit after first matching commit in log
-      }
-    }
-  } # if any commits after latest qc commit
-  return(list(
-    last_commit_that_changed_file = last_commit_that_changed_file,
-    commit_time = commit_time
-  ))
-}
