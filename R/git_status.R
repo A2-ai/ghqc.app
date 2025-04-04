@@ -1,24 +1,3 @@
-# get_file_git_status <- function(file, local_commits, remote_commits) {
-#   if (!file.exists(file)) {
-#     return("File does not exist locally")
-#   }
-#
-#   if (file_changed_in_remote_commits(file, remote_commits)) {
-#     return("Remote file changes")
-#   }
-#   else if (file_changed_in_unpushed_local_commits(file, local_commits)) {
-#     return("Local unpushed commits with file changes")
-#   }
-#   else if (file_has_uncommitted_local_changes(file)) {
-#     return("Local uncommitted file changes")
-#   }
-#   else {
-#     return("Up-to-date")
-#   }
-# }
-
-
-
 get_git_statuses <- function(files, local_commits, remote_commits) {
   ahead_behind_status <- check_ahead_behind()
 
@@ -147,4 +126,39 @@ get_remote_commit_log <- function(remote_name, current_branch) {
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
 
   return(remote_commit_log)
+}
+
+# commit log may be remote commits, local commits, etc
+last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
+  commits <- commit_log$commit
+
+  # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
+  index_before_latest_qc_commit <- which(commits == latest_qc_commit) - 1
+
+  commits_after_latest_qc_commit <- {
+    if (index_before_latest_qc_commit == 0) list()
+    else commits[1:index_before_latest_qc_commit]
+  }
+
+  last_commit_that_changed_file <- NULL
+  commit_time <- NULL
+
+  # if there are any local commits newer than the latest_qc_commit
+  if (length(commits_after_latest_qc_commit > 0)) {
+    # did the file actually change in any of these commits?
+    for (commit in commits_after_latest_qc_commit) {
+      start_time <- Sys.time()
+      diff <- gert::git_diff(commit)  # get the set of files that changed in this commit
+      message(glue::glue("get diff for commit {commit} took {difftime(Sys.time(), start_time)}"))
+      if (file %in% diff$old) { # check if the file is in the set of files
+        last_commit_that_changed_file <- commit
+        commit_time <- commit_log[which(commit_log$commit == last_commit_that_changed_file), ]$time
+        break  # exit after first matching commit in log
+      }
+    }
+  } # if any commits after latest qc commit
+  return(list(
+    last_commit_that_changed_file = last_commit_that_changed_file,
+    commit_time = commit_time
+  ))
 }

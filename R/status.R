@@ -215,38 +215,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commit_log, 
 }
 
 
-# commit log may be remote commits, local commits, etc
-last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc_commit, commit_log) {
-  commits <- commit_log$commit
 
-  # if there are any commits in the log **that change the file** and are newer than the latest_qc_commit
-  index_before_latest_qc_commit <- which(commits == latest_qc_commit) - 1
-
-  commits_after_latest_qc_commit <- {
-    if (index_before_latest_qc_commit == 0) list()
-    else commits[1:index_before_latest_qc_commit]
-  }
-
-  last_commit_that_changed_file <- NULL
-  commit_time <- NULL
-
-  # if there are any local commits newer than the latest_qc_commit
-  if (length(commits_after_latest_qc_commit > 0)) {
-    # did the file actually change in any of these commits?
-    for (commit in commits_after_latest_qc_commit) {
-      diff <- gert::git_diff(commit)  # get the set of files that changed in this commit
-      if (file %in% diff$old) { # check if the file is in the set of files
-        last_commit_that_changed_file <- commit
-        commit_time <- commit_log[which(commit_log$commit == last_commit_that_changed_file), ]$time
-        break  # exit after first matching commit in log
-      }
-    }
-  } # if any commits after latest qc commit
-  return(list(
-    last_commit_that_changed_file = last_commit_that_changed_file,
-    commit_time = commit_time
-    ))
-}
 
 get_imageless_comments <- function(comments_url) {
   comments <- gh::gh(comments_url, .api_url = .le$github_api_url)
