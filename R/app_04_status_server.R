@@ -268,16 +268,6 @@ ghqc_status_server <- function(id,
       }
       else {
         shinyjs::hide("show_repo_files_wrapper")
-        # uncheck "Show Non-QC Files"
-        updateCheckboxInput(session, inputId = ns("show_repo_files"), value = FALSE)
-
-
-      } # else
-    })
-
-    observe({
-      if (is.null(input$file_directory_filter) || length(input$file_directory_filter) == 0) {
-        updateCheckboxInput(session, inputId = ns("show_repo_files"), value = FALSE)
       }
     })
 
@@ -329,7 +319,7 @@ ghqc_status_server <- function(id,
             class = "form-group shiny-input-container",
             tags$label(
               style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
-              tags$span("Show Non-QC Files"),
+              tags$span("Show non-QC files"),
               tags$input(
                 id = ns("show_repo_files"),
                 type = "checkbox",
@@ -338,16 +328,7 @@ ghqc_status_server <- function(id,
               )
             )
           )
-        )
-        # conditionalPanel(
-        #   condition = sprintf("input['%s'] && input['%s'].length > 0", ns("file_directory_filter"), ns("file_directory_filter")),
-        #   checkboxInput(
-        #     inputId = ns("show_repo_files"),
-        #     label = "Show Non-QC Files",
-        #     value = FALSE
-        #   )
-        # )
-
+        ) # Show non-QC repo files
       ) # tagList
     }) # output$sidebar
 
@@ -357,7 +338,6 @@ ghqc_status_server <- function(id,
         output$main_panel_dynamic <- renderUI({
           div(
             id = ns("main_panel_wrapper"),
-            style = "flex-grow: 1; overflow: hidden;",
             DT::dataTableOutput(ns("status_table"))
           )
         })

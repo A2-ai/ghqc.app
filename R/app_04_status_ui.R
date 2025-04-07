@@ -31,7 +31,7 @@ ghqc_status_ui <- function(id) {
 
   .checkbox input[type='checkbox'] {
     margin: 0;
-    transform: scale(1.2); /* Optional: makes the checkbox more visible */
+    transform: scale(1.4); /* Optional: makes the checkbox more visible */
   }
 ")),
       tags$script(HTML(glue::glue("
@@ -39,7 +39,14 @@ ghqc_status_ui <- function(id) {
   document.getElementById('{ns('show_qcer')}').addEventListener('change', function() {{
     Shiny.setInputValue('{ns('show_qcer')}', this.checked);
   }});
-")))
+"))),
+      tags$style(HTML("
+  #ghqc_status_app-sidebar {
+    max-width: 260px;
+    flex: 0 0 260px;
+    overflow-y: auto;
+  }
+"))
     ),
     waiter_show_on_load(
       html = tagList(
@@ -63,13 +70,20 @@ ghqc_status_ui <- function(id) {
       ),
       div(
         id = ns("content"),
+        style = "display: flex; flex-direction: row; height: 100vh; overflow: hidden;",
+
         uiOutput(ns("sidebar")),
         div(
           id = ns("divider"),
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-        miniContentPanel(
-          uiOutput(ns("main_panel_dynamic"))  # Reactive content
+        div(
+          id = ns("main_panel_wrapper"),
+          style = "flex-grow: 1; overflow: hidden;",
+          miniContentPanel(
+            style = "height: 100%; overflow: hidden;",
+            uiOutput(ns("main_panel_dynamic"))
+          )
         )
       )
     )
