@@ -13,7 +13,6 @@ ghqc_status_server <- function(id,
                                default_milestones,
                                org,
                                repo,
-                               root_dir,
                                local_commits,
                                remote_commits,
                                current_branch) {
@@ -92,7 +91,6 @@ ghqc_status_server <- function(id,
           default_milestones,
           org,
           repo,
-          root_dir,
           local_commits,
           remote_commits,
           current_branch)
@@ -115,7 +113,6 @@ ghqc_status_server <- function(id,
             milestone_names = milestone,
             org,
             repo,
-            root_dir,
             current_branch,
             local_commits,
             remote_commits,
@@ -198,9 +195,13 @@ ghqc_status_server <- function(id,
             files_with_issues = files_with_issues,
             local_commits = local_commits,
             remote_commits = remote_commits,
+<<<<<<< HEAD
+            all_relevant_files = relevant
+=======
             root_dir = root_dir,
             all_relevant_files = relevant,
             selected_dirs = selected_dirs
+>>>>>>> 4d68a141dfb6c9b4fdf774759bf03adf52fcf1b8
           )
 
           repo_cache[[key]] <- repo_df

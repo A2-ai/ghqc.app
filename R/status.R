@@ -5,7 +5,6 @@
 ghqc_status <- function(milestone_names,
                         org,
                         repo,
-                        root_dir,
                         current_branch,
                         local_commits,
                         remote_commits,
@@ -132,6 +131,14 @@ ghqc_status <- function(milestone_names,
     }) # issues_df
   }) # status_df
 
+<<<<<<< HEAD
+  if (include_non_issue_repo_files) {
+    files_with_issues <- unique(status_df$file_name)
+    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commits, remote_commits, all_relevant_files)
+    status_df <- dplyr::bind_rows(status_df, repo_files_df)
+  }
+=======
+>>>>>>> 4d68a141dfb6c9b4fdf774759bf03adf52fcf1b8
 
   # table editing: add filters, sort, etc
 
@@ -156,8 +163,8 @@ ghqc_status <- function(milestone_names,
 } # ghqc_status
 
 
+create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, all_relevant_files) {
 
-create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, root_dir, all_relevant_files, selected_dirs) {
   files_with_issues <- unique(files_with_issues)
 
   # add rest of repo files, determine whether they're relevant files or not
@@ -168,7 +175,6 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
   if (length(files_in_selected_dirs) == 0) {
     return(character(0))
   }
-
 
   git_statuses <- get_git_statuses(files = files_in_selected_dirs,
                                    local_commits = local_commits,

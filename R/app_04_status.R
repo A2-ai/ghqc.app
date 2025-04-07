@@ -13,6 +13,7 @@ ghqc_status_app <- function(milestones = NULL) {
   git_fetch(prune = TRUE)
 
   # error handling before starting app
+  browser()
   root_dir <- rproj_root_dir()
   creds <- check_github_credentials()
   remote <- creds$remote
@@ -51,7 +52,6 @@ ghqc_status_app <- function(milestones = NULL) {
         default_milestones = default_milestones,
         org,
         repo,
-        root_dir,
         local_commits,
         remote_commits,
         current_branch
