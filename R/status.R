@@ -131,15 +131,6 @@ ghqc_status <- function(milestone_names,
     }) # issues_df
   }) # status_df
 
-<<<<<<< HEAD
-  if (include_non_issue_repo_files) {
-    files_with_issues <- unique(status_df$file_name)
-    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commits, remote_commits, all_relevant_files)
-    status_df <- dplyr::bind_rows(status_df, repo_files_df)
-  }
-=======
->>>>>>> 4d68a141dfb6c9b4fdf774759bf03adf52fcf1b8
-
   # table editing: add filters, sort, etc
 
   # rename columns
