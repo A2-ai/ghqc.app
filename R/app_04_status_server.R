@@ -183,7 +183,7 @@ ghqc_status_server <- function(id,
 
       if (isTruthy(input$show_repo_files)) {
         milestones <- last_milestones()
-        selected_dirs <- isolate(input$file_directory_filter)
+        selected_dirs <- input$file_directory_filter
         key <- repo_cache_key(milestones, selected_dirs)
         repo_cache <- non_qc_repo_cache()
 
@@ -211,6 +211,8 @@ ghqc_status_server <- function(id,
 
     combined_status_with_repo_files <- reactive({
       debug(.le$logger, "combined_status_with_repo_files() triggered")
+      input$show_repo_files
+
       df <- base_file_list()
 
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
@@ -273,6 +275,11 @@ ghqc_status_server <- function(id,
       } # else
     })
 
+    observe({
+      if (is.null(input$file_directory_filter) || length(input$file_directory_filter) == 0) {
+        updateCheckboxInput(session, inputId = ns("show_repo_files"), value = FALSE)
+      }
+    })
 
     output$sidebar <- renderUI({
       tagList(
@@ -331,10 +338,15 @@ ghqc_status_server <- function(id,
               )
             )
           )
-        ),
-        div(style = "display:none;",
-            checkboxInput(ns("show_repo_files"), label = NULL, value = FALSE)
         )
+        # conditionalPanel(
+        #   condition = sprintf("input['%s'] && input['%s'].length > 0", ns("file_directory_filter"), ns("file_directory_filter")),
+        #   checkboxInput(
+        #     inputId = ns("show_repo_files"),
+        #     label = "Show Non-QC Files",
+        #     value = FALSE
+        #   )
+        # )
 
       ) # tagList
     }) # output$sidebar
