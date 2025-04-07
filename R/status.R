@@ -5,7 +5,6 @@
 ghqc_status <- function(milestone_names,
                         org,
                         repo,
-                        root_dir,
                         current_branch,
                         local_commits,
                         remote_commits,
@@ -134,7 +133,7 @@ ghqc_status <- function(milestone_names,
 
   if (include_non_issue_repo_files) {
     files_with_issues <- unique(status_df$file_name)
-    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commits, remote_commits, root_dir, all_relevant_files)
+    repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commits, remote_commits, all_relevant_files)
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
 
@@ -162,11 +161,12 @@ ghqc_status <- function(milestone_names,
 
 
 
-create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, root_dir, all_relevant_files) {
+create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, all_relevant_files) {
   files_with_issues <- unique(files_with_issues)
 
+  browser()
   # add rest of repo files, determine whether they're relevant files or not
-  git_files <- gert::git_ls(repo = root_dir)$path
+  git_files <- gert::git_ls()$path
   files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
 

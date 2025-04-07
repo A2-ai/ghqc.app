@@ -1,7 +1,14 @@
 rproj_root_dir <- function() {
   tryCatch(
     {
+      browser()
       root_dir <- rprojroot::find_rstudio_root_file()
+
+      if (getwd() != root_dir) {
+        setwd(root_dir)
+        info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
+      }
+
       return(root_dir)
     },
     error = function(e) {
