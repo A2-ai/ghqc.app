@@ -9,7 +9,6 @@ ghqc_status_ui <- function(id) {
   ui <- miniPage(
     use_waiter(),
     useShinyjs(),
-    # tags$head(tags$style(HTML(brio::read_file(system.file("css/styles.css", package = "ghqc.app"))))),
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/styles.css"),
       tags$script(type = "module", src = "ghqc.app/js/adjust_grid.js"),

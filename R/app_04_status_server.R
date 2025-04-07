@@ -53,6 +53,7 @@ ghqc_status_server <- function(id,
     last_milestones <- reactiveVal(NULL)
     status_cache <- reactiveVal(list())
     non_qc_repo_cache <- reactiveVal(list())
+    prev_directories <- reactiveVal(NULL)
 
     # cache previously rendered sets of milestones
     milestone_key <- function(milestones) {
@@ -177,7 +178,6 @@ ghqc_status_server <- function(id,
       do.call(rbind, lapply(cache[last_milestones()], `[[`, "relevant_files"))
     })
 
-    # Reactive that includes all files regardless of directory filter
     base_file_list <- reactive({
       df <- cached_status()
 
@@ -210,6 +210,7 @@ ghqc_status_server <- function(id,
     })
 
     combined_status_with_repo_files <- reactive({
+      debug(.le$logger, "combined_status_with_repo_files() triggered")
       df <- base_file_list()
 
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
@@ -219,45 +220,57 @@ ghqc_status_server <- function(id,
       df
     })
 
+    # get a list of the directories of QC files
     file_directories <- reactive({
+      debug(.le$logger, "file_directories() triggered")
       df <- base_file_list()
-
       files <- df$`File without url`
 
-      if (is.null(files) || length(files) == 0 || !is.character(files)) return(character(0))
+      if (is.null(files) || length(files) == 0 || !is.character(files)) {
+        return(character(0))
+      }
 
       unique(dirname(files))
     })
 
     observeEvent(file_directories(), {
-      directories <- file_directories()
+      debug(.le$logger, "observeEvent(file_directories()) triggered")
+      new_dirs <- file_directories()
+      old_dirs <- prev_directories()
 
-      shinyjs::delay(200, {
-        updateSelectizeInput(
-          session,
-          inputId = "file_directory_filter",
-          server = TRUE,
-          choices = directories,
-          selected = isolate(input$file_directory_filter),
-          label = "File Directory Filter",
-          options = list(
-            placeholder = "(Optional)"
+      if (!identical(sort(new_dirs), sort(old_dirs))) {
+        prev_directories(new_dirs)
+
+        shinyjs::delay(200, {
+          updateSelectizeInput(
+            session,
+            inputId = "file_directory_filter",
+            choices = new_dirs,
+            selected = isolate(input$file_directory_filter),
+            label = "File Directory Filter",
+            options = list(
+              placeholder = "(Optional)"
+            )
           )
-        )
-      })
-
-
+        })
+      }
     }) # file_directory_filter
+
 
 
     ############ OUTPUT
 
-    observe({
+    observe({ # only show "Show Non-QC Files" button when there are dirs selected in the file directory filter
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
         shinyjs::show("show_repo_files_wrapper")
-      } else {
-        shinyjs::hide("show_repo_files_wrapper")
       }
+      else {
+        shinyjs::hide("show_repo_files_wrapper")
+        # uncheck "Show Non-QC Files"
+        updateCheckboxInput(session, inputId = ns("show_repo_files"), value = FALSE)
+
+
+      } # else
     })
 
 
@@ -309,15 +322,19 @@ ghqc_status_server <- function(id,
             class = "form-group shiny-input-container",
             tags$label(
               style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
-              "Show non-QC files",
+              tags$span("Show Non-QC Files"),
               tags$input(
                 id = ns("show_repo_files"),
                 type = "checkbox",
+                class = "form-check-input",
                 style = "transform: translateY(-1px);"
               )
             )
           )
-        ) #
+        ),
+        div(style = "display:none;",
+            checkboxInput(ns("show_repo_files"), label = NULL, value = FALSE)
+        )
 
       ) # tagList
     }) # output$sidebar
@@ -339,6 +356,7 @@ ghqc_status_server <- function(id,
 
 
     output$status_table <- DT::renderDataTable({
+      debug(.le$logger, "status_table re-rendered")
       req(show_table())
       df <- filtered_data()
 
