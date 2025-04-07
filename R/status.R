@@ -131,11 +131,14 @@ ghqc_status <- function(milestone_names,
     }) # issues_df
   }) # status_df
 
+<<<<<<< HEAD
   if (include_non_issue_repo_files) {
     files_with_issues <- unique(status_df$file_name)
     repo_files_df <- create_non_issue_repo_files_df(files_with_issues, local_commits, remote_commits, all_relevant_files)
     status_df <- dplyr::bind_rows(status_df, repo_files_df)
   }
+=======
+>>>>>>> 4d68a141dfb6c9b4fdf774759bf03adf52fcf1b8
 
   # table editing: add filters, sort, etc
 
@@ -160,22 +163,25 @@ ghqc_status <- function(milestone_names,
 } # ghqc_status
 
 
-
 create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, all_relevant_files) {
+
   files_with_issues <- unique(files_with_issues)
 
-  browser()
   # add rest of repo files, determine whether they're relevant files or not
-  git_files <- gert::git_ls()$path
-  files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
-  files_without_issues <- files_in_repo[!files_in_repo %in% files_with_issues]
+  git_files <- gert::git_ls(repo = root_dir)$path
+  #files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
+  files_without_issues <- git_files[!git_files %in% files_with_issues]
+  files_in_selected_dirs <- files_without_issues[dirname(files_without_issues) %in% selected_dirs]
+  if (length(files_in_selected_dirs) == 0) {
+    return(character(0))
+  }
 
-  git_statuses <- get_git_statuses(files = files_without_issues,
+  git_statuses <- get_git_statuses(files = files_in_selected_dirs,
                                    local_commits = local_commits,
                                    remote_commits = remote_commits
                                    )
 
-  repo_files_df <- map_df(files_without_issues, function(file) {
+  repo_files_df <- map_df(files_in_selected_dirs, function(file) {
     debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
     start_time <- Sys.time()
     git_status <- git_statuses[which(git_statuses$file_name == file), ]$git_status
