@@ -161,7 +161,6 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
   files_with_issues <- unique(files_with_issues)
 
   # add rest of repo files, determine whether they're relevant files or not
-  #browser()
   git_files <- gert::git_ls(repo = root_dir)$path
   #files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
   files_without_issues <- git_files[!git_files %in% files_with_issues]
