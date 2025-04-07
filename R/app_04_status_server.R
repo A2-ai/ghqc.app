@@ -386,7 +386,7 @@ ghqc_status_server <- function(id,
         var table = this.api();
 
         function fixHeaderAlignment() {
-          table.columns.adjust().draw(false);
+          table.columns.adjust();
         }
 
         setTimeout(fixHeaderAlignment, 300);
