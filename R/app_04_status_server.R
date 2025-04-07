@@ -195,7 +195,6 @@ ghqc_status_server <- function(id,
             files_with_issues = files_with_issues,
             local_commits = local_commits,
             remote_commits = remote_commits,
-            root_dir = root_dir,
             all_relevant_files = relevant,
             selected_dirs = selected_dirs
           )

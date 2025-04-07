@@ -1,7 +1,6 @@
 rproj_root_dir <- function() {
   tryCatch(
     {
-      browser()
       root_dir <- rprojroot::find_rstudio_root_file()
 
       if (getwd() != root_dir) {
