@@ -380,31 +380,30 @@ ghqc_status_server <- function(id,
           dom = 'fit',
           scrollY = "calc(100vh - 240px)",
           scrollCollapse = TRUE,
-          destroy = TRUE
-        ),
-        callback = DT::JS("
-  var table = this.api();
+          destroy = TRUE,
+          drawCallback = DT::JS("
+      function(settings) {
+        var table = this.api();
 
-  function fixHeaderAlignment() {
-    table.columns.adjust().draw(false);
-  }
+        function fixHeaderAlignment() {
+          table.columns.adjust().draw(false);
+        }
 
-  // Redraw on init
-  setTimeout(fixHeaderAlignment, 300);
+        setTimeout(fixHeaderAlignment, 300);
 
-  // Redraw on window resize
-  $(window).off('resize.dt').on('resize.dt', function() {
-    fixHeaderAlignment();
-  });
+        $(window).off('resize.dt').on('resize.dt', function() {
+          fixHeaderAlignment();
+        });
 
-  // Observe the sidebar div collapsing/expanding
-  const sidebar = document.querySelector('[id$=\"-sidebar\"]');
-  if (sidebar && typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(() => {
-      setTimeout(fixHeaderAlignment, 300);
-    }).observe(sidebar);
-  }
-")
+        const sidebar = document.querySelector('[id$=\"-sidebar\"]');
+        if (sidebar && typeof ResizeObserver !== 'undefined') {
+          new ResizeObserver(() => {
+            setTimeout(fixHeaderAlignment, 300);
+          }).observe(sidebar);
+        }
+      }
+    ")
+        )
 
       ) %>%
         # format Issue State column
@@ -432,6 +431,11 @@ ghqc_status_server <- function(id,
             c("green"),
             default = "#a94442"
           )
+        ) %>%
+        DT::formatStyle(
+          columns = "File",
+          `white-space` = "normal",
+          `word-wrap` = "break-word"
         )
 
       pretty_table
