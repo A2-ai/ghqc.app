@@ -172,13 +172,16 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
                                    remote_commits = remote_commits
                                    )
 
+
   repo_files_df <- map_df(files_in_selected_dirs, function(file) {
+    browser()
     debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
     start_time <- Sys.time()
     git_status <- git_statuses[which(git_statuses$file_name == file), ]$git_status
     debug(.le$logger, glue::glue("Retrieved git status for {file} in {difftime(Sys.time(), start_time)} seconds"))
 
     qc_status_info <- {
+      browser()
       if (file %in% all_relevant_files$relevant_file_name) {
         # get rows in which file is the relevant file
         relevant_file_instances <- all_relevant_files[which(all_relevant_files$relevant_file_name == file), ]
@@ -444,15 +447,16 @@ get_relevant_files <- function(issue, milestone_name) {
     "## Relevant files[\\s\\S]*?(?=\\n#{1,6} )"
   )
 
-  file_pattern <- "- \\*\\*(.*?)\\*\\*\\s*- \\[`.*?`\\]\\((.*?)\\)(?:\\s*>\\s*(.*?))?(?:\\n|$)"
+  file_pattern <- "- \\*\\*(.*?)\\*\\*\\s*- \\[`(.*?)`\\]\\((.*?)\\)(?:\\s*>\\s*(.*?))?(?:\\n|$)"
 
   matches <- stringr::str_match_all(relevant_files_section, file_pattern)[[1]]
+  browser()
 
   relevant_files_df <- data.frame(
-    relevant_file_name = matches[,2],
+    relevant_file_name = matches[,3],
     qc_file_name = issue$title,
-    relevant_file_url = matches[,3],
-    relevant_file_note = stringr::str_trim(matches[,4]),
+    relevant_file_url = matches[,4],
+    relevant_file_note = stringr::str_trim(matches[,5]),
     milestone_name = milestone_name,
     issue_number = issue$number,
     stringsAsFactors = FALSE

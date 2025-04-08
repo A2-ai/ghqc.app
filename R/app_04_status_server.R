@@ -109,7 +109,7 @@ ghqc_status_server <- function(id,
       if (length(missing) > 0) {
         w$show()
         for (milestone in missing) {
-          debug(.le$logger, glue("Fetching milestone: {milestone}"))
+          debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
           result <- ghqc_status(
             milestone_names = milestone,
             org,

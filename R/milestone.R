@@ -43,6 +43,7 @@ get_milestone_from_name <- function(owner, repo, name_in) {
 #' @importFrom log4r warn error info debug
 look_up_existing_milestone_number <- function(params) {
   debug(.le$logger, glue::glue("Retrieving Milestone: {params$title}"))
+  browser()
   milestone <- get_milestone_from_name(params$owner, params$repo, params$title)
 
   if (!is.null(milestone)) {
