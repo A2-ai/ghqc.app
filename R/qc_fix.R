@@ -1,6 +1,6 @@
 get_init_qc_commit <- function(owner, repo, issue_number) {
   issue <- get_issue(owner, repo, issue_number)
-  get_init_qc_commit_from_issue_body(issue_body)
+  get_init_qc_commit_from_issue_body(issue$body)
 
 }
 
