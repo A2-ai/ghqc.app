@@ -1,4 +1,4 @@
-import { adjust_grid } from './adjust_grid.js';
+/*import { adjust_grid } from './adjust_grid.js';
 
 $('button[id$="-toggle_sidebar"]').on('click', function() {
   var sidebar = $('div[id$="-sidebar"]');
@@ -12,4 +12,24 @@ $('button[id$="-toggle_sidebar"]').on('click', function() {
   }
   // call adjust_grid after toggle
   setTimeout(adjust_grid, 100)
+});*/
+
+
+import { adjust_grid } from './adjust_grid.js';
+
+$('button[id$="-toggle_sidebar"]').on('click', function() {
+  const container = $('div[id$="-main_container"]'); // the wrapping div
+  const icon = $(this).find('i'); // find icon
+
+  container.toggleClass('sidebar-collapsed');
+
+  // Toggle icon direction
+  if (container.hasClass('sidebar-collapsed')) {
+    icon.removeClass('fa-angles-left').addClass('fa-angles-right');
+  } else {
+    icon.removeClass('fa-angles-right').addClass('fa-angles-left');
+  }
+
+  // call adjust_grid after toggle
+  setTimeout(adjust_grid, 100);
 });

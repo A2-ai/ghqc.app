@@ -41,13 +41,23 @@ ghqc_status_ui <- function(id) {
   }});
 "))),
       tags$style(HTML("
-  #ghqc_status_app-sidebar {
-    max-width: 260px;
-    flex: 0 0 260px;
-    overflow-y: auto;
-  }
+/* Default sidebar */
+div[id$=\"-sidebar\"] {
+  width: 260px;
+  max-width: 260px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+}
+
+/* Collapsed state */
+.sidebar-collapsed div[id$=\"-sidebar\"] {
+  width: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
 "))
-    ),
+    ), # tags$head
     waiter_show_on_load(
       html = tagList(
         spin_1(),
