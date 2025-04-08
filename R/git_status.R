@@ -66,7 +66,6 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
   }, error = function(e) {
     rlang::abort(glue::glue("Error running git log: {conditionMessage(e)}"))
   })
-  #browser()
 
   if (length(log_output) > 0) {
     split_lines <- strsplit(log_output, "\\|")
