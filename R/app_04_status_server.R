@@ -15,7 +15,8 @@ ghqc_status_server <- function(id,
                                repo,
                                local_commits,
                                remote_commits,
-                               current_branch) {
+                               current_branch,
+                               remote_name) {
 
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -27,6 +28,18 @@ ghqc_status_server <- function(id,
       if (!isTRUE(isolate(reset_triggered()))) {
         stopApp()
       }
+    })
+
+    # make sure inputs are loaded
+    observe({
+      req(all_ghqc_milestone_names,
+          default_milestones,
+          org,
+          repo,
+          local_commits,
+          remote_commits,
+          current_branch,
+          remote_name)
     })
 
     # makes sure the column headers re-align with the columns when sidebar is toggled in and out
@@ -54,6 +67,11 @@ ghqc_status_server <- function(id,
     status_cache <- reactiveVal(list())
     non_qc_repo_cache <- reactiveVal(list())
     prev_directories <- reactiveVal(NULL)
+
+    # variable reactives
+    current_branch_rv <- reactiveVal(current_branch)
+    local_commits_rv <- reactiveVal(local_commits)
+    remote_commits_rv <- reactiveVal(remote_commits)
 
     # cache previously rendered sets of milestones
     milestone_key <- function(milestones) {
@@ -86,16 +104,7 @@ ghqc_status_server <- function(id,
 
     selected_debounced <- selected_raw %>% debounce(1000)
 
-    # make sure inputs are loaded
-    observe({
-      req(all_ghqc_milestone_names,
-          default_milestones,
-          org,
-          repo,
-          local_commits,
-          remote_commits,
-          current_branch)
-    })
+
 
 
     run_generate <- function(milestones = selected_milestones()) {
@@ -114,9 +123,9 @@ ghqc_status_server <- function(id,
             milestone_names = milestone,
             org,
             repo,
-            current_branch,
-            local_commits,
-            remote_commits,
+            current_branch_rv(),
+            local_commits_rv(),
+            remote_commits_rv(),
             include_non_issue_repo_files = FALSE
           )
           cache[[milestone]] <- list(
@@ -193,8 +202,8 @@ ghqc_status_server <- function(id,
 
           repo_df <- create_non_issue_repo_files_df(
             files_with_issues = files_with_issues,
-            local_commits = local_commits,
-            remote_commits = remote_commits,
+            local_commits = local_commits_rv(),
+            remote_commits = remote_commits_rv(),
             all_relevant_files = relevant,
             selected_dirs = selected_dirs
           )
@@ -469,6 +478,10 @@ ghqc_status_server <- function(id,
           selected = current_milestones
         )
       })
+
+      current_branch_rv(gert::git_branch())
+      local_commits_rv(get_local_commits())
+      remote_commits_rv(get_remote_commits(remote_name, current_branch_rv()))
 
       shinyjs::delay(300, {
         show_table(TRUE)

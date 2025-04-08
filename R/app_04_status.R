@@ -53,7 +53,8 @@ ghqc_status_app <- function(milestones = NULL) {
         repo,
         local_commits,
         remote_commits,
-        current_branch
+        current_branch,
+        remote_name
       )
     }
   )
