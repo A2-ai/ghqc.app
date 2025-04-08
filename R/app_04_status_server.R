@@ -308,7 +308,7 @@ ghqc_status_server <- function(id,
             tags$input(
               id = ns("show_qcer"),
               type = "checkbox",
-              style = "transform: translateY(-1px);"
+              style = "transform: scale(1.2) translateY(-2px);"
             )
           )
         ),
@@ -333,7 +333,7 @@ ghqc_status_server <- function(id,
                 id = ns("show_repo_files"),
                 type = "checkbox",
                 class = "form-check-input",
-                style = "transform: translateY(-1px);"
+                style = "transform: scale(1.2) translateY(-2px);"
               )
             )
           )

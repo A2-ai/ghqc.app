@@ -28,11 +28,6 @@ ghqc_status_ui <- function(id) {
     font-size: 13px;
     color: #333;
   }
-
-  .checkbox input[type='checkbox'] {
-    margin: 0;
-    transform: scale(1.2); /* Optional: makes the checkbox more visible */
-  }
 ")),
       tags$script(HTML(glue::glue("
   Shiny.onInputChange('{ns('show_qcer')}', document.getElementById('{ns('show_qcer')}').checked);
