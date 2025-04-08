@@ -36,21 +36,34 @@ ghqc_status_ui <- function(id) {
   }});
 "))),
       tags$style(HTML("
-/* Default sidebar */
-div[id$=\"-sidebar\"] {
-  width: 260px;
-  max-width: 260px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  transition: width 0.3s ease;
-}
+div[id$='-sidebar'] {
+    width: 260px;
+    max-width: 260px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
 
-/* Collapsed state */
-.sidebar-collapsed div[id$=\"-sidebar\"] {
-  width: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
+  .sidebar-collapsed div[id$='-sidebar'] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    flex: 0 0 0 !important;
+  }
+
+  .sidebar-collapsed div[id$='-sidebar'] * {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  div[id$='-sidebar'] * {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
 "))
     ), # tags$head
     waiter_show_on_load(
