@@ -443,8 +443,9 @@ ghqc_status_server <- function(id,
         ) %>%
         DT::formatStyle(
           columns = "File",
-          `white-space` = "normal",
-          `word-wrap` = "break-word"
+          whiteSpace = 'normal',
+          wordWrap = 'break-word',
+          #width = '200px'
         )
 
       pretty_table
