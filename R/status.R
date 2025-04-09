@@ -1,7 +1,6 @@
-
-
 #' @import dplyr purrr
 #' @importFrom log4r info debug warn error
+#' @importFrom rlang .data
 ghqc_status <- function(milestone_names,
                         org,
                         repo,
@@ -49,7 +48,7 @@ ghqc_status <- function(milestone_names,
                              Current branch: {current_branch}<br>
                              Switch to {metadata_branch} to view QC status.")
         return(
-          tibble(
+          dplyr::tibble(
             milestone_name = milestone_name,
             milestone_with_url = milestone_with_url,
             file_name = file_name,
@@ -113,7 +112,7 @@ ghqc_status <- function(milestone_names,
       debug(.le$logger, glue::glue("Updated relevant files list"))
 
       # return res
-      res <- tibble(
+      res <- dplyr::tibble(
         milestone_name = milestone_name,
         milestone_with_url = milestone_with_url,
         file_name = file_name,
@@ -139,7 +138,7 @@ ghqc_status <- function(milestone_names,
   # make factors
   status_df <- status_df %>%
     dplyr::mutate(across(
-      c(`Issue State`, `QC Status`, `Git Status`, QCer),
+      c(.data$`Issue State`, .data$`QC Status`, .data$`Git Status`, .data$QCer),
       as.factor
     ))
 
@@ -204,7 +203,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
       }
     } # qc_status_info
 
-    tibble(
+    dplyr::tibble(
       `Milestone without url` = "No Milestone",
       Milestone = "No Milestone",
       `File without url` = file,
@@ -429,7 +428,7 @@ get_relevant_files <- function(issue, milestone_name) {
 
   if (!stringr::str_detect(issue_body, "## Relevant files")) { # if no associated relevant files
     return( # return an empty data frame
-      tibble(
+      dplyr::tibble(
         relevant_file_name = character(),
         qc_file_name = character(),
         relevant_file_url = character(),

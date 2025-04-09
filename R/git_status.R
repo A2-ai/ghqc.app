@@ -33,7 +33,7 @@ get_git_statuses <- function(files, local_commits, remote_commits) {
   })
 
   return(
-    tibble::tibble(
+    dplyr::tibble(
       file_name = files,
       git_status = git_statuses
     )
@@ -148,7 +148,7 @@ get_files_with_uncommitted_local_changes <- function() {
 
 get_local_commits <- function() {
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
-  local_commit_log <- read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  local_commit_log <- utils::read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
   debug(.le$logger, glue::glue("Retrieved local commit log"))
 
@@ -157,7 +157,7 @@ get_local_commits <- function() {
 
 get_remote_commits <- function(remote_name, current_branch) {
   remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-  remote_commit_log <- read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
 

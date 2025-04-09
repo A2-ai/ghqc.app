@@ -6,6 +6,9 @@
 \usage{
 ghqc_status_app(milestones = NULL)
 }
+\arguments{
+\item{milestones}{The default set of one or more milestones to render in the QC Status table}
+}
 \value{
 Starts a Shiny app and does not return any value.
 }
