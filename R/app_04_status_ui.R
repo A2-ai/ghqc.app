@@ -64,6 +64,11 @@ div[id$='-sidebar'] {
     opacity: 1;
     transition: opacity 0.2s ease;
   }
+")),
+      tags$script(HTML("
+  $(document).on('click', 'button[id^=\"ghqc_status_app-modal_btn_\"]', function() {
+    Shiny.setInputValue(this.id, Math.random());
+  });
 "))
     ), # tags$head
     waiter_show_on_load(

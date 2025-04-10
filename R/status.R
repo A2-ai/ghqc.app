@@ -328,10 +328,9 @@ get_file_qc_status <- function(file,
 
       return(list(qc_status = "Comment current QC commit",
                   diagnostics = glue::glue("Remote file commit is ahead of current QC commit.<br>
-                                           Update the current QC commit with ghqc_resolve_app.<br>
-                                           Current QC commit: {latest_qc_commit_short}<br>
-                                           Most recent remote file change in commit: {last_commit_that_changed_file_short}<br>
-                                           {commit_diff_url}")
+                                           - Current QC commit: {latest_qc_commit_short}<br>
+                                           - Remote commit: {last_commit_that_changed_file_short}<br>
+                                           - {commit_diff_url}")
                   ))
     } # Comment current QC commit
 
@@ -461,3 +460,12 @@ get_relevant_files <- function(issue, milestone_name) {
   return(relevant_files_df)
 } # get_relevant_files
 
+
+format_diagnostics_list <- function(items) {
+  list_items <- glue::glue("<li>{items}</li>")
+  HTML(glue::glue('
+    <ul style="list-style-type: disc; margin: 0; padding-left: 1em;">
+      {glue::glue_collapse(list_items, sep = "\n")}
+    </ul>
+  '))
+}

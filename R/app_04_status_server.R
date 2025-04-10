@@ -16,7 +16,7 @@ ghqc_status_server <- function(id,
                                local_commits,
                                remote_commits,
                                current_branch,
-                               remote_name) {
+                               remote) {
 
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -39,7 +39,7 @@ ghqc_status_server <- function(id,
           local_commits,
           remote_commits,
           current_branch,
-          remote_name)
+          remote)
     })
 
     # makes sure the column headers re-align with the columns when sidebar is toggled in and out
@@ -267,6 +267,20 @@ ghqc_status_server <- function(id,
       }
     }) # file_directory_filter
 
+    button <- function(tbl, ns) {
+      function(i) {
+        row_id <- sprintf("row_%d", i)
+        sprintf(
+          '<button id="%s" type="button" class="btn btn-sm btn-primary"
+        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
+        Comment
+       </button>',
+          ns(paste0("button_", row_id)),
+          ns("show_modal_row"),
+          i
+        )
+      }
+    }
 
 
     ############ OUTPUT
@@ -341,6 +355,61 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
+    observeEvent(input$show_modal_row, {
+      req(input$show_modal_row$row)
+      row_index <- input$show_modal_row$row
+      df <- filtered_data()
+      req(nrow(df) >= row_index)
+      diagnostics <- df$Diagnostics[row_index]
+      pattern <- 'href="[^"]*/blob/([a-f0-9]{7,40})/'
+      matches <- regmatches(diagnostics, gregexpr(pattern, diagnostics, perl = TRUE))[[1]]
+      shas <- gsub('href="[^"]*/blob/|/.*', '', matches)
+
+      if (length(matches) >= 2) {
+        current_qc_commit <- shas[1]
+        remote_commit <- shas[2]
+      }
+
+
+      issue_number <- sub(".*?/issues/(\\d+).*", "\\1", df$File[row_index])
+      comment_body <- create_comment_body(org,
+                                          repo,
+                                          message = NULL,
+                                          issue_number = issue_number,
+                                          diff = TRUE,
+                                          comparator_commit = remote_commit,
+                                          reference_commit = current_qc_commit,
+                                          remote = remote)
+
+      html_file_path <- create_gfm_file(comment_body)
+      custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
+
+
+      showModal(modalDialog(
+        title = tags$div(
+          tags$span("Comment Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("proceed_post"), "Post Comment"),
+          style = "text-align: right;"
+        ),
+        footer = NULL,
+        easyClose = TRUE,
+        HTML(custom_html)
+      ))
+
+
+    })
+
+    preview_comment <- reactive({
+      req(preview_trigger())
+      req(comment_body_string())
+      preview_trigger(FALSE)
+
+
+      html_file_path <- create_gfm_file(comment_body_string())
+      custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
+
+    })
 
     observeEvent(show_table(), {
       if (show_table()) {
@@ -350,10 +419,13 @@ ghqc_status_server <- function(id,
             DT::dataTableOutput(ns("status_table"))
           )
         })
-      } else {
+      }
+      else {
         output$main_panel_dynamic <- renderUI({ NULL })
       }
     })
+
+
 
 
     output$status_table <- DT::renderDataTable({
@@ -374,9 +446,14 @@ ghqc_status_server <- function(id,
         df <- df[, colnames(df) != "QCer", drop = FALSE]
       }
 
+      df <- cbind(df,
+                    Comment = sapply(1:nrow(df), button("tbl1", ns)),
+                    stringsAsFactors = FALSE)
+
       pretty_table <- DT::datatable(
         df,
         escape = FALSE,
+        selection = 'single',
         rownames = FALSE,
         class = "stripe hover compact",
         filter = 'top',
@@ -482,7 +559,7 @@ ghqc_status_server <- function(id,
 
       current_branch_rv(gert::git_branch())
       local_commits_rv(get_local_commits())
-      remote_commits_rv(get_remote_commits(remote_name, current_branch_rv()))
+      remote_commits_rv(get_remote_commits(remote$name, current_branch_rv()))
 
       shinyjs::delay(300, {
         show_table(TRUE)
