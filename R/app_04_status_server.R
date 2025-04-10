@@ -73,6 +73,10 @@ ghqc_status_server <- function(id,
     local_commits_rv <- reactiveVal(local_commits)
     remote_commits_rv <- reactiveVal(remote_commits)
 
+    # comment reactives
+    comment_details <- reactiveVal(NULL)
+    post_trigger <- reactiveVal(FALSE)
+
     # cache previously rendered sets of milestones
     milestone_key <- function(milestones) {
       paste(sort(milestones), collapse = "|")
@@ -355,35 +359,49 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
+    get_commit_shas <- function(diagnostics_html) {
+      lines <- stringr::str_split(diagnostics_html, "<li>")[[1]]
+
+      # Helper function to extract short SHA after blob/
+      extract_sha <- function(text) {
+        sha <- stringr::str_match(text, "blob/([a-f0-9]{7,40})")[, 2]
+        return(sha)
+      }
+
+      # Parse SHAs
+      current_qc_line <- lines[stringr::str_detect(lines, "Current QC commit:")]
+      remote_commit_line <- lines[stringr::str_detect(lines, "Remote commit:")]
+
+      list(
+        current_qc_commit = extract_sha(current_qc_line),
+        remote_commit = extract_sha(remote_commit_line)
+      )
+    }
+
+    get_issue_number <- function(file_col_text) {
+      sub(".*?/issues/(\\d+).*", "\\1", file_col_text)
+    }
+
+    generate_comment_html <- function(body) {
+      path <- create_gfm_file(body)
+      readLines(path, warn = FALSE) %>% paste(collapse = "\n")
+    }
+
     observeEvent(input$show_modal_row, {
-      req(input$show_modal_row$row)
       row_index <- input$show_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
-      diagnostics <- df$Diagnostics[row_index]
-      pattern <- 'href="[^"]*/blob/([a-f0-9]{7,40})/'
-      matches <- regmatches(diagnostics, gregexpr(pattern, diagnostics, perl = TRUE))[[1]]
-      shas <- gsub('href="[^"]*/blob/|/.*', '', matches)
 
-      if (length(matches) >= 2) {
-        current_qc_commit <- shas[1]
-        remote_commit <- shas[2]
-      }
+      shas <- get_commit_shas(df$Diagnostics[row_index])
+      issue_number <- get_issue_number(df$File[row_index])
 
+      comment_details(list(
+        current_qc_commit = shas$current_qc_commit,
+        remote_commit = shas$remote_commit,
+        issue_number = issue_number
+      ))
 
-      issue_number <- sub(".*?/issues/(\\d+).*", "\\1", df$File[row_index])
-      comment_body <- create_comment_body(org,
-                                          repo,
-                                          message = NULL,
-                                          issue_number = issue_number,
-                                          diff = TRUE,
-                                          comparator_commit = remote_commit,
-                                          reference_commit = current_qc_commit,
-                                          remote = remote)
-
-      html_file_path <- create_gfm_file(comment_body)
-      custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
-
+      html <- generate_comment_html(comment_body_string())
 
       showModal(modalDialog(
         title = tags$div(
@@ -394,10 +412,30 @@ ghqc_status_server <- function(id,
         ),
         footer = NULL,
         easyClose = TRUE,
-        HTML(custom_html)
+        HTML(html)
       ))
+    })
 
 
+
+    comment_body_string <- reactive({
+      details <- comment_details()
+      req(details)
+
+      tryCatch({
+        create_comment_body(
+          owner = org,
+          repo = repo,
+          message = input$message,
+          issue_number = details$issue_number,
+          diff = TRUE,
+          comparator_commit = details$remote_commit,
+          reference_commit = details$current_qc_commit,
+          remote = remote
+        )
+      }, error = function(e) {
+        rlang::abort(conditionMessage(e))
+      })
     })
 
     preview_comment <- reactive({
@@ -410,6 +448,44 @@ ghqc_status_server <- function(id,
       custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
 
     })
+
+    post_comment <- reactive({
+      req(post_trigger())
+      req(comment_body_string())
+      post_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Posting comment...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      tryCatch(
+        {
+          post_resolve_comment(owner = org,
+                               repo = repo,
+                               issue_number = issue_parts()$issue_number,
+                               body = comment_body_string())
+
+          issue <- get_issue(org, repo, issue_parts()$issue_number)
+          issue_url <- issue$html_url
+
+          showModal(modalDialog(
+            title = tags$div(
+              actionButton(ns("dismiss_modal"), "Dismiss"),
+              style = "text-align: right;"
+              ),
+            footer = NULL,
+            easyClose = TRUE,
+            tags$p("File update commented successfully."),
+            tags$a(href = issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
+          ))
+        },
+        error = function(e) {
+          rlang::abort(conditionMessage(e))
+        }
+      )
+    })
+
+
 
     observeEvent(show_table(), {
       if (show_table()) {
@@ -534,9 +610,79 @@ ghqc_status_server <- function(id,
     })
 
 
+    observeEvent(input$proceed_post, {
+      debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
+      removeModal()
+      post_trigger(TRUE)
+    })
+
+    observe({
+      post_comment()
+    })
+
+    post_comment <- reactive({
+      req(post_trigger())
+      post_trigger(FALSE)
+      req(comment_details())
+
+      w_pc <- create_waiter(ns, "Posting comment...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      details <- comment_details()
+
+      tryCatch({
+        post_resolve_comment(
+          owner = org,
+          repo = repo,
+          issue_number = details$issue_number,
+          body = comment_body_string()
+        )
+
+        issue <- get_issue(org, repo, details$issue_number)
+
+        showModal(modalDialog(
+          title = tags$div(
+            modalButton("Dismiss"),
+            style = "text-align: right;"
+          ),
+          footer = NULL,
+          easyClose = TRUE,
+          tags$p("Updated QC commit commented successfully."),
+          tags$a(href = issue$html_url, "Click here to visit the updated Issue on GitHub", target = "_blank")
+        ))
+
+        return(issue$html_url)
+      }, error = function(e) {
+        showModal(modalDialog(
+          title = tags$div("Error Posting Comment", style = "color: red; font-weight: bold;"),
+          footer = NULL,
+          easyClose = TRUE,
+          tags$p("Something went wrong:"),
+          tags$pre(conditionMessage(e))
+        ))
+        return(NULL)
+      })
+    })
+
+    observeEvent(input$return, {
+      debug(.le$logger, glue::glue("Comment button returned and modal removed."))
+      removeModal()
+    })
+
+    observeEvent(input$dismiss_modal, {
+      browser()
+      removeModal()
+      reset_app()  # reuse the same reset logic
+    }, ignoreInit = TRUE)
 
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
+      reset_app()
+    }) # input$reset
+
+    reset_app <- function() {
+      debug(.le$logger, glue::glue("App was reset."))
 
       current_milestones <- input$selected_milestones
 
@@ -548,7 +694,6 @@ ghqc_status_server <- function(id,
 
       show_table(FALSE)
 
-      # keep the current milestones selected, but regenerate the statuses
       shinyjs::delay(100, {
         updateSelectizeInput(
           session,
@@ -565,7 +710,7 @@ ghqc_status_server <- function(id,
         show_table(TRUE)
         run_generate(current_milestones)
       })
-    }) # input$reset
+    }
 
     return(input)
   }) # moduleServer

@@ -50,7 +50,7 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
   # did the file actually change in any of these commits?
   commit_range <- paste0(latest_qc_commit, "..", head_commit)
   args <- c("log",
-            "--pretty=format:'%h|%ad'",
+            "--pretty=format:'%H|%ad'",
             "--date=iso",
             commit_range,
             "--",
