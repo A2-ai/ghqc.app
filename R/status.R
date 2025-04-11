@@ -335,7 +335,7 @@ get_file_qc_status <- function(file,
 
       diagnostics_list <- format_diagnostics_list(list(
         glue::glue("Current QC commit: {latest_qc_commit_short}"),
-        glue::glue("Remote commit: {last_commit_that_changed_file_short}"),
+        glue::glue("Last file change: {last_commit_that_changed_file_short}"),
         commit_diff_url
       ))
 
@@ -360,42 +360,22 @@ get_file_qc_status <- function(file,
                   ))
     }
 
-    ### Local unpushed commits with file changes with file changes after Issue closure
+    ### Local unpushed commits with file changes after Issue closure
     if (git_status == "Local unpushed commits with file changes") {
       last_local_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = local_commits[1])$last_commit_that_changed_file
       last_local_commit_that_changed_file_short <-  substr(last_local_commit_that_changed_file, 1, 7)
 
-      last_local_commit_that_changed_file_pushed <- last_local_commit_that_changed_file %in% remote_commits
-
-      # give hyperlink if latest local commit is pushed to remote
-      local_commit_short <- ifelse(last_local_commit_that_changed_file_pushed,
-                                   get_hyperlinked_commit(last_local_commit_that_changed_file, file, repo_url),
-                                   substr(last_local_commit_that_changed_file, 1, 7))
-
-      # likewise, only give commit diff if local commit is pushed
-      commit_diff_url <- ifelse(last_local_commit_that_changed_file_pushed,
-                                paste0("<br>", get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_local_commit_that_changed_file)),
-                                "")
-
-      diagnostics_items <- list(
+      diganostics <- format_diagnostics_list(list(
         glue::glue("Final QC commit: {latest_qc_commit_short}"),
-        glue::glue("Most recent local file change in commit: {last_local_commit_that_changed_file_short}")
-      )
-
-      if (last_local_commit_that_changed_file_pushed) {
-        # only give commit diff if local commit is pushed
-        commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_local_commit_that_changed_file)
-        diagnostics_items <- append(diagnostics_items, commit_diff_url)
-      }
-
-      diganostics <- format_diagnostics_list(diagnostics_items)
+        glue::glue("Last local file change: {last_local_commit_that_changed_file_short}")
+      ))
 
       return(list(qc_status = "Local unpushed commits with file changes after Issue closure",
                   diagnostics = diganostics
       ))
-    }
+    } # Local unpushed commits with file changes after Issue closure
 
     ### Pushed file changes
     # if there exists a remote commit that changed the file after the latest qc commit,
@@ -414,7 +394,7 @@ get_file_qc_status <- function(file,
 
       diagnostics <- format_diagnostics_list(list(
         glue::glue("Final QC commit: {latest_qc_commit_short}"),
-        glue::glue("Remote commit: {last_commit_that_changed_file_short}"),
+        glue::glue("Last file change: {last_commit_that_changed_file_short}"),
         commit_diff_url
       ))
 

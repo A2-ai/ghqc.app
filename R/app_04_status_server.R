@@ -271,7 +271,7 @@ ghqc_status_server <- function(id,
       }
     }) # file_directory_filter
 
-    button <- function(tbl, ns) {
+    button <- function(ns) {
       function(i) {
         row_id <- sprintf("row_%d", i)
         sprintf(
@@ -359,27 +359,24 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
-    get_commit_shas <- function(diagnostics_html) {
+    parse_current_qc_commit <- function(diagnostics_html) {
       lines <- stringr::str_split(diagnostics_html, "<li>")[[1]]
-
-      # Helper function to extract short SHA after blob/
-      extract_sha <- function(text) {
-        sha <- stringr::str_match(text, "blob/([a-f0-9]{7,40})")[, 2]
-        return(sha)
-      }
-
-      # Parse SHAs
-      current_qc_line <- lines[stringr::str_detect(lines, "Current QC commit:")]
-      remote_commit_line <- lines[stringr::str_detect(lines, "Remote commit:")]
-
-      list(
-        current_qc_commit = extract_sha(current_qc_line),
-        remote_commit = extract_sha(remote_commit_line)
-      )
+      current_qc_line <- lines[stringr::str_detect(lines, "Current QC commit:|Final QC commit:")]
+      current_qc_commit <- stringr::str_match(current_qc_line, "blob/([a-f0-9]{7,40})")[, 2]
     }
 
-    get_issue_number <- function(file_col_text) {
-      sub(".*?/issues/(\\d+).*", "\\1", file_col_text)
+    parse_issue_info <- function(html_string) {
+      matches <- stringr::str_match(
+        html_string,
+        'href="(https://[^"]+/issues/(\\d+))"'
+      )
+      issue_url <- matches[2]
+      issue_number <- matches[3]
+
+      list(
+        issue_url = issue_url,
+        issue_number = issue_number
+      )
     }
 
     generate_comment_html <- function(body) {
@@ -392,13 +389,13 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(nrow(df) >= row_index)
 
-      shas <- get_commit_shas(df$Diagnostics[row_index])
-      issue_number <- get_issue_number(df$File[row_index])
+      current_qc_commit <- parse_current_qc_commit(df$Diagnostics[row_index])
+      parsed_issue_info <- parse_issue_info(df$File[row_index])
 
       comment_details(list(
-        current_qc_commit = shas$current_qc_commit,
-        remote_commit = shas$remote_commit,
-        issue_number = issue_number
+        current_qc_commit = current_qc_commit,
+        issue_number = parsed_issue_info$issue_number,
+        issue_url = parsed_issue_info$issue_url
       ))
 
       html <- generate_comment_html(comment_body_string())
@@ -420,7 +417,9 @@ ghqc_status_server <- function(id,
 
     comment_body_string <- reactive({
       details <- comment_details()
+      remote_commits <- remote_commits_rv()
       req(details)
+      req(remote_commits_rv())
 
       tryCatch({
         create_comment_body(
@@ -429,7 +428,7 @@ ghqc_status_server <- function(id,
           message = input$message,
           issue_number = details$issue_number,
           diff = TRUE,
-          comparator_commit = details$remote_commit,
+          comparator_commit = remote_commits[1], # use the most up-to-date remote commit by default
           reference_commit = details$current_qc_commit,
           remote = remote
         )
@@ -466,9 +465,6 @@ ghqc_status_server <- function(id,
                                issue_number = details$issue_number,
                                body = comment_body_string())
 
-          issue <- get_issue(org, repo, details$issue_number)
-          issue_url <- issue$html_url
-
           showModal(modalDialog(
             title = tags$div(
               actionButton(ns("dismiss_modal"), "Dismiss"),
@@ -476,8 +472,8 @@ ghqc_status_server <- function(id,
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$p("File update commented successfully."),
-            tags$a(href = issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
+            tags$p("Current QC commit commented successfully."),
+            tags$a(href = details$issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
           ))
         },
         error = function(e) {
@@ -523,8 +519,20 @@ ghqc_status_server <- function(id,
         df <- df[, colnames(df) != "QCer", drop = FALSE]
       }
 
+      comment <- sapply(1:nrow(df), function(i) {
+        row <- df[i, ]
+        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` != "Pull current QC commit") {
+          button(ns)(i)
+        }
+        else {
+          NA_character_
+        }
+
+      })
+      browser()
+
       df <- cbind(df,
-                    Comment = sapply(1:nrow(df), button("tbl1", ns)),
+                    Comment = comment,
                     stringsAsFactors = FALSE)
 
       pretty_table <- DT::datatable(
@@ -629,7 +637,6 @@ ghqc_status_server <- function(id,
 
     observeEvent(input$dismiss_modal, {
       debug(.le$logger, "Dismiss clicked – resetting app")
-      browser()
       removeModal()
       reset_app()
     }, ignoreInit = TRUE)
