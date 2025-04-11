@@ -1,3 +1,7 @@
+# ghqc.app 0.4.15
+
+- fixes bug in pre-app error checking in which an unset upstream branch is uncaught
+
 # ghqc.app 0.4.14
 
 changes to `ghqc_resolve_app()`:
