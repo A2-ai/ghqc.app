@@ -46,11 +46,10 @@ ghqc_status <- function(milestone_names,
         qc_status <- "QC Status not available"
 
         diagnostics_list <- format_diagnostics_list(list(
-          glue::glue("QC branch: {metadata_branch}"),
-          glue::glue("Current branch: {current_branch}")
+          glue::glue("Current branch: {current_branch}"),
+          glue::glue("QC branch: {metadata_branch}")
         ))
-        diagnostics <- glue::glue("{diagnostics_list}<br>
-                             Switch to {metadata_branch} to view QC status.")
+        diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
         return(
           dplyr::tibble(
             milestone_name = milestone_name,
