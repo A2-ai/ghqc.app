@@ -41,7 +41,7 @@ ghqc_status <- function(milestone_names,
 
       # branch from metadata might be different from current branch
       metadata_branch <- get_branch_from_issue_body(issue$body)
-      # if it is different, don't get git status or qc status
+      # if it is different, don't get git status
       if (metadata_branch != current_branch) {
         qc_status <- "QC Status not available"
 
