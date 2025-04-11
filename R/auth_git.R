@@ -42,12 +42,7 @@ check_upstream_set <- function(remote_name) {
   branch_list <- gert::git_branch_list()
   tracking_branch <- branch_list[branch_list$name == current_branch & branch_list$upstream != "", ]$upstream
 
-  # tracking_branch <- gert::git_branch_list() %>%
-  #   dplyr::filter(col_names[[1]] == current_branch & col_names[[2]] != "") %>%
-  #   dplyr::pull(col_names[[2]])
-
-
-  if (length(tracking_branch) == 0) {
+  if (length(tracking_branch) == 0 || is.na(tracking_branch)) {
     error(.le$logger, glue::glue(
       "The current branch '{current_branch}' has no tracking information.  \n",
       "If you are planning on basing your work on an upstream branch that already exists at the remote, retrieve them with: \n",
