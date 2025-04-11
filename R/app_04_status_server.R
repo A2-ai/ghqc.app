@@ -453,6 +453,7 @@ ghqc_status_server <- function(id,
       req(post_trigger())
       req(comment_body_string())
       post_trigger(FALSE)
+      details <- comment_details()
 
       w_pc <- create_waiter(ns, "Posting comment...")
       w_pc$show()
@@ -462,17 +463,17 @@ ghqc_status_server <- function(id,
         {
           post_resolve_comment(owner = org,
                                repo = repo,
-                               issue_number = issue_parts()$issue_number,
+                               issue_number = details$issue_number,
                                body = comment_body_string())
 
-          issue <- get_issue(org, repo, issue_parts()$issue_number)
+          issue <- get_issue(org, repo, details$issue_number)
           issue_url <- issue$html_url
 
           showModal(modalDialog(
             title = tags$div(
               actionButton(ns("dismiss_modal"), "Dismiss"),
               style = "text-align: right;"
-              ),
+            ),
             footer = NULL,
             easyClose = TRUE,
             tags$p("File update commented successfully."),
@@ -531,7 +532,7 @@ ghqc_status_server <- function(id,
         escape = FALSE,
         selection = 'single',
         rownames = FALSE,
-        class = "stripe hover compact",
+        class = "stripe hover compact display",
         filter = 'top',
         options = list(
           pageLength = -1, # shows all the rows
@@ -620,50 +621,6 @@ ghqc_status_server <- function(id,
       post_comment()
     })
 
-    post_comment <- reactive({
-      req(post_trigger())
-      post_trigger(FALSE)
-      req(comment_details())
-
-      w_pc <- create_waiter(ns, "Posting comment...")
-      w_pc$show()
-      on.exit(w_pc$hide())
-
-      details <- comment_details()
-
-      tryCatch({
-        post_resolve_comment(
-          owner = org,
-          repo = repo,
-          issue_number = details$issue_number,
-          body = comment_body_string()
-        )
-
-        issue <- get_issue(org, repo, details$issue_number)
-
-        showModal(modalDialog(
-          title = tags$div(
-            modalButton("Dismiss"),
-            style = "text-align: right;"
-          ),
-          footer = NULL,
-          easyClose = TRUE,
-          tags$p("Updated QC commit commented successfully."),
-          tags$a(href = issue$html_url, "Click here to visit the updated Issue on GitHub", target = "_blank")
-        ))
-
-        return(issue$html_url)
-      }, error = function(e) {
-        showModal(modalDialog(
-          title = tags$div("Error Posting Comment", style = "color: red; font-weight: bold;"),
-          footer = NULL,
-          easyClose = TRUE,
-          tags$p("Something went wrong:"),
-          tags$pre(conditionMessage(e))
-        ))
-        return(NULL)
-      })
-    })
 
     observeEvent(input$return, {
       debug(.le$logger, glue::glue("Comment button returned and modal removed."))
@@ -671,9 +628,10 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$dismiss_modal, {
+      debug(.le$logger, "Dismiss clicked – resetting app")
       browser()
       removeModal()
-      reset_app()  # reuse the same reset logic
+      reset_app()
     }, ignoreInit = TRUE)
 
     observeEvent(input$reset, {
