@@ -165,3 +165,13 @@ get_remote_commits <- function(remote_name, current_branch) {
 }
 
 
+check_remote_branch_deleted <- function(branch_name) {
+  remote_refs <- gert::git_remote_ls()
+
+  branch_refs <- grep("^refs/heads/", remote_refs$ref, value = TRUE)
+  remote_branch_names <- sub("^refs/heads/", "", branch_refs)
+
+  is_deleted <- !(branch_name %in% remote_branch_names)
+  return(is_deleted)
+}
+

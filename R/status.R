@@ -39,30 +39,41 @@ ghqc_status <- function(milestone_names,
 
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
 
+      # latest_qc_commit is the most recent commented commit in file's issue
+      latest_qc_commit <- get_latest_qc_commit(issue_body = issue$body, num_comments = issue$comments, comments_url = issue$comments_url)
+      debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
+
       # branch from metadata might be different from current branch
       metadata_branch <- get_branch_from_issue_body(issue$body)
       # if it is different, don't get git status
       if (metadata_branch != current_branch) {
-        qc_status <- "QC Status not available"
+        if (!check_remote_branch_deleted(metadata_branch)) {
+          qc_status <- "QC Status not available"
 
-        diagnostics_list <- format_diagnostics_list(list(
-          glue::glue("Current branch: {current_branch}"),
-          glue::glue("QC branch: {metadata_branch}")
-        ))
-        diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
-        return(
-          dplyr::tibble(
-            milestone_name = milestone_name,
-            milestone_with_url = milestone_with_url,
-            file_name = file_name,
-            file_with_url = file_with_url,
-            issue_state = issue_state,
-            qc_status = qc_status,
-            git_status = NA_character_,
-            diagnostics = diagnostics,
-            qcer = qcer
+          diagnostics_list <- format_diagnostics_list(list(
+            glue::glue("Current branch: {current_branch}"),
+            glue::glue("QC branch: {metadata_branch}")
+          ))
+          diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
+          return(
+            dplyr::tibble(
+              milestone_name = milestone_name,
+              milestone_with_url = milestone_with_url,
+              file_name = file_name,
+              file_with_url = file_with_url,
+              issue_state = issue_state,
+              qc_status = qc_status,
+              git_status = NA_character_,
+              diagnostics = diagnostics,
+              qcer = qcer
+            )
           )
-        )
+        } # remote branch not deleted
+        else { # else remote branch has been deleted
+          deleted_branch_git_status <- glue::glue("File exists on deleted QC branch")
+          git_statuses[which(git_statuses$file_name == file_name), "git_status"] <- deleted_branch_git_status
+        } # else remote branch has been deleted
+
       } # metadata_branch != current_branch
 
       # git status
@@ -78,10 +89,6 @@ ghqc_status <- function(milestone_names,
 
       # qc status
       qc_status_info <- tryCatch({
-        # latest_qc_commit is the most recent commented commit in file's issue
-        latest_qc_commit <- get_latest_qc_commit(issue_body = issue$body, num_comments = issue$comments, comments_url = issue$comments_url)
-        debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
-
         repo_url <- stringr::str_extract(file_url, ".*(?=/issues)") # TODO
 
         debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
@@ -291,9 +298,10 @@ get_file_qc_status <- function(file,
                                issue_closed_at,
                                repo_url) {
 
+
+
   latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
 
-  #browser()
   ## For open issues
   if (issue_state == "Open") {
 
@@ -319,7 +327,7 @@ get_file_qc_status <- function(file,
         diagnostics_items <- append(diagnostics_items, commit_diff_url)
       }
 
-      diganostics_list <- format_diagnostics_list(diagnostics_items)
+      diagnostics_list <- format_diagnostics_list(diagnostics_items)
       diagnostics <- glue::glue("Local commit is behind current QC commit.<br>
                                 {diagnostics_list}")
 

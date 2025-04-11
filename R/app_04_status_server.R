@@ -520,7 +520,7 @@ ghqc_status_server <- function(id,
       }
 
       okay_to_comment_qc_statuses <- c("QC in progress",
-                                       "Comment current QC commit ",
+                                       "Comment current QC commit",
                                        "QC complete",
                                        "Pushed file changes after Issue closure",
                                        "Uncommented pushed file changes before Issue closure"
@@ -528,7 +528,7 @@ ghqc_status_server <- function(id,
 
       comment <- sapply(1:nrow(df), function(i) {
         row <- df[i, ]
-        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` %in% okay_to_comment_qc_statuses) {
+        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` %in% okay_to_comment_qc_statuses && row$`Git Status` != "File does not exist locally") {
           button(ns)(i)
         }
         else {
@@ -604,9 +604,9 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "Git Status",
           color = DT::styleEqual(
-            c("Up-to-date"),
-            c("green"),
-            default = "#a94442"
+            c("Up-to-date", "Remote file changes", "File does not exist locally", "Local uncommitted file changes ", "Local unpushed commits with file changes"),
+            c("green", "#a94442", "#a94442", "#a94442", "#a94442"),
+            default = "black"
           )
         ) %>%
         DT::formatStyle(
