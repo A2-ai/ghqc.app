@@ -43,9 +43,13 @@ ghqc_status <- function(milestone_names,
       metadata_branch <- get_branch_from_issue_body(issue$body)
       # if it is different, don't get git status or qc status
       if (metadata_branch != current_branch) {
-        qc_status <-  "QC Status not available"
-        diagnostics <- glue::glue("QC initialized on branch: {metadata_branch}<br>
-                             Current branch: {current_branch}<br>
+        qc_status <- "QC Status not available"
+
+        diagnostics_list <- format_diagnostics_list(list(
+          glue::glue("QC branch: {metadata_branch}"),
+          glue::glue("Current branch: {current_branch}")
+        ))
+        diagnostics <- glue::glue("{diagnostics_list}<br>
                              Switch to {metadata_branch} to view QC status.")
         return(
           dplyr::tibble(
@@ -191,10 +195,11 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
           return(qc_file_string)
         })
 
-        qc_status_string <- glue::glue_collapse(qc_file_strings, sep = ", ", last = " and ")
+        qc_status_string <- format_diagnostics_list(qc_file_strings)
 
         list(qc_status = "Relevant file",
-             diagnostics = glue::glue("Relevant file in Issues: {qc_status_string}")
+             diagnostics = glue::glue("Relevant file in Issues:<br>
+                                      {qc_status_string}")
         )
       }
       else {
