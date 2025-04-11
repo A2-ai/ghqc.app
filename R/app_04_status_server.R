@@ -519,9 +519,16 @@ ghqc_status_server <- function(id,
         df <- df[, colnames(df) != "QCer", drop = FALSE]
       }
 
+      okay_to_comment_qc_statuses <- c("QC in progress",
+                                       "Comment current QC commit ",
+                                       "QC complete",
+                                       "Pushed file changes after Issue closure",
+                                       "Uncommented pushed file changes before Issue closure"
+                                       )
+
       comment <- sapply(1:nrow(df), function(i) {
         row <- df[i, ]
-        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` != "Pull current QC commit") {
+        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` %in% okay_to_comment_qc_statuses) {
           button(ns)(i)
         }
         else {
@@ -529,7 +536,6 @@ ghqc_status_server <- function(id,
         }
 
       })
-      browser()
 
       df <- cbind(df,
                     Comment = comment,
@@ -589,7 +595,7 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("QC in progress", "QC Complete", "Relevant file"),
+            c("QC in progress", "QC complete", "Relevant file"),
             c("green", "green", "black"),
             default = "#a94442"
           )

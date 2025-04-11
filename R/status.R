@@ -55,7 +55,7 @@ ghqc_status <- function(milestone_names,
             file_with_url = file_with_url,
             issue_state = issue_state,
             qc_status = qc_status,
-            git_status = NA,
+            git_status = NA_character_,
             diagnostics = diagnostics,
             qcer = qcer
           )
@@ -198,8 +198,8 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
         )
       }
       else {
-        list(qc_status = NA,
-             diagnostics = NA)
+        list(qc_status = NA_character_,
+             diagnostics = NA_character_)
       }
     } # qc_status_info
 
@@ -212,7 +212,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
       `QC Status` = qc_status_info$qc_status,
       `Git Status` = git_status,
       Diagnostics = qc_status_info$diagnostics,
-      QCer = NA
+      QCer = NA_character_
     )
   })
 } # create_non_issue_repo_files_df
@@ -411,14 +411,15 @@ get_file_qc_status <- function(file,
 
     } # if file changed
 
-   return(list(qc_status = "QC Complete",
-               diagnostics = glue::glue("Final QC commit: {latest_qc_commit_short}")))
+   return(list(qc_status = "QC complete",
+               diagnostics = format_diagnostics_list(list(glue::glue("Final QC commit: {latest_qc_commit_short}")))
+               ))
   } # closed
 
   ## For non-issue files
   else if (issue_state == "no issue") {
-    return(list(qc_status = NA,
-                diagnostics = NA
+    return(list(qc_status = NA_character_,
+                diagnostics = NA_character_
                 ))
   }
 
