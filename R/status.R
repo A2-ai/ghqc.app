@@ -36,15 +36,21 @@ ghqc_status <- function(milestone_names,
       issue_state <- ifelse(issue$state == "open", "Open", "Closed") # capitalize Open and Closed
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
       file_url <- issue$html_url
-
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
+      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)") # TODO
+      issue_body <- issue$body
 
       # latest_qc_commit is the most recent commented commit in file's issue
-      latest_qc_commit <- get_latest_qc_commit(issue_body = issue$body, num_comments = issue$comments, comments_url = issue$comments_url)
+      init_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
+      latest_qc_commit <- get_latest_qc_commit(issue_body = issue_body,
+                                               num_comments = issue$comments,
+                                               comments_url = issue$comments_url,
+                                               init_qc_commit = init_qc_commit
+                                               )
       debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
 
       # branch from metadata might be different from current branch
-      metadata_branch <- get_branch_from_issue_body(issue$body)
+      metadata_branch <- get_branch_from_issue_body(issue_body)
       # if it is different, don't get git status
       if (metadata_branch != current_branch) {
         if (!check_remote_branch_deleted(metadata_branch)) {
@@ -55,24 +61,53 @@ ghqc_status <- function(milestone_names,
             glue::glue("QC branch: {metadata_branch}")
           ))
           diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
-          return(
-            dplyr::tibble(
-              milestone_name = milestone_name,
-              milestone_with_url = milestone_with_url,
-              file_name = file_name,
-              file_with_url = file_with_url,
-              issue_state = issue_state,
-              qc_status = qc_status,
-              git_status = NA_character_,
-              diagnostics = diagnostics,
-              qcer = qcer
-            )
-          )
+
         } # remote branch not deleted
         else { # else remote branch has been deleted
-          deleted_branch_git_status <- glue::glue("File exists on deleted QC branch")
-          git_statuses[which(git_statuses$file_name == file_name), "git_status"] <- deleted_branch_git_status
+          latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name, repo_url)
+          diagnostics_items <- list(
+            glue::glue("QC branch: {metadata_branch}"),
+            glue::glue("Final QC commit: {latest_qc_commit_short}")
+          )
+
+          merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit
+          if (!is.null(merged_into)) {
+            qc_status <- glue::glue("QC branch merged to {merged_into}")
+            head_commit <- get_head_commit(merged_into)
+            last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, head_commit)$last_commit_that_changed_file
+            if (!is.null(last_commit_that_changed_file)) {
+              last_commit_that_changed_file_short <- get_hyperlinked_commit(last_commit_that_changed_file, file_name, repo_url)
+              commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_commit_that_changed_file)
+              diagnostics_items <- append(diagnostics_items,
+                                          c(glue::glue("Last file change: {last_commit_that_changed_file_short}"),
+                                            commit_diff_url)
+                                          )
+            } # if changed after merged into
+          } # if merged_into
+          else {
+            qc_status <- "QC branch deleted"
+          }
+
+          diagnostics <- format_diagnostics_list(diagnostics_items)
+
+
         } # else remote branch has been deleted
+
+
+
+        return(
+          dplyr::tibble(
+            milestone_name = milestone_name,
+            milestone_with_url = milestone_with_url,
+            file_name = file_name,
+            file_with_url = file_with_url,
+            issue_state = issue_state,
+            qc_status = qc_status,
+            git_status = NA_character_,
+            diagnostics = diagnostics,
+            qcer = qcer
+          )
+        )
 
       } # metadata_branch != current_branch
 
@@ -89,7 +124,7 @@ ghqc_status <- function(milestone_names,
 
       # qc status
       qc_status_info <- tryCatch({
-        repo_url <- stringr::str_extract(file_url, ".*(?=/issues)") # TODO
+
 
         debug(.le$logger, glue::glue("Retrieving QC status info for {file_name}..."))
         start_time <-  Sys.time()
@@ -101,10 +136,12 @@ ghqc_status <- function(milestone_names,
                                   latest_qc_commit = latest_qc_commit,
                                   issue_closed_at = issue$closed_at,
                                   repo_url = repo_url
-        )
+                                  )
+
         end_time <- Sys.time()
         elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
         debug(.le$logger, glue::glue("Retrieved QC status info for {file_name} in {elapsed} seconds"))
+
         qc_status_res
       }, error = function(e) {
         list(
@@ -236,9 +273,9 @@ get_imageless_comments <- function(comments_url) {
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
 
-get_latest_qc_commit <- function(issue_body, num_comments, comments_url) {
+get_latest_qc_commit <- function(issue_body, num_comments, comments_url, init_qc_commit) {
   # start by initializing latest_qc_commit as init qc commit
-  latest_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
+  latest_qc_commit <- init_qc_commit
 
   if (num_comments == 0) {
     return(latest_qc_commit)

@@ -175,3 +175,65 @@ check_remote_branch_deleted <- function(branch_name) {
   return(is_deleted)
 }
 
+find_merged_into <- function(commit_sha) {
+  #get all merge commits in the repo
+  merge_commits <- system2("git", c("rev-list", "--all", "--merges"), stdout = TRUE)
+  if (length(merge_commits) == 0) return(NULL)
+
+  for (merge_commit in merge_commits) {
+    merge_commit <- trimws(merge_commit)
+
+    # get parent 2 (the merged-in branch)
+    parent2 <- tryCatch(
+      system2("git", c("rev-parse", paste0(merge_commit, "^2")), stdout = TRUE),
+      error = function(e) NA_character_
+    )
+
+    if (length(parent2) == 0 || is.na(parent2)) next
+    parent2 <- trimws(parent2)
+
+    # check if the deleted-branch commit is in the ancestry of parent2
+    is_merged <- system2("git", c("merge-base", "--is-ancestor", commit_sha, parent2),
+                         stdout = NULL, stderr = NULL)
+
+    if (is_merged == 0) {
+      # get parent 1 (branch that received the merge)
+      parent1 <- trimws(system2("git", c("rev-parse", paste0(merge_commit, "^1")), stdout = TRUE))
+
+      # find branches that point to parent1 or contain it in history
+      candidate_branches <- system2("git", c("branch", "-r", "--contains", merge_commit), stdout = TRUE)
+      candidate_branches <- trimws(candidate_branches)
+      candidate_branches <- candidate_branches[!grepl("HEAD ->", candidate_branches)]
+
+      # filter to branches where parent1 is in their ancestry
+      merged_to <- NULL
+      for (branch in candidate_branches) {
+        branch_tip <- tryCatch(
+          trimws(system2("git", c("rev-parse", branch), stdout = TRUE)),
+          error = function(e) NA_character_
+        )
+        if (!is.na(branch_tip)) {
+          # is parent1 in this branch's history?
+          reachable <- system2("git", c("merge-base", "--is-ancestor", parent1, branch_tip),
+                               stdout = NULL, stderr = NULL)
+          if (reachable == 0) {
+            merged_to <- branch
+            break
+          }
+        }
+      }
+
+      return(merged_to)
+    }
+  }
+
+  return(NULL)
+}
+
+get_head_commit <- function(branch) {
+  sha <- tryCatch(
+    trimws(system2("git", c("rev-parse", branch), stdout = TRUE)),
+    error = function(e) NA_character_
+  )
+  return(sha)
+}

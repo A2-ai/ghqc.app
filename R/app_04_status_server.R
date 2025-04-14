@@ -384,6 +384,24 @@ ghqc_status_server <- function(id,
       readLines(path, warn = FALSE) %>% paste(collapse = "\n")
     }
 
+    determine_comparator_commit <- function(qc_status) {
+      # if on QC branch, just return the latest remote commit on current branch
+      # else if QC branch was merged, give the latest remote commit on merged-to branch (regardless if there have been file changes since merging)
+      qc_branch_merged <- stringr::str_detect(qc_status, "^QC branch merged to")
+      if (!qc_branch_merged) {
+        remote_commits <- remote_commits_rv()
+        return(remote_commits[1])
+      }
+      else {
+        matches <- stringr::str_match(qc_status, "^QC branch merged to ([^/]+)/(.+)$")
+        remote_name <- matches[2]
+        branch <- matches[3]
+        remote_commits <- get_remote_commits(remote_name, branch)
+        return(remote_commits[1])
+
+      }
+    }
+
     observeEvent(input$show_modal_row, {
       row_index <- input$show_modal_row$row
       df <- filtered_data()
@@ -391,9 +409,11 @@ ghqc_status_server <- function(id,
 
       current_qc_commit <- parse_current_qc_commit(df$Diagnostics[row_index])
       parsed_issue_info <- parse_issue_info(df$File[row_index])
+      comparator_commit <- determine_comparator_commit(df$`QC Status`[row_index])
 
       comment_details(list(
         current_qc_commit = current_qc_commit,
+        comparator_commit = comparator_commit,
         issue_number = parsed_issue_info$issue_number,
         issue_url = parsed_issue_info$issue_url
       ))
@@ -417,9 +437,7 @@ ghqc_status_server <- function(id,
 
     comment_body_string <- reactive({
       details <- comment_details()
-      remote_commits <- remote_commits_rv()
       req(details)
-      req(remote_commits_rv())
 
       tryCatch({
         create_comment_body(
@@ -428,7 +446,7 @@ ghqc_status_server <- function(id,
           message = input$message,
           issue_number = details$issue_number,
           diff = TRUE,
-          comparator_commit = remote_commits[1], # use the most up-to-date remote commit by default
+          comparator_commit = details$comparator_commit,
           reference_commit = details$current_qc_commit,
           remote = remote
         )
@@ -526,9 +544,16 @@ ghqc_status_server <- function(id,
                                        "Uncommented pushed file changes before Issue closure"
                                        )
 
+
       comment <- sapply(1:nrow(df), function(i) {
         row <- df[i, ]
-        if (row$`Issue State` %in% c("Open", "Closed") && row$`QC Status` %in% okay_to_comment_qc_statuses && row$`Git Status` != "File does not exist locally") {
+        qc_branch_merged <- stringr::str_detect(row$`QC Status`, "^QC branch merged to")
+
+        is_an_issue <- row$`Issue State` %in% c("Open", "Closed")
+        has_valid_git_status <- is.na(row$`Git Status`) || row$`Git Status` != "File does not exist locally"
+        has_valid_qc_status <- row$`QC Status` %in% okay_to_comment_qc_statuses || qc_branch_merged
+
+        if (is_an_issue && has_valid_git_status && has_valid_qc_status) {
           button(ns)(i)
         }
         else {
@@ -595,16 +620,29 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("QC in progress", "QC complete", "Relevant file"),
-            c("green", "green", "black"),
-            default = "#a94442"
+            c("QC in progress",
+              "QC complete",
+              "Pull current QC commit",
+              "Comment current QC commit",
+              "Local uncommitted file changes after Issue closure",
+              "Local unpushed commits with file changes after Issue closure",
+              "Pushed file changes after Issue closure",
+              "Uncommented pushed file changes before Issue closure"
+              ),
+            c("green", "green", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            default = "black"
           )
         ) %>%
         # format Git Status column
         DT::formatStyle(
           "Git Status",
           color = DT::styleEqual(
-            c("Up-to-date", "Remote file changes", "File does not exist locally", "Local uncommitted file changes ", "Local unpushed commits with file changes"),
+            c("Up-to-date",
+              "Remote file changes",
+              "File does not exist locally",
+              "Local uncommitted file changes ",
+              "Local unpushed commits with file changes"
+              ),
             c("green", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
