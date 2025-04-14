@@ -470,6 +470,11 @@ get_collaborators <- function(owner, repo) {
   })
 }
 
+get_user <- function() {
+  user <- gh::gh("GET /user", .api_url = .le$github_api_url)
+  return(user$login)
+}
+
 get_branch_from_metadata <- function(owner, repo, issue_number) {
   issue <- get_issue(owner, repo, issue_number)
   get_branch_from_issue_body(issue$body)

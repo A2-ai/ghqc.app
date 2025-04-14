@@ -17,8 +17,18 @@ get_init_qc_commit_from_issue_body <- function(issue_body) {
 
 
 
-create_assignees_list <- function(assignees) {
-  sapply(assignees, function(assignee) glue::glue("@{assignee$login}"))
+create_assignees_list <- function(assignees, issue_creator) {
+  # get user
+  user_login <- get_user()
+  assignee_logins <- sapply(assignees, function(assignee) assignee$login)
+
+  # if user is in the list of assignees, @ issue creator
+  if (user_login %in% assignee_logins) {
+    return(glue::glue("@{issue_creator}"))
+  }
+
+  # else, @ the assignees
+  sapply(assignee_logins, function(assignee_login) glue::glue("@{assignee_login}"))
 }
 
 create_assignees_body <- function(assignees_list) {
@@ -95,7 +105,8 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
-  assignees_list <- create_assignees_list(issue$assignees)
+  assignees_list <- create_assignees_list(assignees = issue$assignees,
+                                          issue_creator = issue$user$login)
   assignees_body <- create_assignees_body(assignees_list)
   debug(.le$logger, glue::glue("Created assignees body"))
 
