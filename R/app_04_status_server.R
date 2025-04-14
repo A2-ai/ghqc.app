@@ -172,10 +172,24 @@ ghqc_status_server <- function(id,
 
       # QC Status Filter
       if (input$qc_status_filter == "On track") {
-        df <- df[df$`QC Status` %in% c("QC in progress", "QC complete"), ]
+        on_track <- c(
+          "QC in progress",
+          "QC complete"
+        )
+        df <- df[df$`QC Status` %in% on_track, ]
       }
       else if (input$qc_status_filter == "Needs attention") {
-        df <- df[!df$`QC Status` %in% c("QC in progress", "QC complete"), ]
+        needs_attention <- c(
+          "Pull current QC commit",
+          "Comment current QC commit",
+          "Local uncommitted file changes after Issue closure",
+          "Local unpushed commits with file changes after Issue closure",
+          "Pushed file changes after Issue closure",
+          "Uncommented pushed file changes before Issue closure"
+          )
+
+        df <- df[df$`QC Status` %in% needs_attention, ]
+
       }
 
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
