@@ -185,6 +185,7 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
 
   # for parsing rmds, need this so quarto setup global options chunk works
   rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
+
   writeLines(rmd_content, con = rmd)
 
   # create pdf from rmd
@@ -301,13 +302,16 @@ create_small_section <- function(section_title, contents) {
 
 insert_breaks <- function(text, width) {
   sapply(text, function(x) {
-    if (nchar(x) > width) {
-      # insert spaces into long words
-      paste(strsplit(x, paste0("(?<=.{", width, "})"), perl = TRUE)[[1]], collapse = "-")
-    } else {
-      x
-    }
-  })
+    words <- strsplit(x, "\\s+")[[1]]
+    broken_words <- sapply(words, function(word) {
+      if (nchar(word) > width) {
+        paste(strsplit(word, paste0("(?<=.{", width, "})"), perl = TRUE)[[1]], collapse = " ")
+      } else {
+        word
+      }
+    })
+    paste(broken_words, collapse = " ")
+  }, USE.NAMES = FALSE)
 }
 
 create_summary_csv <- function(issues, env) {
@@ -318,6 +322,10 @@ create_summary_csv <- function(issues, env) {
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
   summary_df$file_path <- kableExtra::linebreak(summary_df$file_path)
+
+  # wrap Author
+  summary_df$author <- insert_breaks(summary_df$author, 28)
+  summary_df$author <- kableExtra::linebreak(summary_df$author)
 
   summary_csv <- tempfile(fileext = ".csv")
   utils::write.csv(summary_df, file = summary_csv, row.names = FALSE)
@@ -356,6 +364,8 @@ create_intro <- function(repo, milestone_names) {
   author: {author}
   date: {date}
   header-includes:
+  - \\usepackage{{float}}
+  - \\usepackage{{longtable}}
   - \\usepackage{{booktabs}}
   - \\usepackage{{makecell}}
   - \\usepackage{{graphicx}}
@@ -414,11 +424,12 @@ knitr::kable(
   format = \"latex\",
   booktabs = TRUE,
   escape = TRUE,
+  longtable = TRUE,
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
-  kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
-  column_spec(1, width = \"10em\")
-
+  kable_styling(latex_options = c(\"repeat_header\")) %>%
+  column_spec(1, width = \"10em\") %>%
+  column_spec(2, width = \"10em\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -437,6 +448,9 @@ create_set_of_issue_sections <- function(issues, owner, repo, token) {
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
   issue_sections <- glue::glue_collapse(issue_section_strs, sep = "\n\\newpage\n")
+
+  # now want to clean markdown for "---"
+  issue_sections <- stringr::str_replace_all(issue_sections, stringr::fixed("---"), "`---`")
 }
 
 #' @importFrom log4r warn error info debug
@@ -547,7 +561,7 @@ invisible(milestone_df)
 ```
 
 # Milestone Summary
-```{{r, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}}
+```{{r, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}}
 
 table <- milestone_df %>%
 knitr::kable(
@@ -555,11 +569,14 @@ knitr::kable(
   format = \"latex\",
   booktabs = TRUE,
   escape = FALSE,
+  longtable = TRUE,
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
-  kable_styling(latex_options = c(\"hold_position\", \"scale_down\")) %>%
+  kable_styling(latex_options = c(\"repeat_header\")) %>%
   footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
-  column_spec(4, width = \"22em\", latex_valign = \"p\")
+  column_spec(1, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
+  column_spec(2, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
+  column_spec(4, width = \"0.43\\\\\\\\textwidth\", latex_valign = \"p\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -618,15 +635,17 @@ create_milestone_df <- function(milestone_names, owner, repo) {
       desc <- "NA"
     }
 
-    #desc <- insert_breaks(desc, 23) #LB
+    desc <- insert_breaks(desc, 20)
     desc <- kableExtra::linebreak(desc)
     desc <- stringr::str_replace_all(desc, "_", "\\\\_")
     return(desc)
   })
 
   milestone_names <- sapply(milestone_names, function(milestone_name) {
+    milestone_name <- insert_breaks(milestone_name, 18)
     milestone_name <- kableExtra::linebreak(milestone_name)
     milestone_name <- stringr::str_replace_all(milestone_name, "_", "\\\\_")
+
   })
 
   milestone_df <- data.frame(
