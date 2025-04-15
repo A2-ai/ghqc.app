@@ -3,6 +3,7 @@
 - fixes bug in which tables don't hold position in QC Records
 - modifies wrapping in Milestone and Issue summary table columns
 - fixes bug in which "---" isn't escaped in markdown
+- fixes bug in which tables run off the page vertically
 
 # ghqc.app 0.4.15
 

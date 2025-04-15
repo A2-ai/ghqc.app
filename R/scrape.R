@@ -186,7 +186,6 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
   # for parsing rmds, need this so quarto setup global options chunk works
   rmd_content <- stringr::str_replace_all(rmd_content, "```diff", "```{diff}")
 
-  # need to escape --- for rendering too
   writeLines(rmd_content, con = rmd)
 
   # create pdf from rmd
