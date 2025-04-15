@@ -1,3 +1,10 @@
+# ghqc.app 0.4.16
+
+- fixes bug in which tables don't hold position in QC Records
+- modifies wrapping in Milestone and Issue summary table columns
+- fixes bug in which "---" isn't escaped in markdown
+- fixes bug in which tables run off the page vertically
+
 # ghqc.app 0.4.15
 
 - fixes bug in pre-app error checking in which an unset upstream branch is uncaught
