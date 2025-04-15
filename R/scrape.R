@@ -324,6 +324,10 @@ create_summary_csv <- function(issues, env) {
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
   summary_df$file_path <- kableExtra::linebreak(summary_df$file_path)
 
+  # wrap Author
+  summary_df$author <- insert_breaks(summary_df$author, 28)
+  summary_df$author <- kableExtra::linebreak(summary_df$author)
+
   summary_csv <- tempfile(fileext = ".csv")
   utils::write.csv(summary_df, file = summary_csv, row.names = FALSE)
   return(summary_csv)
@@ -421,11 +425,12 @@ knitr::kable(
   format = \"latex\",
   booktabs = TRUE,
   escape = TRUE,
+  longtable = TRUE,
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
-  kable_styling(latex_options = c(\"HOLD_position\", \"scale_down\")) %>%
-  column_spec(1, width = \"10em\")
-
+  kable_styling(latex_options = c(\"repeat_header\")) %>%
+  column_spec(1, width = \"10em\") %>%
+  column_spec(2, width = \"10em\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -570,7 +575,6 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"repeat_header\")) %>%
   footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
-  #column_spec(4, width = \"22em\", latex_valign = \"p\")
   column_spec(1, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(2, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(4, width = \"0.43\\\\\\\\textwidth\", latex_valign = \"p\")
@@ -632,7 +636,7 @@ create_milestone_df <- function(milestone_names, owner, repo) {
       desc <- "NA"
     }
 
-    desc <- insert_breaks(desc, 20) #LB
+    desc <- insert_breaks(desc, 20)
     desc <- kableExtra::linebreak(desc)
     desc <- stringr::str_replace_all(desc, "_", "\\\\_")
     return(desc)
