@@ -239,10 +239,3 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
-get_head_commit <- function(branch) {
-  sha <- tryCatch(
-    trimws(system2("git", c("rev-parse", branch), stdout = TRUE)),
-    error = function(e) NA_character_
-  )
-  return(sha)
-}
