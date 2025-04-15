@@ -73,7 +73,8 @@ ghqc_status <- function(milestone_names,
           merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit
           if (!is.null(merged_into)) {
             qc_status <- glue::glue("QC branch merged to {merged_into}")
-            head_commit <- get_head_commit(merged_into)
+            head_commit <- get_remote_commits_full_name(merged_into)[1]
+
             last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, head_commit)$last_commit_that_changed_file
             if (!is.null(last_commit_that_changed_file)) {
               last_commit_that_changed_file_short <- get_hyperlinked_commit(last_commit_that_changed_file, file_name, repo_url)

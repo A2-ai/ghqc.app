@@ -412,7 +412,6 @@ ghqc_status_server <- function(id,
         branch <- matches[3]
         remote_commits <- get_remote_commits(remote_name, branch)
         return(remote_commits[1])
-
       }
     }
 

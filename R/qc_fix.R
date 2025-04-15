@@ -22,8 +22,9 @@ create_assignees_list <- function(assignees, issue_creator) {
   user_login <- get_user()
   assignee_logins <- sapply(assignees, function(assignee) assignee$login)
 
-  # if user is in the list of assignees, @ issue creator
-  if (user_login %in% assignee_logins) {
+  # if user is in the list of assignees, @ the issue creator
+  # or, if there are no assignees, and the user is not the issue creator, @ the issue creator - the user is probably an unassigned QCer
+  if (user_login %in% assignee_logins || (length(assignee_logins) == 0 && user_login != issue_creator)) {
     return(glue::glue("@{issue_creator}"))
   }
 

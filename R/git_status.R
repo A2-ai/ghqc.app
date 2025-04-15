@@ -164,6 +164,15 @@ get_remote_commits <- function(remote_name, current_branch) {
   return(remote_commit_log$commit)
 }
 
+get_remote_commits_full_name <- function(remote) {
+  remote_log_output <- system(glue::glue("git log {remote} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
+  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  debug(.le$logger, glue::glue("Retrieved remote commit log"))
+
+  return(remote_commit_log$commit)
+}
+
 
 check_remote_branch_deleted <- function(branch_name) {
   remote_refs <- gert::git_remote_ls()
