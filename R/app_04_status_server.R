@@ -540,7 +540,7 @@ ghqc_status_server <- function(id,
       pretty_table <- DT::datatable(
         df,
         escape = FALSE,
-        selection = 'single',
+        selection = "none",
         rownames = FALSE,
         class = "stripe hover compact display",
         filter = 'top',
@@ -554,7 +554,6 @@ ghqc_status_server <- function(id,
           scrollY = "calc(100vh - 240px)",
           scrollCollapse = TRUE,
           destroy = TRUE,
-          order = list(list(which(colnames(df) == "File") - 1, 'asc')), # sort by alphabetical file name
           # this forces the column headers to sync with the columns when the sidebar is closed
           drawCallback = DT::JS("
       function(settings) {
