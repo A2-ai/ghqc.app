@@ -74,7 +74,6 @@ ghqc_status_server <- function(id,
     remote_commits_rv <- reactiveVal(remote_commits)
 
     # comment reactives
-    comment_details <- reactiveVal(NULL)
     post_trigger <- reactiveVal(FALSE)
 
     # cache previously rendered sets of milestones
@@ -193,7 +192,7 @@ ghqc_status_server <- function(id,
       }
 
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
-        df <- df[dirname(df$`File without url`) %in% input$file_directory_filter, ]
+        df <- df[dirname(df$file_name) %in% input$file_directory_filter, ]
       }
 
       df
@@ -216,7 +215,7 @@ ghqc_status_server <- function(id,
 
         if (!key %in% names(repo_cache)) {
           relevant <- relevant_files()
-          files_with_issues <- df$`File without url`
+          files_with_issues <- df$file_name
 
           repo_df <- create_non_issue_repo_files_df(
             files_with_issues = files_with_issues,
@@ -243,7 +242,7 @@ ghqc_status_server <- function(id,
       df <- base_file_list()
 
       if (!is.null(input$file_directory_filter) && length(input$file_directory_filter) > 0) {
-        df <- df[dirname(df$`File without url`) %in% input$file_directory_filter, ]
+        df <- df[dirname(df$file_name) %in% input$file_directory_filter, ]
       }
 
       df
@@ -253,7 +252,7 @@ ghqc_status_server <- function(id,
     file_directories <- reactive({
       debug(.le$logger, "file_directories() triggered")
       df <- base_file_list()
-      files <- df$`File without url`
+      files <- df$file_name
 
       if (is.null(files) || length(files) == 0 || !is.character(files)) {
         return(character(0))
@@ -373,26 +372,6 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
-    parse_current_qc_commit <- function(diagnostics_html) {
-      lines <- stringr::str_split(diagnostics_html, "<li>")[[1]]
-      current_qc_line <- lines[stringr::str_detect(lines, "Current QC commit:|Final QC commit:")]
-      current_qc_commit <- stringr::str_match(current_qc_line, "blob/([a-f0-9]{7,40})")[, 2]
-    }
-
-    parse_issue_info <- function(html_string) {
-      matches <- stringr::str_match(
-        html_string,
-        'href="(https://[^"]+/issues/(\\d+))"'
-      )
-      issue_url <- matches[2]
-      issue_number <- matches[3]
-
-      list(
-        issue_url = issue_url,
-        issue_number = issue_number
-      )
-    }
-
     generate_comment_html <- function(body) {
       path <- create_gfm_file(body)
       readLines(path, warn = FALSE) %>% paste(collapse = "\n")
@@ -420,17 +399,6 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(nrow(df) >= row_index)
 
-      current_qc_commit <- parse_current_qc_commit(df$Diagnostics[row_index])
-      parsed_issue_info <- parse_issue_info(df$File[row_index])
-      comparator_commit <- determine_comparator_commit(df$`QC Status`[row_index])
-
-      comment_details(list(
-        current_qc_commit = current_qc_commit,
-        comparator_commit = comparator_commit,
-        issue_number = parsed_issue_info$issue_number,
-        issue_url = parsed_issue_info$issue_url
-      ))
-
       html <- generate_comment_html(comment_body_string())
 
       showModal(modalDialog(
@@ -449,19 +417,20 @@ ghqc_status_server <- function(id,
 
 
     comment_body_string <- reactive({
-      details <- comment_details()
-      req(details)
+      row_index <- input$show_modal_row$row
+      df <- filtered_data()
+      req(df)
 
       tryCatch({
         create_comment_body(
           owner = org,
           repo = repo,
-          message = input$message,
-          issue_number = details$issue_number,
+          message = NULL,
+          issue_number = df[row_index, ]$issue_number,
           diff = TRUE,
-          comparator_commit = details$comparator_commit,
-          reference_commit = details$current_qc_commit,
-          remote = remote
+          comparator_commit = df[row_index, ]$comparator_commit,
+          reference_commit = df[row_index, ]$latest_qc_commit,
+          remote = remote # TODO
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
@@ -473,17 +442,18 @@ ghqc_status_server <- function(id,
       req(comment_body_string())
       preview_trigger(FALSE)
 
-
       html_file_path <- create_gfm_file(comment_body_string())
       custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
-
-    })
+    }) # preview_comment
 
     post_comment <- reactive({
       req(post_trigger())
       req(comment_body_string())
+      row_index <- input$show_modal_row$row
+      df <- filtered_data()
+      req(df)
+
       post_trigger(FALSE)
-      details <- comment_details()
 
       w_pc <- create_waiter(ns, "Posting comment...")
       w_pc$show()
@@ -493,7 +463,7 @@ ghqc_status_server <- function(id,
         {
           post_resolve_comment(owner = org,
                                repo = repo,
-                               issue_number = details$issue_number,
+                               issue_number = df[row_index, ]$issue_number,
                                body = comment_body_string())
 
           showModal(modalDialog(
@@ -504,14 +474,14 @@ ghqc_status_server <- function(id,
             footer = NULL,
             easyClose = TRUE,
             tags$p("Current QC commit commented successfully."),
-            tags$a(href = details$issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
+            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
           ))
         },
         error = function(e) {
           rlang::abort(conditionMessage(e))
         }
       )
-    })
+    }) # post_comment
 
 
 
@@ -531,14 +501,31 @@ ghqc_status_server <- function(id,
 
 
 
-
     output$status_table <- DT::renderDataTable({
       debug(.le$logger, "status_table re-rendered")
       req(show_table())
       df <- filtered_data()
 
-      # milestone without url and  file without url columns
-      df <- df[, !colnames(df) %in% c("Milestone without url", "File without url")]
+      # add comment button
+      df$Comment <- sapply(1:nrow(df), function(i) {
+        row <- df[i, ]
+
+        if (row$Comment == TRUE) {
+          button(ns)(i)
+        }
+        else {
+          NA_character_
+        }
+
+      })
+
+      # remove info columns
+      df <- df[, !colnames(df) %in% c("milestone_name",
+                                      "file_name",
+                                      "issue_number",
+                                      "latest_qc_commit",
+                                      "comparator_commit",
+                                      "issue_url")]
 
 
       # if only one milestone, don't need milestone column
@@ -549,35 +536,6 @@ ghqc_status_server <- function(id,
       if (!isTruthy(input$show_qcer)) {
         df <- df[, colnames(df) != "QCer", drop = FALSE]
       }
-
-      okay_to_comment_qc_statuses <- c("QC in progress",
-                                       "Comment current QC commit",
-                                       "QC complete",
-                                       "Pushed file changes after Issue closure",
-                                       "Uncommented pushed file changes before Issue closure"
-                                       )
-
-
-      comment <- sapply(1:nrow(df), function(i) {
-        row <- df[i, ]
-        qc_branch_merged <- stringr::str_detect(row$`QC Status`, "^QC branch merged to")
-
-        is_an_issue <- row$`Issue State` %in% c("Open", "Closed")
-        has_valid_git_status <- is.na(row$`Git Status`) || row$`Git Status` == "Up-to-date"
-        has_valid_qc_status <- row$`QC Status` %in% okay_to_comment_qc_statuses || qc_branch_merged
-
-        if (is_an_issue && has_valid_git_status && has_valid_qc_status) {
-          button(ns)(i)
-        }
-        else {
-          NA_character_
-        }
-
-      })
-
-      df <- cbind(df,
-                    Comment = comment,
-                    stringsAsFactors = FALSE)
 
       pretty_table <- DT::datatable(
         df,

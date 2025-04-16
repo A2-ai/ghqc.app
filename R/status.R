@@ -37,7 +37,7 @@ ghqc_status <- function(milestone_names,
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
       file_url <- issue$html_url
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
-      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)") # TODO
+      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
       issue_body <- issue$body
 
       # latest_qc_commit is the most recent commented commit in file's issue
@@ -53,8 +53,14 @@ ghqc_status <- function(milestone_names,
       metadata_branch <- get_branch_from_issue_body(issue_body)
       # if it is different, don't get git status
       if (metadata_branch != current_branch) {
+        # if not on the qc branch, then getting the git status doesn't make sense
+        git_status <- NA_character_
+
+        # QC BRANCH NOT DELETED
         if (!check_remote_branch_deleted(metadata_branch)) {
           qc_status <- "QC Status not available"
+          comparator_commit <- NA_character_
+          okay_to_comment <- FALSE
 
           diagnostics_list <- format_diagnostics_list(list(
             glue::glue("Current branch: {current_branch}"),
@@ -63,6 +69,7 @@ ghqc_status <- function(milestone_names,
           diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
 
         } # remote branch not deleted
+
         else { # else remote branch has been deleted
           latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name, repo_url)
           diagnostics_items <- list(
@@ -70,9 +77,15 @@ ghqc_status <- function(milestone_names,
             glue::glue("Final QC commit: {latest_qc_commit_short}")
           )
 
-          merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit
+          merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit in case current qc commit is from the merged_in branch
+
+          # QC BRANCH MERGED AND DELETED
           if (!is.null(merged_into)) {
             qc_status <- glue::glue("QC branch merged to {merged_into}")
+            comparator_commit <- get_remote_commits_full_name(merged_into)[1] # comparator commit will be the latest remote commit on the merged_into branch
+            okay_to_comment <- get_okay_to_comment_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+
+            # see if file changed after latest qc commit
             head_commit <- get_remote_commits_full_name(merged_into)[1]
 
             last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, head_commit)$last_commit_that_changed_file
@@ -83,18 +96,18 @@ ghqc_status <- function(milestone_names,
                                           c(glue::glue("Last file change: {last_commit_that_changed_file_short}"),
                                             commit_diff_url)
                                           )
-            } # if changed after merged into
+            } # if file changed after latest qc commit
           } # if merged_into
+
+          # QC BRANCH NOT MERGED AND DELETED
           else {
             qc_status <- "QC branch deleted"
+            comparator_commit <- NA_character_
+            okay_to_comment <- FALSE
           }
 
           diagnostics <- format_diagnostics_list(diagnostics_items)
-
-
         } # else remote branch has been deleted
-
-
 
         return(
           dplyr::tibble(
@@ -104,9 +117,14 @@ ghqc_status <- function(milestone_names,
             file_with_url = file_with_url,
             issue_state = issue_state,
             qc_status = qc_status,
-            git_status = NA_character_,
+            git_status = git_status,
             diagnostics = diagnostics,
-            qcer = qcer
+            issue_number = issue_number,
+            latest_qc_commit = latest_qc_commit,
+            comparator_commit = comparator_commit,
+            issue_url = file_url,
+            okay_to_comment = okay_to_comment,
+            qcer = qcer,
           )
         )
 
@@ -159,6 +177,12 @@ ghqc_status <- function(milestone_names,
       all_relevant_files <<- dplyr::bind_rows(all_relevant_files, relevant_files_in_issue)
       debug(.le$logger, glue::glue("Updated relevant files list"))
 
+      # comparator commit is the last remote commit
+      # this is safer than just giving the last commit in which the file changed -
+      # why not just get the whole repo at its present state?
+      comparator_commit <- remote_commits[1]
+      okay_to_comment <- get_okay_to_comment_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+
       # return res
       res <- dplyr::tibble(
         milestone_name = milestone_name,
@@ -169,7 +193,12 @@ ghqc_status <- function(milestone_names,
         qc_status = qc_status,
         git_status = git_status,
         diagnostics = diagnostics,
-        qcer = qcer
+        issue_number = issue_number,
+        latest_qc_commit = latest_qc_commit,
+        comparator_commit = comparator_commit,
+        issue_url = file_url,
+        okay_to_comment = okay_to_comment,
+        qcer = qcer,
       ) # tibble
 
       info(.le$logger, glue::glue("Retrieved QC status for {file_name}"))
@@ -178,11 +207,21 @@ ghqc_status <- function(milestone_names,
     }) # issues_df
   }) # status_df
 
-  # table editing: add filters, sort, etc
-
   # rename columns
-  colnames(status_df) <- c("Milestone without url", "Milestone", "File without url", "File", "Issue State", "QC Status", "Git Status", "Diagnostics", "QCer")
-
+  colnames(status_df) <- c("milestone_name",
+                           "Milestone",
+                           "file_name",
+                           "File",
+                           "Issue State",
+                           "QC Status",
+                           "Git Status",
+                           "Diagnostics",
+                           "issue_number",
+                           "latest_qc_commit",
+                           "comparator_commit",
+                           "issue_url",
+                           "Comment",
+                           "QCer")
   # make factors
   status_df <- status_df %>%
     dplyr::mutate(across(
@@ -253,15 +292,20 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
     } # qc_status_info
 
     dplyr::tibble(
-      `Milestone without url` = "No Milestone",
+      milestone_name = "No Milestone",
       Milestone = "No Milestone",
-      `File without url` = file,
+      file_name = file,
       File = file,
       `Issue State` = "No Issue",
       `QC Status` = qc_status_info$qc_status,
       `Git Status` = git_status,
       Diagnostics = qc_status_info$diagnostics,
-      QCer = NA_character_
+      issue_number = NA_character_,
+      latest_qc_commit = NA_character_,
+      comparator_commit = NA_character_,
+      issue_url = NA_character_,
+      okay_to_comment = FALSE,
+      QCer = NA_character_,
     )
   })
 } # create_non_issue_repo_files_df

@@ -239,3 +239,22 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
+get_okay_to_comment_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
+  okay_to_comment_qc_statuses <- c("QC in progress",
+                                   "Comment current QC commit",
+                                   "QC complete",
+                                   "Pushed file changes after Issue closure",
+                                   "Uncommented pushed file changes before Issue closure"
+  )
+
+  qc_branch_merged <- stringr::str_detect(qc_status, "^QC branch merged to")
+
+  has_valid_git_status <- is.na(git_status) || git_status == "Up-to-date" # allowing git status to be NA in case when QC branch deleted and merged
+  has_valid_qc_status <- qc_status %in% okay_to_comment_qc_statuses || qc_branch_merged
+
+  # comparator commit cannot be qc commit (it would be redundant to comment the same commit twice)
+  possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
+
+  okay_to_comment <- has_valid_git_status && has_valid_qc_status && possible_updates
+  return(okay_to_comment)
+}
