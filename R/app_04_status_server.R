@@ -563,7 +563,7 @@ ghqc_status_server <- function(id,
         qc_branch_merged <- stringr::str_detect(row$`QC Status`, "^QC branch merged to")
 
         is_an_issue <- row$`Issue State` %in% c("Open", "Closed")
-        has_valid_git_status <- is.na(row$`Git Status`) || row$`Git Status` != "File does not exist locally"
+        has_valid_git_status <- is.na(row$`Git Status`) || row$`Git Status` == "Up-to-date"
         has_valid_qc_status <- row$`QC Status` %in% okay_to_comment_qc_statuses || qc_branch_merged
 
         if (is_an_issue && has_valid_git_status && has_valid_qc_status) {
@@ -653,7 +653,7 @@ ghqc_status_server <- function(id,
             c("Up-to-date",
               "Remote file changes",
               "File does not exist locally",
-              "Local uncommitted file changes ",
+              "Local uncommitted file changes",
               "Local unpushed commits with file changes"
               ),
             c("green", "#a94442", "#a94442", "#a94442", "#a94442"),
