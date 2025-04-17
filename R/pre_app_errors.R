@@ -2,6 +2,12 @@ rproj_root_dir <- function() {
   tryCatch(
     {
       root_dir <- rprojroot::find_rstudio_root_file()
+
+      if (getwd() != root_dir) {
+        setwd(root_dir)
+        info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
+      }
+
       return(root_dir)
     },
     error = function(e) {
@@ -80,7 +86,7 @@ get_open_milestone_list_errors <- function(org, repo) {
 get_all_milestone_list_errors <- function(org, repo) {
   tryCatch(
     {
-      all_milestones <- list_milestones(org = org, repo = repo)
+      all_milestones <- list_ghqc_milestone_names(org = org, repo = repo)
       rev(all_milestones)
     },
     error = function(e) {

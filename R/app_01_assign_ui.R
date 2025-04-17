@@ -42,15 +42,25 @@ ghqc_assign_ui <- function(id) {
       ),
       div(
         id = ns("content"),
+        style = "display: flex; flex-direction: row;",
+
         uiOutput(ns("sidebar")),
+        # div(
+        #   id = ns("sidebar_container"),
+        #   style = "width: 120px; min-width: 100px; max-width: 200px; flex-shrink: 0; background-color: #f5f5f5;",
+        #   uiOutput(ns("sidebar"))
+        # ),
+
         div(
           id = ns("divider"),
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-        miniContentPanel(tagList(
-          uiOutput(ns("main_panel_static")),  # Static button
-          uiOutput(ns("main_panel_dynamic"))  # Reactive content
-        ))
+
+        div(
+          style = "flex-grow: 1; overflow: auto; padding: 10px;",
+          uiOutput(ns("main_panel_static")),
+          uiOutput(ns("main_panel_dynamic"))
+        )
       ),
       div(
         class = "button_block",

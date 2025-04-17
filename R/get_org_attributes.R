@@ -92,7 +92,7 @@ get_closed_milestone_names <- function(org, repo) {
 }
 
 #' @importFrom log4r warn error info debug
-list_milestones <- function(org, repo) {
+list_ghqc_milestones <- function(org, repo) {
   debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {org}, repo {repo}..."))
   milestones <- get_all_milestone_objects(org, repo)
   info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {repo}"))
@@ -100,7 +100,12 @@ list_milestones <- function(org, repo) {
   info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {repo}"))
   non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
   info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty ghqc Milestone(s) in repo {repo}"))
-  res <- purrr::map_chr(non_empty_milestones, "title")
+  return(non_empty_milestones)
+}
+
+list_ghqc_milestone_names <- function(org, repo) {
+  ghqc_milestones <- list_ghqc_milestones(org, repo)
+  res <- purrr::map_chr(ghqc_milestones, "title")
   return(res)
 }
 
@@ -461,6 +466,33 @@ get_collaborators <- function(owner, repo) {
     return(members_df)
   }, error = function(e) {
     error(.le$logger, glue::glue("No collaborators found in {owner}/{repo}"))
+    rlang::abort(conditionMessage(e))
+  })
+}
+
+get_user <- function() {
+  user <- gh::gh("GET /user", .api_url = .le$github_api_url)
+  return(user$login)
+}
+
+get_branch_from_metadata <- function(owner, repo, issue_number) {
+  issue <- get_issue(owner, repo, issue_number)
+  get_branch_from_issue_body(issue$body)
+}
+
+get_branch_from_issue_body <- function(issue_body) {
+  tryCatch({
+    text <- get_issue_body_metadata(issue_body)$`git branch`
+    branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
+
+    if (length(branch) == 0) {
+      shiny::stopApp()
+      rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
+    }
+
+    return(branch)
+  }, error = function(e) {
+    shiny::stopApp()
     rlang::abort(conditionMessage(e))
   })
 }
