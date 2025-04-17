@@ -51,6 +51,16 @@ ghqc_status_app <- function(milestones = NULL) {
   local_commits <- get_local_commits()
   remote_commits <- get_remote_commits(remote_name, current_branch)
 
+  ahead_behind_status <- check_ahead_behind()
+  # get files with remote changes
+  files_changed_in_remote_commits <- get_files_changed_in_remote_commits(remote_commits, ahead_behind_status)
+
+  # get files with local unpushed commits
+  files_changed_in_unpushed_local_commits <- get_files_changed_in_unpushed_local_commits(local_commits, ahead_behind_status)
+
+  # get files with local uncommitted file changes
+  files_with_uncommitted_local_changes <- get_files_with_uncommitted_local_changes()
+
   app <- shinyApp(
     ui = ghqc_status_ui(
       id = "ghqc_status_app"
@@ -65,7 +75,11 @@ ghqc_status_app <- function(milestones = NULL) {
         local_commits,
         remote_commits,
         current_branch,
-        remote
+        remote,
+        ahead_behind_status,
+        files_changed_in_remote_commits,
+        files_changed_in_unpushed_local_commits,
+        files_with_uncommitted_local_changes
       )
     }
   )

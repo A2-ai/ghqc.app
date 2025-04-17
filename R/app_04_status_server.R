@@ -16,7 +16,11 @@ ghqc_status_server <- function(id,
                                local_commits,
                                remote_commits,
                                current_branch,
-                               remote) {
+                               remote,
+                               ahead_behind_status,
+                               files_changed_in_remote_commits,
+                               files_changed_in_unpushed_local_commits,
+                               files_with_uncommitted_local_changes) {
 
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -39,7 +43,12 @@ ghqc_status_server <- function(id,
           local_commits,
           remote_commits,
           current_branch,
-          remote)
+          remote,
+          ahead_behind_status,
+          files_changed_in_remote_commits,
+          files_changed_in_unpushed_local_commits,
+          files_with_uncommitted_local_changes
+          )
     })
 
     # makes sure the column headers re-align with the columns when sidebar is toggled in and out
@@ -72,6 +81,10 @@ ghqc_status_server <- function(id,
     current_branch_rv <- reactiveVal(current_branch)
     local_commits_rv <- reactiveVal(local_commits)
     remote_commits_rv <- reactiveVal(remote_commits)
+    ahead_behind_status_rv <- reactiveVal(ahead_behind_status)
+    files_changed_in_remote_commits_rv <- reactiveVal(files_changed_in_remote_commits)
+    files_changed_in_unpushed_local_commits_rv <- reactiveVal(files_changed_in_unpushed_local_commits)
+    files_with_uncommitted_local_changes_rv <- reactiveVal(files_with_uncommitted_local_changes)
 
     # comment reactives
     post_trigger <- reactiveVal(FALSE)
@@ -105,7 +118,7 @@ ghqc_status_server <- function(id,
       input$selected_milestones
     })
 
-    selected_debounced <- selected_raw %>% debounce(1000)
+    selected_debounced <- selected_raw %>% debounce(2000)
 
 
 
@@ -129,7 +142,10 @@ ghqc_status_server <- function(id,
             current_branch_rv(),
             local_commits_rv(),
             remote_commits_rv(),
-            include_non_issue_repo_files = FALSE
+            ahead_behind_status_rv(),
+            files_changed_in_remote_commits_rv(),
+            files_changed_in_unpushed_local_commits_rv(),
+            files_with_uncommitted_local_changes_rv()
           )
           cache[[milestone]] <- list(
             status = result$status,
@@ -683,9 +699,14 @@ ghqc_status_server <- function(id,
         )
       })
 
+      # recompute reactiveVal variables
       current_branch_rv(gert::git_branch())
       local_commits_rv(get_local_commits())
       remote_commits_rv(get_remote_commits(remote$name, current_branch_rv()))
+      ahead_behind_status_rv <- reactiveVal(check_ahead_behind())
+      files_changed_in_remote_commits_rv <- reactiveVal(get_files_changed_in_remote_commits(remote_commits_rv(), ahead_behind_status_rv()))
+      files_changed_in_unpushed_local_commits_rv <- reactiveVal(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
+      files_with_uncommitted_local_changes_rv <- reactiveVal(get_files_with_uncommitted_local_changes())
 
       shinyjs::delay(300, {
         show_table(TRUE)

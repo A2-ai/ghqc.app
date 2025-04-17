@@ -7,7 +7,11 @@ ghqc_status <- function(milestone_names,
                         current_branch,
                         local_commits,
                         remote_commits,
-                        include_non_issue_repo_files) {
+                        ahead_behind_status,
+                        files_changed_in_remote_commits,
+                        files_changed_in_unpushed_local_commits,
+                        files_with_uncommitted_local_changes
+                        ) {
 
   total_start_time <- Sys.time()
 
@@ -20,7 +24,11 @@ ghqc_status <- function(milestone_names,
     start_time_git <- Sys.time()
     git_statuses <- get_git_statuses(files = files,
                                      local_commits = local_commits,
-                                     remote_commits = remote_commits
+                                     remote_commits = remote_commits,
+                                     ahead_behind_status = ahead_behind_status,
+                                     files_changed_in_remote_commits = files_changed_in_remote_commits,
+                                     files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
+                                     files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
                                      )
     end_time_git <- Sys.time()
     elapsed_git <- round(as.numeric(difftime(end_time_git, start_time_git, units = "secs")), 3)
@@ -86,9 +94,7 @@ ghqc_status <- function(milestone_names,
             okay_to_comment <- get_okay_to_comment_column(qc_status, git_status, latest_qc_commit, comparator_commit)
 
             # see if file changed after latest qc commit
-            head_commit <- get_remote_commits_full_name(merged_into)[1]
-
-            last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, head_commit)$last_commit_that_changed_file
+            last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, comparator_commit)$last_commit_that_changed_file
             if (!is.null(last_commit_that_changed_file)) {
               last_commit_that_changed_file_short <- get_hyperlinked_commit(last_commit_that_changed_file, file_name, repo_url)
               commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_commit_that_changed_file)

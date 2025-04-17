@@ -1,14 +1,11 @@
-get_git_statuses <- function(files, local_commits, remote_commits) {
-  ahead_behind_status <- check_ahead_behind()
-
-  # get files with remote changes
-  files_changed_in_remote_commits <- get_files_changed_in_remote_commits(remote_commits, ahead_behind_status)
-
-  # get files with local unpushed commits
-  files_changed_in_unpushed_local_commits <- get_files_changed_in_unpushed_local_commits(local_commits, ahead_behind_status)
-
-  # get files with local uncommitted file changes
-  files_with_uncommitted_local_changes <- get_files_with_uncommitted_local_changes()
+get_git_statuses <- function(files,
+                             local_commits,
+                             remote_commits,
+                             ahead_behind_status,
+                             files_changed_in_remote_commits,
+                             files_changed_in_unpushed_local_commits,
+                             files_with_uncommitted_local_changes
+                             ) {
 
   # get files that exist locally
   files_exist_locally <- fs::file_exists(files)
