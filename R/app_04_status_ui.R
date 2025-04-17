@@ -76,12 +76,12 @@ div[id$='-sidebar'] {
     border-right: none !important;
   }
 ")),
-      tags$style(HTML("
-  .dataTables_wrapper .dataTables_scrollBody {
-    height: auto !important;
-    max-height: none !important;
-  }
-"))
+#       tags$style(HTML("
+#   .dataTables_wrapper .dataTables_scrollBody {
+#     height: auto !important;
+#     max-height: none !important;
+#   }
+# "))
     ), # tags$head
     waiter_show_on_load(
       html = tagList(
