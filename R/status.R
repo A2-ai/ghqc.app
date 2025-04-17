@@ -246,7 +246,15 @@ ghqc_status <- function(milestone_names,
 } # ghqc_status
 
 
-create_non_issue_repo_files_df <- function(files_with_issues, local_commits, remote_commits, all_relevant_files, selected_dirs) {
+create_non_issue_repo_files_df <- function(files_with_issues,
+                                           local_commits,
+                                           remote_commits,
+                                           all_relevant_files,
+                                           selected_dirs,
+                                           ahead_behind_status,
+                                           files_changed_in_remote_commits,
+                                           files_changed_in_unpushed_local_commits,
+                                           files_with_uncommitted_local_changes) {
 
   files_with_issues <- unique(files_with_issues)
 
@@ -261,7 +269,11 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
 
   git_statuses <- get_git_statuses(files = files_in_selected_dirs,
                                    local_commits = local_commits,
-                                   remote_commits = remote_commits
+                                   remote_commits = remote_commits,
+                                   ahead_behind_status = ahead_behind_status,
+                                   files_changed_in_remote_commits = files_changed_in_remote_commits,
+                                   files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
+                                   files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
                                    )
 
 
@@ -310,7 +322,7 @@ create_non_issue_repo_files_df <- function(files_with_issues, local_commits, rem
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      okay_to_comment = FALSE,
+      Comment = FALSE,
       QCer = NA_character_,
     )
   })

@@ -229,7 +229,11 @@ ghqc_status_server <- function(id,
             local_commits = local_commits_rv(),
             remote_commits = remote_commits_rv(),
             all_relevant_files = relevant,
-            selected_dirs = selected_dirs
+            selected_dirs = selected_dirs,
+            ahead_behind_status = ahead_behind_status_rv(),
+            files_changed_in_remote_commits = files_changed_in_remote_commits_rv(),
+            files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits_rv(),
+            files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
           )
 
           repo_cache[[key]] <- repo_df
