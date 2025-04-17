@@ -89,6 +89,7 @@ ghqc_status_server <- function(id,
     # comment reactives
     post_trigger <- reactiveVal(FALSE)
 
+
     # cache previously rendered sets of milestones
     milestone_key <- function(milestones) {
       paste(sort(milestones), collapse = "|")
@@ -388,17 +389,13 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
-    generate_comment_html <- function(body) {
-      path <- create_gfm_file(body)
-      readLines(path, warn = FALSE) %>% paste(collapse = "\n")
-    }
-
     observeEvent(input$show_modal_row, {
       row_index <- input$show_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
 
-      html <- generate_comment_html(comment_body_string())
+      path <- create_gfm_file(comment_body_string())
+      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
 
       showModal(modalDialog(
         title = tags$div(
@@ -433,15 +430,6 @@ ghqc_status_server <- function(id,
         rlang::abort(conditionMessage(e))
       })
     })
-
-    preview_comment <- reactive({
-      req(preview_trigger())
-      req(comment_body_string())
-      preview_trigger(FALSE)
-
-      html_file_path <- create_gfm_file(comment_body_string())
-      custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
-    }) # preview_comment
 
     post_comment <- reactive({
       req(post_trigger())
@@ -644,7 +632,7 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$dismiss_modal, {
-      debug(.le$logger, "Dismiss clicked – resetting app")
+      debug(.le$logger, "Dismiss clicked - resetting app")
       removeModal()
       reset_app()
     }, ignoreInit = TRUE)
