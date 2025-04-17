@@ -136,6 +136,7 @@ ghqc_status_server <- function(id,
         w$show()
         for (milestone in missing) {
           debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
+
           result <- ghqc_status(
             milestone_names = milestone,
             org,
@@ -667,10 +668,10 @@ ghqc_status_server <- function(id,
       current_branch_rv(gert::git_branch())
       local_commits_rv(get_local_commits())
       remote_commits_rv(get_remote_commits(remote$name, current_branch_rv()))
-      ahead_behind_status_rv <- reactiveVal(check_ahead_behind())
-      files_changed_in_remote_commits_rv <- reactiveVal(get_files_changed_in_remote_commits(remote_commits_rv(), ahead_behind_status_rv()))
-      files_changed_in_unpushed_local_commits_rv <- reactiveVal(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
-      files_with_uncommitted_local_changes_rv <- reactiveVal(get_files_with_uncommitted_local_changes())
+      ahead_behind_status_rv(check_ahead_behind())
+      files_changed_in_remote_commits_rv(get_files_changed_in_remote_commits(remote_commits_rv(), ahead_behind_status_rv()))
+      files_changed_in_unpushed_local_commits_rv(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
+      files_with_uncommitted_local_changes_rv(get_files_with_uncommitted_local_changes())
 
       shinyjs::delay(300, {
         show_table(TRUE)
