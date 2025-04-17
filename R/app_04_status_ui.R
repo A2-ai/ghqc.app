@@ -75,6 +75,12 @@ div[id$='-sidebar'] {
     border-left: none !important;
     border-right: none !important;
   }
+")),
+      tags$style(HTML("
+  .dataTables_wrapper .dataTables_scrollBody {
+    height: auto !important;
+    max-height: none !important;
+  }
 "))
     ), # tags$head
     waiter_show_on_load(
