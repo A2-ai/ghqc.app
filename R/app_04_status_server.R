@@ -522,7 +522,31 @@ ghqc_status_server <- function(id,
           searching = TRUE,
           info = TRUE,
           dom = 'fit',
-          scrollCollapse = TRUE
+          scrollCollapse = TRUE,
+          drawCallback = DT::JS(glue::glue("
+  function(settings) {{
+    var table = this.api();
+
+    function fixHeaderAlignment() {{
+      table.columns.adjust();
+    }}
+
+    // Slight delay to allow sidebar collapse animation to complete
+    setTimeout(fixHeaderAlignment, 300);
+
+    $(window).off('resize.dt').on('resize.dt', function() {{
+      fixHeaderAlignment();
+    }});
+
+    // Observe sidebar if it exists
+    const sidebar = document.querySelector('[id$=\"-sidebar\"]');
+    if (sidebar && typeof ResizeObserver !== 'undefined') {{
+      new ResizeObserver(() => {{
+        setTimeout(fixHeaderAlignment, 300);
+      }}).observe(sidebar);
+    }}
+  }}
+"))
         )
       ) %>%
         # format Issue State column
