@@ -533,7 +533,7 @@ ghqc_status_server <- function(id,
           searching = TRUE,
           info = TRUE,
           dom = 'fit',
-          scrollY = "calc(100vh - 240px)",
+          #scrollY = "calc(100vh - 240px)",
           scrollCollapse = TRUE,
           destroy = TRUE,
           # this forces the column headers to sync with the columns when the sidebar is closed
