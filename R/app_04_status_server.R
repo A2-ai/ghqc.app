@@ -393,23 +393,6 @@ ghqc_status_server <- function(id,
       readLines(path, warn = FALSE) %>% paste(collapse = "\n")
     }
 
-    determine_comparator_commit <- function(qc_status) {
-      # if on QC branch, just return the latest remote commit on current branch
-      # else if QC branch was merged, give the latest remote commit on merged-to branch (regardless if there have been file changes since merging)
-      qc_branch_merged <- stringr::str_detect(qc_status, "^QC branch merged to")
-      if (!qc_branch_merged) {
-        remote_commits <- remote_commits_rv()
-        return(remote_commits[1])
-      }
-      else {
-        matches <- stringr::str_match(qc_status, "^QC branch merged to ([^/]+)/(.+)$")
-        remote_name <- matches[2]
-        branch <- matches[3]
-        remote_commits <- get_remote_commits(remote_name, branch)
-        return(remote_commits[1])
-      }
-    }
-
     observeEvent(input$show_modal_row, {
       row_index <- input$show_modal_row$row
       df <- filtered_data()
@@ -429,8 +412,6 @@ ghqc_status_server <- function(id,
         HTML(html)
       ))
     })
-
-
 
     comment_body_string <- reactive({
       row_index <- input$show_modal_row$row
@@ -499,8 +480,6 @@ ghqc_status_server <- function(id,
       )
     }) # post_comment
 
-
-
     observeEvent(show_table(), {
       if (show_table()) {
         output$main_panel_dynamic <- renderUI({
@@ -514,8 +493,6 @@ ghqc_status_server <- function(id,
         output$main_panel_dynamic <- renderUI({ NULL })
       }
     })
-
-
 
     output$status_table <- DT::renderDataTable({
       debug(.le$logger, "status_table re-rendered")
@@ -594,7 +571,6 @@ ghqc_status_server <- function(id,
       }
     ")
         )
-
       ) %>%
         # format Issue State column
         DT::formatStyle(
