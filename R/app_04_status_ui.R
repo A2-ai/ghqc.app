@@ -80,6 +80,7 @@ div[id$='-sidebar'] {
   .dataTables_wrapper .dataTables_scrollBody {
     height: auto !important;
     max-height: none !important;
+    min-height: 200px !important;
   }
 "))
     ), # tags$head
