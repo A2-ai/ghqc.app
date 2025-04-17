@@ -1,6 +1,7 @@
 # ghqc.app 0.4.17
 
 - allows binary files to be assigned in `ghqc_assign_app()`
+- fixes bug in which file names with spaces aren't recognized
 
 # ghqc.app 0.4.16
 

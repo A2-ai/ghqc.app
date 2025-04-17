@@ -121,7 +121,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   file_at_comparator <- tempfile(tmpdir = file_diff_dir)
 
   # get reference file contents
-  command_ref <- glue::glue("git show {reference}:{file_path} > {file_at_reference}")
+  command_ref <- glue::glue("git show {reference}:\"{file_path}\" > {file_at_reference}")
   result_ref <- processx::run("sh", c("-c", command_ref), error_on_status = FALSE)
 
   if (result_ref$status != 0) {
@@ -134,7 +134,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   }
 
   # get reference file contents
-  command_comp <- glue::glue("git show {comparator}:{file_path} > {file_at_comparator}")
+  command_comp <- glue::glue("git show {comparator}:\"{file_path}\" > {file_at_comparator}")
   result_comp <- processx::run("sh", c("-c", command_comp), error_on_status = FALSE)
 
   if (result_comp$status != 0) {
