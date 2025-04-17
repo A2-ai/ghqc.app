@@ -1,3 +1,7 @@
+# ghqc.app 0.4.17
+
+- allows binary files to be assigned in `ghqc_assign_app()`
+
 # ghqc.app 0.4.16
 
 - fixes bug in which tables don't hold position in QC Records
