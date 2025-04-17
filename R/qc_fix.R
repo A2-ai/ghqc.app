@@ -102,6 +102,11 @@ create_comment_body <- function(owner,
     log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
   }
 
+  # if is a binary file, don't display git diff
+  if (stringr::str_detect(issue$title, exclude_patterns())) {
+    diff <- FALSE
+  }
+
   # log
   debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
 

@@ -39,7 +39,10 @@ ghqc_resolve_ui <- function(id) {
           selectInput(ns("select_milestone"), "Filter Issues by Milestone", choices = "", multiple = FALSE),
           selectInput(ns("select_issue"), "Select Issue", choices = "", multiple = FALSE),
           textAreaInput(ns("message"), "Message", "", placeholder = "(optional)"),
-          checkboxInput(ns("show_diff"), "Show file difference", TRUE),
+          div(
+            id = ns("show_diff_wrap"),
+            checkboxInput(ns("show_diff"), "Show file difference", TRUE)
+          ),
           radioButtons(ns("compare"), "Compare file versions:",
             inline = TRUE,
             choices = c(

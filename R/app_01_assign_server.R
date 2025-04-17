@@ -32,7 +32,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     id,
     rootFolder = root_dir_reactive,
     search = FALSE,
-    pattern = exclude_patterns(),
+    #pattern = exclude_patterns(),
     all.files = FALSE
   )
 
