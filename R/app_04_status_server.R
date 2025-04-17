@@ -51,17 +51,6 @@ ghqc_status_server <- function(id,
           )
     })
 
-    # makes sure the column headers re-align with the columns when sidebar is toggled in and out
-    # observeEvent(input$toggle_sidebar, {
-    #   show_table(FALSE)
-    #
-    #   shinyjs::delay(150, {
-    #     session$onFlushed(function() {
-    #       show_table(TRUE)
-    #     }, once = TRUE)
-    #   })
-    # })
-
     w <- waiter::Waiter$new(
       id = ns("main_container"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
@@ -533,32 +522,7 @@ ghqc_status_server <- function(id,
           searching = TRUE,
           info = TRUE,
           dom = 'fit',
-          #scrollY = "calc(100vh - 240px)",
-          scrollCollapse = TRUE#,
-          #destroy = TRUE#,
-          # this forces the column headers to sync with the columns when the sidebar is closed
-    #       drawCallback = DT::JS("
-    #   function(settings) {
-    #     var table = this.api();
-    #
-    #     function fixHeaderAlignment() {
-    #       table.columns.adjust();
-    #     }
-    #
-    #     setTimeout(fixHeaderAlignment, 300);
-    #
-    #     $(window).off('resize.dt').on('resize.dt', function() {
-    #       fixHeaderAlignment();
-    #     });
-    #
-    #     const sidebar = document.querySelector('[id$=\"-sidebar\"]');
-    #     if (sidebar && typeof ResizeObserver !== 'undefined') {
-    #       new ResizeObserver(() => {
-    #         setTimeout(fixHeaderAlignment, 300);
-    #       }).observe(sidebar);
-    #     }
-    #   }
-    # ")
+          scrollCollapse = TRUE
         )
       ) %>%
         # format Issue State column
