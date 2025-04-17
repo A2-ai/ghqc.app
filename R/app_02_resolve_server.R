@@ -394,6 +394,9 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
       if (isTruthy(input$select_issue)) {
         debug(.le$logger, glue::glue("comment buttons are activated because there is an Issue selected: {input$select_issue}"))
+        is_binary <- stringr::str_detect(input$select_issue, exclude_patterns())
+        shinyjs::toggle(id = "show_diff_wrap", condition = !is_binary)
+
 
         removeClass("preview", "disabled-btn")
         addClass("preview", "enabled-btn")

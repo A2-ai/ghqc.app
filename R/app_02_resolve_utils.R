@@ -21,7 +21,7 @@ convert_issue_df_format <- function(issue_df) {
   debug(.le$logger, "Converting Issue data frame format to named list")
 
   issues_df <- map_df(issue_df, function(.x) {
-    tibble(
+    dplyr::tibble(
       number = .x$number,
       title = .x$title,
       state = .x$state

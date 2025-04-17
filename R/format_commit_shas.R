@@ -9,7 +9,6 @@
 
 #' @importFrom rlang .data
 get_commits_df <- function(issue_number, owner, repo, remote) {
-
   init_qc_commit <- get_init_qc_commit(owner, repo, issue_number)
   metadata_branch <- get_branch_from_metadata(owner, repo, issue_number)
   remote_name <- remote$name

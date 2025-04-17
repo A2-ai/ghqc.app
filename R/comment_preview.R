@@ -23,7 +23,6 @@ create_gfm_file <- function(comment_body) {
     rmarkdown::render(rmd_path, output_format = "github_document", clean = TRUE, quiet = TRUE)
   })
 
-  # withr::defer_parent(fs::file_delete(rmd_path))
   withr::defer(fs::file_delete(html_path))
   withr::defer(fs::file_delete(md_path))
 
@@ -33,12 +32,6 @@ create_gfm_file <- function(comment_body) {
 }
 
 modify_html <- function(html_file) {
-  # replace_css_class <- function(node, prefix, new_class) {
-  #   if (startsWith(xml2::xml_text(node), prefix)) {
-  #     xml2::xml_set_attr(node, "class", new_class)
-  #   }
-  # }
-
   replace_css_class <- function(node) {
     node_text <- xml2::xml_text(node)
     if (startsWith(node_text, "@@")) {

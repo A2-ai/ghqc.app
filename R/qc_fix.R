@@ -1,36 +1,35 @@
 get_init_qc_commit <- function(owner, repo, issue_number) {
   issue <- get_issue(owner, repo, issue_number)
-  init_commit <- get_metadata(issue$body)$`initial qc commit`
+  get_init_qc_commit_from_issue_body(issue$body)
+
+}
+
+get_init_qc_commit_from_issue_body <- function(issue_body) {
+  init_commit <- get_issue_body_metadata(issue_body)$`initial qc commit`
   if (is.null(init_commit)) {
-    init_commit <- get_metadata(issue$body)$`git sha`
+    init_commit <- get_issue_body_metadata(issue_body)$`git sha`
   }
   if (is.null(init_commit)) {
-    init_commit <- get_metadata(issue$body)$`git_sha`
+    init_commit <- get_issue_body_metadata(issue_body)$`git_sha`
   }
   return(init_commit)
 }
 
-get_branch_from_metadata <- function(owner, repo, issue_number) {
-  tryCatch({
-    issue <- get_issue(owner, repo, issue_number)
-    text <- get_metadata(issue$body)$`git branch`
-    branch <- stringr::str_match(text, "\\[(.*?)\\]")[, 2]
 
-    if (length(branch) == 0) {
-      shiny::stopApp()
-      rlang::abort(glue::glue("git branch not present in metadata of Issue #{issue_number} body"))
-    }
 
-    return(branch)
-  }, error = function(e) {
-    shiny::stopApp()
-    rlang::abort(conditionMessage(e))
-  })
+create_assignees_list <- function(assignees, issue_creator) {
+  # get user
+  user_login <- get_user()
+  assignee_logins <- sapply(assignees, function(assignee) assignee$login)
 
-}
+  # if user is in the list of assignees, @ the issue creator
+  # or, if there are no assignees, and the user is not the issue creator, @ the issue creator - the user is probably an unassigned QCer
+  if (user_login %in% assignee_logins || (length(assignee_logins) == 0 && user_login != issue_creator)) {
+    return(glue::glue("@{issue_creator}"))
+  }
 
-create_assignees_list <- function(assignees) {
-  sapply(assignees, function(assignee) glue::glue("@{assignee$login}"))
+  # else, @ the assignees
+  sapply(assignee_logins, function(assignee_login) glue::glue("@{assignee_login}"))
 }
 
 create_assignees_body <- function(assignees_list) {
@@ -103,11 +102,17 @@ create_comment_body <- function(owner,
     log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
   }
 
+  # if is a binary file, don't display git diff
+  if (stringr::str_detect(issue$title, exclude_patterns())) {
+    diff <- FALSE
+  }
+
   # log
   debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
-  assignees_list <- create_assignees_list(issue$assignees)
+  assignees_list <- create_assignees_list(assignees = issue$assignees,
+                                          issue_creator = issue$user$login)
   assignees_body <- create_assignees_body(assignees_list)
   debug(.le$logger, glue::glue("Created assignees body"))
 

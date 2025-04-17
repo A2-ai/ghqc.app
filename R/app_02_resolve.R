@@ -21,15 +21,10 @@ ghqc_resolve_app <- function() {
   repo <- get_repo_errors(remote)
   milestone_list <- get_open_milestone_list_errors(org = org, repo = repo)
 
+  # error if no open ghqc milestones
   if (length(milestone_list) == 0) {
-    error(.le$logger, glue::glue("There were no open Milestones found in {org}/{repo}"))
-    rlang::abort("No open Milestones found")
-  }
-
-  # error if no open milestones
-  if (length(milestone_list) == 0) {
-    error(.le$logger, glue::glue("There were no open Milestones found in {org}/{repo}. Please use the Assign app before using the Resolve app."))
-    rlang::abort("There were no open Milestones found.")
+    error(.le$logger, glue::glue("There were no open ghqc Milestones found in {org}/{repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
+    rlang::abort("There were no open ghqc Milestones found.")
   }
 
   # fetch for other branches that might not be present locally

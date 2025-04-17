@@ -237,7 +237,7 @@ markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, loc
 get_summary_table_col_vals <- function(issue) {
   metadata <- {
     tryCatch({
-      get_metadata(issue$body)
+      get_issue_body_metadata(issue$body)
     }, error = function(e) {
       # rename file path to issue title if not a ghqc issue
 
@@ -491,7 +491,7 @@ get_inputted_milestone_names <- function(owner, repo) {
   # gate with interactive() to avoid hanging
   if (interactive()) {
 
-    milestones <- list_milestones(owner, repo)
+    milestones <- list_ghqc_milestone_names(owner, repo)
     print(glue::glue("Non-empty Milestones in {repo}:\n"))
     print(milestones)
     valid_input <- FALSE

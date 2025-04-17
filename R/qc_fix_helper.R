@@ -121,7 +121,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   file_at_comparator <- tempfile(tmpdir = file_diff_dir)
 
   # get reference file contents
-  command_ref <- glue::glue("git show {reference}:{file_path} > {file_at_reference}")
+  command_ref <- glue::glue("git show {reference}:\"{file_path}\" > {file_at_reference}")
   result_ref <- processx::run("sh", c("-c", command_ref), error_on_status = FALSE)
 
   if (result_ref$status != 0) {
@@ -134,7 +134,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   }
 
   # get reference file contents
-  command_comp <- glue::glue("git show {comparator}:{file_path} > {file_at_comparator}")
+  command_comp <- glue::glue("git show {comparator}:\"{file_path}\" > {file_at_comparator}")
   result_comp <- processx::run("sh", c("-c", command_comp), error_on_status = FALSE)
 
   if (result_comp$status != 0) {
@@ -196,12 +196,3 @@ format_diff <- function(reference_script, comparator_script) {
   glue::glue("```diff\n{diff_sections_cat}\n```")
 }
 
-get_comments <- function(owner, repo, issue_number) {
-  comments <- gh::gh(
-    "GET /repos/:owner/:repo/issues/:issue_number/comments", .api_url = .le$github_api_url,
-    owner = owner,
-    repo = repo,
-    issue_number = issue_number
-  )
-  comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
-}

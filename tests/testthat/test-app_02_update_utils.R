@@ -17,7 +17,7 @@ test_that("convert_issue_df_format works correctly", {
 })
 
 test_that("convert_commits_df_format works correctly", {
-  commits <- tibble(
+  commits <- dplyr::tibble(
     date = as.Date(c('2023-01-01', '2023-01-02')),
     commit = c('abc123', 'def456'),
     display = c('Commit 1', 'Commit 2')

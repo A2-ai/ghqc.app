@@ -334,8 +334,15 @@ create_button_preview_event <- function(input, name) {
     {
       file_preview_id <- generate_input_id("button", name)
       clean_name <- generate_input_id(name = name)
+      if (stringr::str_detect(clean_name, exclude_patterns())) {
+        print <- "File display not available for binary files"
 
-      observeEvent(input[[file_preview_id]], # input[[checklist_id_specific to file]]
+      }
+      else {
+        print <- renderPrint(cat(readLines(clean_name), sep = "\n"))
+      }
+
+      observeEvent(input[[file_preview_id]],
         {
           showModal(
             modalDialog(
@@ -343,7 +350,7 @@ create_button_preview_event <- function(input, name) {
               footer = NULL,
               easyClose = TRUE,
               renderUI({
-                renderPrint(cat(readLines(clean_name), sep = "\n")) # checklist specfic
+                print
               })
             )
           )
