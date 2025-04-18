@@ -197,7 +197,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
     })
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Comment button returned and modal removed."))
+      debug(.le$logger, glue::glue("Button returned and modal removed."))
       removeModal()
     })
 

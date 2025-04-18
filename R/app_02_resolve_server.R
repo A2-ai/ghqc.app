@@ -6,7 +6,7 @@
 #' @importFrom gert git_status
 NULL
 
-ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
+ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
   moduleServer(id, function(input, output, session) {
 
     # This section ensures that when an error occurs, the app stops
@@ -321,9 +321,9 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       req(preview_comment)
       showModal(modalDialog(
         title = tags$div(
-          tags$span("Comment Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_post"), "Post Comment"),
+          actionButton(ns("proceed_post"), "Post"),
           style = "text-align: right;"
         ),
         footer = NULL,
@@ -337,7 +337,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
       req(comment_body_string())
       post_trigger(FALSE)
 
-      w_pc <- create_waiter(ns, "Posting comment...")
+      w_pc <- create_waiter(ns, "Posting QC notification...")
       w_pc$show()
       on.exit(w_pc$hide())
 
@@ -348,7 +348,7 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
 
       tryCatch(
         {
-          post_resolve_comment(owner = org,
+          post_notify_comment(owner = org,
                        repo = repo,
                        issue_number = issue_parts()$issue_number,
                        body = comment_body_string())
@@ -379,8 +379,8 @@ ghqc_resolve_server <- function(id, remote, org, repo, milestone_list) {
         title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
         footer = NULL,
         easyClose = TRUE,
-        tags$p("Resolved QC finding(s) commented successfully."),
-        tags$a(href = post_comment(), "Click here to visit the updated Issue on Github", target = "_blank")
+        tags$p("QC notification posted successfully."),
+        tags$a(href = post_comment(), "Click here to visit the Issue on Github", target = "_blank")
       ))
     })
 
