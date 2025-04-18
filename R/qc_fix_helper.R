@@ -150,13 +150,11 @@ get_script_contents <- function(file_path, reference, comparator) {
   reference_script <- suppressWarnings(readLines(file_at_reference))
   comparator_script <- suppressWarnings(readLines(file_at_comparator))
 
-  hash_at_reference <- digest::digest(file = file_at_reference, algo = "md5")
-  hash_at_comparator <- digest::digest(file = file_at_comparator, algo = "md5")
+  # hash_at_reference <- digest::digest(file = file_at_reference, algo = "md5")
+  # hash_at_comparator <- digest::digest(file = file_at_comparator, algo = "md5")
 
   list(reference_script = reference_script,
-       comparator_script = comparator_script,
-       hash_at_reference = hash_at_reference,
-       hash_at_comparator = hash_at_comparator
+       comparator_script = comparator_script
        )
 }
 

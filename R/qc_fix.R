@@ -45,36 +45,24 @@ create_message_body <- function(message) {
   else glue::glue("{message}\n\n\n")
 }
 
+get_commit_comparison_url <- function(remote_url, owner, repo, reference_commit, comparator_commit) {
+  url <- glue::glue("{remote_url}/{owner}/{repo}/compare/{reference_commit}..{comparator_commit}")
+  url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">commit comparison</a>")
+  return(url_html)
+}
 
-create_comment_metadata_body <- function(file_path,
-                                 reference_commit,
-                                 reference_hash,
-                                 comparator_commit,
-                                 comparator_hash,
-                                 owner,
-                                 repo,
-                                 remote_url) {
+create_comment_metadata_body <- function(reference_commit,
+                                         comparator_commit,
+                                         commit_comparison
+                                         ) {
 
-
-  ref_url <- get_file_contents_url(file_path = file_path,
-                                   git_sha = reference_commit,
-                                   owner = owner,
-                                   repo = repo,
-                                   remote_url = remote_url)
-
-  comp_url <- get_file_contents_url(file_path = file_path,
-                                    git_sha = comparator_commit,
-                                    owner = owner,
-                                    repo = repo,
-                                    remote_url = remote_url)
-
-  glue::glue("## Metadata\n",
+  metadata <- glue::glue("## Metadata\n",
              "* current commit: {comparator_commit}\n",
-             "* current script md5 checksum: {comparator_hash}\n",
-             "* file contents at current commit: {comp_url}\n&nbsp;\n",
              "* previous commit: {reference_commit}\n",
-             "* previous script md5 checksum: {reference_hash}\n",
-             "* file contents at previous commit: {ref_url}\n\n\n")
+             "* {commit_comparison}\n\n\n",
+             .trim = FALSE
+             )
+
 }
 
 create_diff_body <- function(diff, reference_commit, reference_script, comparator_commit, comparator_script) {
@@ -140,9 +128,6 @@ create_comment_body <- function(owner,
   comparator_script <- script_contents$comparator_script
   debug(.le$logger, glue::glue("Got script contents"))
 
-  reference_hash <- script_contents$hash_at_reference
-  comparator_hash <- script_contents$hash_at_comparator
-
   debug(.le$logger, glue::glue("Getting file difference body..."))
   diff_body <- create_diff_body(diff = diff,
                            reference_commit = reference_commit,
@@ -152,14 +137,17 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  metadata_body <- create_comment_metadata_body(file_path = issue$title,
-                                        reference_commit = reference_commit,
-                                        reference_hash = reference_hash,
-                                        comparator_commit = comparator_commit,
-                                        comparator_hash = comparator_hash,
-                                        owner = owner,
-                                        repo = repo,
-                                        remote_url = remote_url)
+  commit_comparison <- get_commit_comparison_url(remote_url = remote_url,
+                                                 owner = owner,
+                                                 repo = repo,
+                                                 reference_commit = reference_commit,
+                                                 comparator_commit = comparator_commit
+                                                 )
+
+  metadata_body <- create_comment_metadata_body(reference_commit = reference_commit,
+                                                comparator_commit = comparator_commit,
+                                                commit_comparison = commit_comparison
+                                                )
   debug(.le$logger, glue::glue("Got metadata body"))
 
   comment_body <- glue::glue("{assignees_body}",
@@ -172,16 +160,12 @@ create_comment_body <- function(owner,
 
   comment_length <- nchar(comment_body)
 
-  if (comment_length >= 65530) { # in this case, give diff url instead of visual diff to avoid api error
-    info(.le$logger, "File difference is too long, providing commit comparison url instead...")
-
-    remote_url_root <- parse_remote_url(remote$url)
-    url <- glue::glue("{remote_url_root}/{owner}/{repo}/compare/{reference_commit}..{comparator_commit}")
-    url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">Click here to view commit comparison</a>")
+  if (comment_length >= 65530) {
+    info(.le$logger, "File difference too long to render")
 
     diff_body <- glue::glue("## File Difference\n\n",
-                            "File difference too long to render.\n\n",
-               "{url_html}\n\n")
+                            "File difference too long to render.\n\n"
+                            )
 
     comment_body <- glue::glue("{assignees_body}",
                                "{message_body}",

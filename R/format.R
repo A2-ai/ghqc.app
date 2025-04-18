@@ -184,8 +184,6 @@ get_file_history_url <- function(file_path, owner, repo, remote_url) {
 get_file_contents_url <- function(file_path, git_sha, owner, repo, remote_url) {
   file_path <- gsub(" ", "%20", file_path)
 
-  # branch <- gert::git_branch()
-  # file.path(remote_url, owner, repo, "blob", branch, file_path)
   file_contents_url <- file.path(remote_url, owner, repo, "blob", substr(git_sha, 1, 6), file_path)
 }
 
