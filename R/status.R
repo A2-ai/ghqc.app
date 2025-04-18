@@ -97,7 +97,9 @@ ghqc_status <- function(milestone_names,
             last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, comparator_commit)$last_commit_that_changed_file
             if (!is.null(last_commit_that_changed_file)) {
               last_commit_that_changed_file_short <- get_hyperlinked_commit(last_commit_that_changed_file, file_name, repo_url)
-              commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_commit_that_changed_file)
+              commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
+                                                             old_commit = latest_qc_commit,
+                                                             new_commit = last_commit_that_changed_file)
               diagnostics_items <- append(diagnostics_items,
                                           c(glue::glue("Last file change: {last_commit_that_changed_file_short}"),
                                             commit_diff_url)
@@ -421,7 +423,9 @@ get_file_qc_status <- function(file,
 
       if (local_commit_pushed) {
         # only give commit diff if local commit is pushed
-        commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, latest_local_commit)
+        commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
+                                                       old_commit = latest_local_commit,
+                                                       new_commit = latest_qc_commit)
         diagnostics_items <- append(diagnostics_items, commit_diff_url)
       }
 
@@ -438,7 +442,9 @@ get_file_qc_status <- function(file,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
     if (!is.null(last_remote_commit_that_changed_file)) {
       last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
-      commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
+      commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
+                                                     old_commit = latest_qc_commit,
+                                                     new_commit = last_remote_commit_that_changed_file)
 
       diagnostics <- format_diagnostics_list(list(
         glue::glue("Last posted commit: {latest_qc_commit_short}"),
@@ -496,7 +502,9 @@ get_file_qc_status <- function(file,
       issue_close_time <- as.POSIXct(issue_closed_at, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
       last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
-      commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
+      commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
+                                                     old_commit = latest_qc_commit,
+                                                     new_commit = last_remote_commit_that_changed_file)
 
       diagnostics <- format_diagnostics_list(list(
         glue::glue("Final QC commit: {latest_qc_commit_short}"),
