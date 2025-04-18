@@ -30,37 +30,27 @@ ghqc_assign_ui <- function(id) {
     div(
       id = ns("main_container"),
       gadgetTitleBar(title = div(
-          style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
-          div(
-            style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
-            tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
-          ),
-          div("Assign file(s) for QC", style = "white-space: nowrap;")
+        style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
+        div(
+          style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
+          tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
         ),
-        left = actionButton(ns("close"), "Close", class = "btn-sm"),
-        right = actionButton(ns("reset"), "Reset", class = "btn-sm")
+        div("Assign file(s) for QC", style = "white-space: nowrap;")
+      ),
+      left = actionButton(ns("close"), "Close", class = "btn-sm"),
+      right = actionButton(ns("reset"), "Reset", class = "btn-sm")
       ),
       div(
         id = ns("content"),
-        style = "display: flex; flex-direction: row;",
-
         uiOutput(ns("sidebar")),
-        # div(
-        #   id = ns("sidebar_container"),
-        #   style = "width: 120px; min-width: 100px; max-width: 200px; flex-shrink: 0; background-color: #f5f5f5;",
-        #   uiOutput(ns("sidebar"))
-        # ),
-
         div(
           id = ns("divider"),
           actionButton(ns("toggle_sidebar"), "", icon = icon("angle-double-left"), class = "toggle-sidebar-btn")
         ),
-
-        div(
-          style = "flex-grow: 1; overflow: auto; padding: 10px;",
-          uiOutput(ns("main_panel_static")),
-          uiOutput(ns("main_panel_dynamic"))
-        )
+        miniContentPanel(tagList(
+          uiOutput(ns("main_panel_static")),  # Static button
+          uiOutput(ns("main_panel_dynamic"))  # Reactive content
+        ))
       ),
       div(
         class = "button_block",
