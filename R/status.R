@@ -226,7 +226,7 @@ ghqc_status <- function(milestone_names,
                            "latest_qc_commit",
                            "comparator_commit",
                            "issue_url",
-                           "Comment",
+                           "Notify",
                            "QCer")
   # make factors
   status_df <- status_df %>%
@@ -322,7 +322,7 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      Comment = FALSE,
+      Notify = FALSE,
       QCer = NA_character_,
     )
   })
@@ -417,7 +417,7 @@ get_file_qc_status <- function(file,
 
 
       diagnostics_items <- list(
-        glue::glue("Current QC commit: {latest_qc_commit_short}"),
+        glue::glue("Last posted commit: {latest_qc_commit_short}"),
         glue::glue("Local commit: {local_commit_short}")
       )
 
@@ -437,7 +437,7 @@ get_file_qc_status <- function(file,
                   ))
     } # Pull current QC commit
 
-    ### Comment current QC commit
+    ### Post QC notification
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
@@ -446,20 +446,20 @@ get_file_qc_status <- function(file,
       commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
 
       diagnostics_list <- format_diagnostics_list(list(
-        glue::glue("Current QC commit: {latest_qc_commit_short}"),
+        glue::glue("Last posted commit: {latest_qc_commit_short}"),
         glue::glue("Last file change: {last_commit_that_changed_file_short}"),
         commit_diff_url
       ))
 
-      return(list(qc_status = "Comment current QC commit",
-                  diagnostics = glue::glue("Remote file commit is ahead of current QC commit.<br>
+      return(list(qc_status = "Post QC notification",
+                  diagnostics = glue::glue("File changes since last posted commit.<br>
                                            {diagnostics_list}")
                   ))
-    } # Comment current QC commit
+    } # Post QC notification
 
     ### QC in progress
     return(list(qc_status = "QC in progress",
-                diagnostics = format_diagnostics_list(list(glue::glue("Current QC commit: {latest_qc_commit_short}")))
+                diagnostics = format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
                 ))
   } # open
 

@@ -156,12 +156,10 @@ format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) 
   git_branch_section <- glue::glue("* git branch: {git_branch}")
 
   file_contents_url <- get_file_contents_url(file_path, git_sha, owner, repo, remote_url)
-  file_content_url_section <- glue::glue("* file contents at initial qc commit: {file_contents_url}")
+  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at initial qc commit</a>")
+  file_content_url_section <- glue::glue("* {file_contents_html}")
 
-  script_hash <- digest::digest(file = file_path)
-  script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
-
-  metadata <- c(git_sha_section, git_branch_section, metadata, script_hash_section, file_content_url_section)
+  metadata <- c(git_sha_section, git_branch_section, metadata, file_content_url_section)
 
   glue::glue_collapse(metadata, "\n")
 }
@@ -184,8 +182,6 @@ get_file_history_url <- function(file_path, owner, repo, remote_url) {
 get_file_contents_url <- function(file_path, git_sha, owner, repo, remote_url) {
   file_path <- gsub(" ", "%20", file_path)
 
-  # branch <- gert::git_branch()
-  # file.path(remote_url, owner, repo, "blob", branch, file_path)
   file_contents_url <- file.path(remote_url, owner, repo, "blob", substr(git_sha, 1, 6), file_path)
 }
 

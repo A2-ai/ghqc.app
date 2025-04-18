@@ -1,3 +1,7 @@
+# ghqc.app 0.4.18
+
+- fixes bug introduced in 0.4.17 in which assign app toggle bar didn't collapse
+
 # ghqc.app 0.4.17
 
 - allows binary files to be assigned in `ghqc_assign_app()`

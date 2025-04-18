@@ -187,7 +187,6 @@ ghqc_status_server <- function(id,
       else if (input$qc_status_filter == "Needs attention") {
         needs_attention <- c(
           "Pull current QC commit",
-          "Comment current QC commit",
           "Local uncommitted file changes after Issue closure",
           "Local unpushed commits with file changes after Issue closure",
           "Pushed file changes after Issue closure",
@@ -301,7 +300,7 @@ ghqc_status_server <- function(id,
         sprintf(
           '<button id="%s" type="button" class="btn btn-sm btn-primary"
         onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Comment
+        Notify
        </button>',
           ns(paste0("button_", row_id)),
           ns("show_modal_row"),
@@ -393,9 +392,9 @@ ghqc_status_server <- function(id,
 
       showModal(modalDialog(
         title = tags$div(
-          tags$span("Comment Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_post"), "Post Comment"),
+          actionButton(ns("proceed_post"), "Post"),
           style = "text-align: right;"
         ),
         footer = NULL,
@@ -434,13 +433,13 @@ ghqc_status_server <- function(id,
 
       post_trigger(FALSE)
 
-      w_pc <- create_waiter(ns, "Posting comment...")
+      w_pc <- create_waiter(ns, "Posting QC notification...")
       w_pc$show()
       on.exit(w_pc$hide())
 
       tryCatch(
         {
-          post_resolve_comment(owner = org,
+          post_notify_comment(owner = org,
                                repo = repo,
                                issue_number = df[row_index, ]$issue_number,
                                body = comment_body_string())
@@ -452,8 +451,8 @@ ghqc_status_server <- function(id,
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$p("Current QC commit commented successfully."),
-            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the updated Issue on Github", target = "_blank")
+            tags$p("QC notification posted successfully."),
+            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
           ))
         },
         error = function(e) {
@@ -481,11 +480,11 @@ ghqc_status_server <- function(id,
       req(show_table())
       df <- filtered_data()
 
-      # add comment button
-      df$Comment <- sapply(1:nrow(df), function(i) {
+      # add notify button
+      df$Notify <- sapply(1:nrow(df), function(i) {
         row <- df[i, ]
 
-        if (row$Comment == TRUE) {
+        if (row$Notify == TRUE) {
           button(ns)(i)
         }
         else {
@@ -568,13 +567,12 @@ ghqc_status_server <- function(id,
             c("QC in progress",
               "QC complete",
               "Pull current QC commit",
-              "Comment current QC commit",
               "Local uncommitted file changes after Issue closure",
               "Local unpushed commits with file changes after Issue closure",
               "Pushed file changes after Issue closure",
               "Uncommented pushed file changes before Issue closure"
               ),
-            c("green", "green", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("green", "green", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%
@@ -620,7 +618,7 @@ ghqc_status_server <- function(id,
 
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Comment button returned and modal removed."))
+      debug(.le$logger, glue::glue("Button returned and modal removed."))
       removeModal()
     })
 

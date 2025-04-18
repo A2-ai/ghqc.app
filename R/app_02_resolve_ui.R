@@ -4,7 +4,7 @@
 #' @importFrom waiter use_waiter waiter_show_on_load spin_1
 NULL
 
-ghqc_resolve_ui <- function(id) {
+ghqc_notify_ui <- function(id) {
   ns <- NS(id)
   ui <- miniPage(
     use_waiter(),
@@ -28,7 +28,7 @@ ghqc_resolve_ui <- function(id) {
             style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
             tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
           ),
-          div("Resolve QC finding(s)", style = "white-space: nowrap;")
+          div("Post QC notification(s)", style = "white-space: nowrap;")
         ),
         left = actionButton(ns("close"), "Close", class = "btn-sm"),
         right = actionButton(ns("reset"), "Reset", class = "btn-sm")
@@ -75,7 +75,7 @@ ghqc_resolve_ui <- function(id) {
       div(
         class = "button_block",
         miniButtonBlock(
-          actionButton(ns("post"), "Preview Comment")
+          actionButton(ns("post"), "Preview")
         )
       )
     )
