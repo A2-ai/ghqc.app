@@ -398,14 +398,12 @@ get_file_qc_status <- function(file,
                                issue_closed_at,
                                repo_url) {
 
-
-
   latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
 
   ## For open issues
   if (issue_state == "Open") {
 
-    ### # Pull current QC commit
+    ### QC notification posted - this is not the same as git_status == "Remote file changes"
     if (!latest_qc_commit %in% local_commits) {  # if local commit is older than the latest_qc_commit (even if it didn't change the file - "No file difference" is possible)
       latest_local_commit <- local_commits[1]
       local_commit_pushed <- latest_local_commit %in% remote_commits
@@ -427,17 +425,14 @@ get_file_qc_status <- function(file,
         diagnostics_items <- append(diagnostics_items, commit_diff_url)
       }
 
-      diagnostics_list <- format_diagnostics_list(diagnostics_items)
-      diagnostics <- glue::glue("Local commit is behind current QC commit.<br>
-                                {diagnostics_list}")
+      diagnostics <- format_diagnostics_list(diagnostics_items)
 
-
-      return(list(qc_status = "Pull current QC commit",
+      return(list(qc_status = "QC notification posted",
                   diagnostics = diagnostics
                   ))
-    } # Pull current QC commit
+    } # QC notification posted
 
-    ### Post QC notification
+    ### File changes since last posted commit
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
@@ -445,17 +440,16 @@ get_file_qc_status <- function(file,
       last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file, file, repo_url)
       commit_diff_url <- get_hyperlinked_commit_diff(repo_url, latest_qc_commit, last_remote_commit_that_changed_file)
 
-      diagnostics_list <- format_diagnostics_list(list(
+      diagnostics <- format_diagnostics_list(list(
         glue::glue("Last posted commit: {latest_qc_commit_short}"),
         glue::glue("Last file change: {last_commit_that_changed_file_short}"),
         commit_diff_url
       ))
 
-      return(list(qc_status = "Post QC notification",
-                  diagnostics = glue::glue("File changes since last posted commit.<br>
-                                           {diagnostics_list}")
+      return(list(qc_status = "File changes since last posted commit",
+                  diagnostics = diagnostics
                   ))
-    } # Post QC notification
+    } # File changes since last posted commit
 
     ### QC in progress
     return(list(qc_status = "QC in progress",
@@ -582,7 +576,7 @@ get_relevant_files <- function(issue, milestone_name) {
 
 
 format_diagnostics_list <- function(items) {
-  list_items <- glue::glue("<li>{items}</li>")
+  list_items <- glue::glue('<li style="margin-bottom: 3px;">{items}</li>')
   glue::glue('
     <ul style="list-style-type: disc; margin: 0; padding-left: 1em;">
       {glue::glue_collapse(list_items, sep = "\n")}

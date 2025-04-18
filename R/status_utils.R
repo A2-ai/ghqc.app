@@ -238,7 +238,7 @@ find_merged_into <- function(commit_sha) {
 
 get_okay_to_comment_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
   okay_to_comment_qc_statuses <- c("QC in progress",
-                                   "Post QC notification",
+                                   "File changes since last posted commit",
                                    "QC complete",
                                    "Pushed file changes after Issue closure",
                                    "Uncommented pushed file changes before Issue closure"

@@ -186,7 +186,7 @@ ghqc_status_server <- function(id,
       }
       else if (input$qc_status_filter == "Needs attention") {
         needs_attention <- c(
-          "Pull current QC commit",
+          "QC notification posted",
           "Local uncommitted file changes after Issue closure",
           "Local unpushed commits with file changes after Issue closure",
           "Pushed file changes after Issue closure",
@@ -566,7 +566,7 @@ ghqc_status_server <- function(id,
           color = DT::styleEqual(
             c("QC in progress",
               "QC complete",
-              "Pull current QC commit",
+              "QC notification posted",
               "Local uncommitted file changes after Issue closure",
               "Local unpushed commits with file changes after Issue closure",
               "Pushed file changes after Issue closure",
