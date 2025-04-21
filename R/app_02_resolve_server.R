@@ -258,7 +258,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
             input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
           )
 
-          comment_body <- create_comment_body(org,
+          comment_body_parts <- create_comment_body(org,
                                               repo,
                                               message = input$message,
                                               issue_number = issue_parts()$issue_number,
@@ -267,6 +267,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
                                               reference_commit = commits_for_compare$reference_commit,
                                               remote = remote
           )
+          comment_body <- glue::glue_collapse(comment_body_parts)
         },
         error = function(e) {
           log_string <- glue::glue(

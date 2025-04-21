@@ -156,14 +156,17 @@ create_comment_body <- function(owner,
                                                 )
   debug(.le$logger, glue::glue("Got metadata body"))
 
-  comment_body <- glue::glue("# QC notification\n\n",
-                             "{assignees_body}",
-                             "{message_body}",
-                             "{metadata_body}",
-                             "{diff_body}",
-                             .trim = FALSE)
+  comment_body_first <- as.character(glue::glue("# QC notification\n\n",
+                                                "{assignees_body}",
+                                                "{message_body}",
+                                                .trim = FALSE))
 
-  comment_body <- as.character(comment_body)
+
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                   "{diff_body}",
+                                   .trim = FALSE))
+
+
 
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
@@ -173,7 +176,7 @@ create_comment_body <- function(owner,
                               Previous commit: {reference_commit}
                               Original commit: {comparator_commit}"))
 
-  return(comment_body)
+  return(c(comment_body_first, comment_body_second))
 }
 
 

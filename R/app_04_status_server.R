@@ -294,21 +294,6 @@ ghqc_status_server <- function(id,
       }
     }) # file_directory_filter
 
-    # button <- function(ns) {
-    #   function(i) {
-    #     row_id <- sprintf("row_%d", i)
-    #     sprintf(
-    #       '<button id="%s" type="button" class="btn btn-sm btn-primary"
-    #     onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-    #     Notify
-    #    </button>',
-    #       ns(paste0("button_", row_id)),
-    #       ns("show_modal_row"),
-    #       i
-    #     )
-    #   }
-    # }
-
     button <- function(ns) {
       function(i, hard = TRUE) {
         row_id <- sprintf("row_%d", i)
@@ -404,8 +389,10 @@ ghqc_status_server <- function(id,
       row_index <- input$show_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
+      comment_body_parts <- comment_body_string()
+      display_comment_body <- glue::glue_collapse(comment_body_parts)
 
-      path <- create_gfm_file(comment_body_string())
+      path <- create_gfm_file(display_comment_body)
       html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
 
       showModal(modalDialog(
@@ -417,7 +404,11 @@ ghqc_status_server <- function(id,
         ),
         footer = NULL,
         easyClose = TRUE,
-        HTML(html)
+        tagList(
+          textInput(ns("message"), "Message", placeholder = "(Optional)"),
+          HTML(html)
+        )
+
       ))
     })
 
@@ -444,10 +435,13 @@ ghqc_status_server <- function(id,
 
     post_comment <- reactive({
       req(post_trigger())
-      req(comment_body_string())
+      comment_body_parts <- comment_body_string()
+      req(comment_body_parts)
       row_index <- input$show_modal_row$row
       df <- filtered_data()
       req(df)
+
+      display_comment_body <- glue::glue_collapse(c(comment_body_parts[1], input$message, "\n\n", comment_body_parts[2]))
 
       post_trigger(FALSE)
 
@@ -460,7 +454,7 @@ ghqc_status_server <- function(id,
           post_notify_comment(owner = org,
                                repo = repo,
                                issue_number = df[row_index, ]$issue_number,
-                               body = comment_body_string())
+                               body = display_comment_body)
 
           showModal(modalDialog(
             title = tags$div(
