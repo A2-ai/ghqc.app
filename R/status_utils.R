@@ -236,7 +236,21 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
-get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
+get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit, file_changes = FALSE) {
+  has_valid_git_status <- is.na(git_status) || git_status == "Up-to-date" # allowing git status to be NA in case when QC branch deleted and merged
+
+  if (!has_valid_git_status) { # don't give option to notify if git status not up to date
+    return("none")
+  }
+
+  # don't give option to notify if comparator commit same as qc commit, it would be redundant to comment the same commit twice
+  possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
+
+  if (!possible_updates) {
+    return("none")
+  }
+
+  # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
   hard_notify_qc_statuses <- c("File changes since last posted commit",
@@ -247,24 +261,20 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # soft notify statuses are statuses where there's no changes in the qc file to notify,
   # but the user may still want to update
   # the issue - maybe a relevant file changed or something like that
-  soft_notify_qc_statuses <- c("QC in progress", "QC complete")
+  soft_notify_qc_statuses <- c("QC in progress",
+                               "QC complete",
+                               "File changes since QC branch merged and deleted") # yes there are file changes, but since the merge has already happened, make it soft
 
-  qc_branch_merged <- stringr::str_detect(qc_status, "^QC branch merged to")
-
-  has_valid_git_status <- is.na(git_status) || git_status == "Up-to-date" # allowing git status to be NA in case when QC branch deleted and merged
-  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || qc_branch_merged # TODO: see if file changes in case of merge
-
+  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses
 
-  # comparator commit cannot be qc commit (it would be redundant to comment the same commit twice)
-  possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
-
-  if (has_valid_git_status && has_hard_notify_qc_status && possible_updates) {
+  if (has_hard_notify_qc_status) {
     return("hard")
   }
 
-  else if (has_valid_git_status && has_soft_notify_qc_status && possible_updates)
-  return("soft")
+  else if (has_soft_notify_qc_status) {
+    return("soft")
+  }
 
   else {
     return("none")

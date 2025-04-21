@@ -93,7 +93,7 @@ ghqc_status <- function(milestone_names,
           if (!is.null(merged_into)) {
             qc_status <- glue::glue("QC branch merged to {merged_into}")
             comparator_commit <- get_remote_commits_full_name(merged_into)[1] # comparator commit will be the latest remote commit on the merged_into branch
-            notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit) # TODO
+
 
             # see if file changed after latest qc commit
             last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, comparator_commit)$last_commit_that_changed_file
@@ -106,7 +106,17 @@ ghqc_status <- function(milestone_names,
                                           c(glue::glue("Last file change: {last_commit_that_changed_file_short}"),
                                             commit_diff_url)
                                           )
+              notify <- get_notify_column(qc_status = "File changes since QC branch merged and deleted",
+                                          git_status,
+                                          latest_qc_commit,
+                                          comparator_commit)
             } # if file changed after latest qc commit
+            else {
+              notify <- get_notify_column(qc_status = "No file changes since QC branch merged and deleted",
+                                          git_status,
+                                          latest_qc_commit,
+                                          comparator_commit)
+            }
           } # if merged_into
 
           # QC BRANCH NOT MERGED AND DELETED
