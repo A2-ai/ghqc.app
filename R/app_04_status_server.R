@@ -113,6 +113,14 @@ ghqc_status_server <- function(id,
 
 
 
+
+
+
+
+
+
+
+    # ghqc_status
     run_generate <- function(milestones = selected_milestones()) {
       req(milestones)
       current_milestones <- milestones
@@ -220,14 +228,11 @@ ghqc_status_server <- function(id,
         repo_cache <- non_qc_repo_cache()
 
         if (!key %in% names(repo_cache)) {
-          relevant <- relevant_files()
-          files_with_issues <- df$file_name
-
           repo_df <- create_non_issue_repo_files_df(
-            files_with_issues = files_with_issues,
+            files_with_issues = df$file_name,
             local_commits = local_commits_rv(),
             remote_commits = remote_commits_rv(),
-            all_relevant_files = relevant,
+            all_relevant_files = relevant_files(),
             selected_dirs = selected_dirs,
             ahead_behind_status = ahead_behind_status_rv(),
             files_changed_in_remote_commits = files_changed_in_remote_commits_rv(),
@@ -294,6 +299,13 @@ ghqc_status_server <- function(id,
       }
     }) # file_directory_filter
 
+
+
+
+
+
+    # QC NOTIFICATIONS
+
     button <- function(ns) {
       function(i, hard = TRUE) {
         row_id <- sprintf("row_%d", i)
@@ -306,11 +318,109 @@ ghqc_status_server <- function(id,
        </button>',
           ns(paste0("button_", row_id)),
           btn_class,
-          ns("show_modal_row"),
+          ns("show_notify_modal_row"),
           i
         )
       }
     }
+
+
+
+    observeEvent(input$show_notify_modal_row, {
+      row_index <- input$show_notify_modal_row$row
+      df <- filtered_data()
+      req(nrow(df) >= row_index)
+      comment_body_parts <- comment_body_string()
+      display_comment_body <- glue::glue_collapse(comment_body_parts)
+
+      path <- create_gfm_file(display_comment_body)
+      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
+
+      showModal(modalDialog(
+        title = tags$div(
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("proceed_post"), "Post"),
+          style = "text-align: right;"
+        ),
+        footer = NULL,
+        easyClose = TRUE,
+        tagList(
+          textInput(ns("message"), "Message", placeholder = "(Optional)"),
+          HTML(html)
+        )
+
+      ))
+    })
+
+    comment_body_string <- reactive({
+      row_index <- input$show_notify_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      tryCatch({
+        create_comment_body(
+          owner = org,
+          repo = repo,
+          message = NULL,
+          issue_number = df[row_index, ]$issue_number,
+          diff = TRUE,
+          comparator_commit = df[row_index, ]$comparator_commit,
+          reference_commit = df[row_index, ]$latest_qc_commit,
+          remote = remote # TODO
+        )
+      }, error = function(e) {
+        rlang::abort(conditionMessage(e))
+      })
+    })
+
+    post_comment <- reactive({
+      req(post_trigger())
+      comment_body_parts <- comment_body_string()
+      req(comment_body_parts)
+      row_index <- input$show_notify_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      display_comment_body <- glue::glue_collapse(c(comment_body_parts[1], input$message, "\n\n", comment_body_parts[2]))
+
+      post_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Posting QC notification...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      tryCatch(
+        {
+          post_notify_comment(owner = org,
+                              repo = repo,
+                              issue_number = df[row_index, ]$issue_number,
+                              body = display_comment_body)
+
+          showModal(modalDialog(
+            title = tags$div(
+              actionButton(ns("dismiss_modal"), "Dismiss"),
+              style = "text-align: right;"
+            ),
+            footer = NULL,
+            easyClose = TRUE,
+            tags$p("QC notification posted successfully."),
+            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
+          ))
+        },
+        error = function(e) {
+          rlang::abort(conditionMessage(e))
+        }
+      )
+    }) # post_comment
+
+
+
+
+
+
+
+
 
 
     ############ OUTPUT
@@ -385,93 +495,7 @@ ghqc_status_server <- function(id,
       ) # tagList
     }) # output$sidebar
 
-    observeEvent(input$show_modal_row, {
-      row_index <- input$show_modal_row$row
-      df <- filtered_data()
-      req(nrow(df) >= row_index)
-      comment_body_parts <- comment_body_string()
-      display_comment_body <- glue::glue_collapse(comment_body_parts)
 
-      path <- create_gfm_file(display_comment_body)
-      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
-
-      showModal(modalDialog(
-        title = tags$div(
-          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_post"), "Post"),
-          style = "text-align: right;"
-        ),
-        footer = NULL,
-        easyClose = TRUE,
-        tagList(
-          textInput(ns("message"), "Message", placeholder = "(Optional)"),
-          HTML(html)
-        )
-
-      ))
-    })
-
-    comment_body_string <- reactive({
-      row_index <- input$show_modal_row$row
-      df <- filtered_data()
-      req(df)
-
-      tryCatch({
-        create_comment_body(
-          owner = org,
-          repo = repo,
-          message = NULL,
-          issue_number = df[row_index, ]$issue_number,
-          diff = TRUE,
-          comparator_commit = df[row_index, ]$comparator_commit,
-          reference_commit = df[row_index, ]$latest_qc_commit,
-          remote = remote # TODO
-        )
-      }, error = function(e) {
-        rlang::abort(conditionMessage(e))
-      })
-    })
-
-    post_comment <- reactive({
-      req(post_trigger())
-      comment_body_parts <- comment_body_string()
-      req(comment_body_parts)
-      row_index <- input$show_modal_row$row
-      df <- filtered_data()
-      req(df)
-
-      display_comment_body <- glue::glue_collapse(c(comment_body_parts[1], input$message, "\n\n", comment_body_parts[2]))
-
-      post_trigger(FALSE)
-
-      w_pc <- create_waiter(ns, "Posting QC notification...")
-      w_pc$show()
-      on.exit(w_pc$hide())
-
-      tryCatch(
-        {
-          post_notify_comment(owner = org,
-                               repo = repo,
-                               issue_number = df[row_index, ]$issue_number,
-                               body = display_comment_body)
-
-          showModal(modalDialog(
-            title = tags$div(
-              actionButton(ns("dismiss_modal"), "Dismiss"),
-              style = "text-align: right;"
-            ),
-            footer = NULL,
-            easyClose = TRUE,
-            tags$p("QC notification posted successfully."),
-            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
-          ))
-        },
-        error = function(e) {
-          rlang::abort(conditionMessage(e))
-        }
-      )
-    }) # post_comment
 
     observeEvent(show_table(), {
       if (show_table()) {
