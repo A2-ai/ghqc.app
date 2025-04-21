@@ -76,7 +76,8 @@ ghqc_status_server <- function(id,
     files_with_uncommitted_local_changes_rv <- reactiveVal(files_with_uncommitted_local_changes)
 
     # comment reactives
-    post_trigger <- reactiveVal(FALSE)
+    post_notification_trigger <- reactiveVal(FALSE)
+    post_sign_off_trigger <- reactiveVal(FALSE)
 
 
     # cache previously rendered sets of milestones
@@ -301,22 +302,126 @@ ghqc_status_server <- function(id,
 
 
 
+    # QC COMPLETE
+
+    sign_off_button <- function(ns) {
+      function(i) {
+        row_id <- sprintf("row_%d", i)
+        sprintf(
+          '<button id="%s" type="button" class="btn btn-sm btn-primary"
+        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
+        Sign off
+       </button>',
+          ns(paste0("sign_off_button_", row_id)),
+          ns("show_sign_off_modal_row"),
+          i
+        )
+      }
+    }
+
+    observeEvent(input$show_sign_off_modal_row, {
+      row_index <- input$show_sign_off_modal_row$row
+      df <- filtered_data()
+      req(nrow(df) >= row_index)
+      sign_off_comment_parts <- sign_off_comment_body()
+      #browser()
+      display_comment_body <- glue::glue_collapse(sign_off_comment_parts)
+
+      path <- create_gfm_file(display_comment_body)
+      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
+
+      showModal(modalDialog(
+        title = tags$div(
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("proceed_sign_off_post"), "Post"),
+          style = "text-align: right;"
+        ),
+        footer = NULL,
+        easyClose = TRUE,
+        tagList(
+          textInput(ns("sign_off_message"), "Message", placeholder = "(Optional)"),
+          HTML(html)
+        )
+
+      ))
+    })
+
+    sign_off_comment_body <- reactive({
+      row_index <- input$show_sign_off_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      tryCatch({
+        create_sign_off_comment_body(
+          owner = org,
+          repo = repo,
+          issue_number = df[row_index, ]$issue_number,
+          file_path = df[row_index, ]$file_name,
+          final_qc_commit = df[row_index, ]$comparator_commit,
+          remote = remote # TODO
+        )
+      }, error = function(e) {
+        rlang::abort(conditionMessage(e))
+      })
+    })
+
+    post_sign_off_comment <- reactive({
+      browser()
+      req(post_sign_off_trigger())
+      sign_off_comment_parts <- sign_off_comment_body()
+      req(sign_off_comment_parts)
+      row_index <- input$show_sign_off_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      display_comment_body <- glue::glue_collapse(c(sign_off_comment_parts[1], input$sign_off_message, "\n\n", sign_off_comment_parts[2]))
+
+      post_sign_off_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Signing off on QC Review...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      tryCatch(
+        {
+          post_comment(owner = org,
+                       repo = repo,
+                       issue_number = df[row_index, ]$issue_number,
+                       body = display_comment_body)
+
+          showModal(modalDialog(
+            title = tags$div(
+              actionButton(ns("dismiss_modal"), "Dismiss"),
+              style = "text-align: right;"
+            ),
+            footer = NULL,
+            easyClose = TRUE,
+            tags$p("QC review complete."),
+            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
+          ))
+        },
+        error = function(e) {
+          rlang::abort(conditionMessage(e))
+        }
+      )
+    }) # post_notify_comment
 
 
 
     # QC NOTIFICATIONS
 
-    button <- function(ns) {
+    notify_button <- function(ns) {
       function(i, hard = TRUE) {
         row_id <- sprintf("row_%d", i)
-        btn_class <- if (hard) "btn btn-sm btn-primary" else "btn btn-sm btn-secondary"
+        btn_class <- if (hard) "btn btn-sm btn-info" else "btn btn-sm btn-light"
 
         sprintf(
           '<button id="%s" type="button" class="%s"
         onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
         Notify
        </button>',
-          ns(paste0("button_", row_id)),
+          ns(paste0("notify_button_", row_id)),
           btn_class,
           ns("show_notify_modal_row"),
           i
@@ -324,13 +429,11 @@ ghqc_status_server <- function(id,
       }
     }
 
-
-
     observeEvent(input$show_notify_modal_row, {
       row_index <- input$show_notify_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
-      comment_body_parts <- comment_body_string()
+      comment_body_parts <- notify_comment_body()
       display_comment_body <- glue::glue_collapse(comment_body_parts)
 
       path <- create_gfm_file(display_comment_body)
@@ -340,26 +443,26 @@ ghqc_status_server <- function(id,
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_post"), "Post"),
+          actionButton(ns("proceed_sign_off_post"), "Post"),
           style = "text-align: right;"
         ),
         footer = NULL,
         easyClose = TRUE,
         tagList(
-          textInput(ns("message"), "Message", placeholder = "(Optional)"),
+          textInput(ns("notify_message"), "Message", placeholder = "(Optional)"),
           HTML(html)
         )
 
       ))
     })
 
-    comment_body_string <- reactive({
+    notify_comment_body <- reactive({
       row_index <- input$show_notify_modal_row$row
       df <- filtered_data()
       req(df)
 
       tryCatch({
-        create_comment_body(
+        create_notify_comment_body(
           owner = org,
           repo = repo,
           message = NULL,
@@ -374,17 +477,17 @@ ghqc_status_server <- function(id,
       })
     })
 
-    post_comment <- reactive({
-      req(post_trigger())
-      comment_body_parts <- comment_body_string()
-      req(comment_body_parts)
+    post_notify_comment <- reactive({
+      req(post_notification_trigger())
+      notify_comment_parts <- notify_comment_body()
+      req(notify_comment_parts)
       row_index <- input$show_notify_modal_row$row
       df <- filtered_data()
       req(df)
 
-      display_comment_body <- glue::glue_collapse(c(comment_body_parts[1], input$message, "\n\n", comment_body_parts[2]))
+      display_comment_body <- glue::glue_collapse(c(notify_comment_parts[1], input$notify_message, "\n\n", notify_comment_parts[2]))
 
-      post_trigger(FALSE)
+      post_notification_trigger(FALSE)
 
       w_pc <- create_waiter(ns, "Posting QC notification...")
       w_pc$show()
@@ -392,10 +495,10 @@ ghqc_status_server <- function(id,
 
       tryCatch(
         {
-          post_notify_comment(owner = org,
-                              repo = repo,
-                              issue_number = df[row_index, ]$issue_number,
-                              body = display_comment_body)
+          post_comment(owner = org,
+                      repo = repo,
+                      issue_number = df[row_index, ]$issue_number,
+                      body = display_comment_body)
 
           showModal(modalDialog(
             title = tags$div(
@@ -412,7 +515,7 @@ ghqc_status_server <- function(id,
           rlang::abort(conditionMessage(e))
         }
       )
-    }) # post_comment
+    }) # post_notify_comment
 
 
 
@@ -522,17 +625,28 @@ ghqc_status_server <- function(id,
           row <- df[i, ]
 
           if (row$Notify == "hard") {
-            button(ns)(i, hard = TRUE)
+            notify_button(ns)(i, hard = TRUE)
           }
           else if (row$Notify == "soft") {
-            button(ns)(i, hard = FALSE)
+            notify_button(ns)(i, hard = FALSE)
           }
           else {
             NA_character_
           }
-
         })
-      }
+
+
+        df$`Sign off` <- sapply(1:nrow(df), function(i) {
+          row <- df[i, ]
+
+          if (row$`Sign off`) {
+            sign_off_button(ns)(i)
+          }
+          else {
+            NA_character_
+          }
+        })
+      } # if rows
 
 
       # remove info columns
@@ -648,14 +762,27 @@ ghqc_status_server <- function(id,
     })
 
 
-    observeEvent(input$proceed_post, {
+    observeEvent(input$proceed_notification_post, {
       debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
       removeModal()
-      post_trigger(TRUE)
+      post_notification_trigger(TRUE)
     })
 
+    # note: it only works with this, idk why
     observe({
-      post_comment()
+      post_notify_comment()
+    })
+
+    observeEvent(input$proceed_sign_off_post, {
+      browser()
+      debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
+      removeModal()
+      post_sign_off_trigger(TRUE)
+    })
+
+    # note: it only works with this, idk why
+    observe({
+      post_sign_off_comment()
     })
 
 

@@ -236,7 +236,12 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
-get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit, file_changes = FALSE) {
+get_sign_off_column <- function(git_status) {
+  valid_git_status <- !is.na(git_status) && git_status == "Up-to-date"
+  return(valid_git_status)
+}
+
+get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
   has_valid_git_status <- is.na(git_status) || git_status == "Up-to-date" # allowing git status to be NA in case when QC branch deleted and merged
 
   if (!has_valid_git_status) { # don't give option to notify if git status not up to date
@@ -253,7 +258,7 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("File changes since last posted commit",
+  hard_notify_qc_statuses <- c("File changes to notify",
                                 "Pushed file changes after Issue closure",
                                 "Uncommented pushed file changes before Issue closure"
                                 )

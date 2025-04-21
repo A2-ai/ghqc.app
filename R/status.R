@@ -71,6 +71,7 @@ ghqc_status <- function(milestone_names,
           qc_status <- "QC Status not available"
           comparator_commit <- NA_character_
           notify <- FALSE
+          sign_off <- FALSE
 
           diagnostics_list <- format_diagnostics_list(list(
             glue::glue("Current branch: {current_branch}"),
@@ -144,6 +145,7 @@ ghqc_status <- function(milestone_names,
             comparator_commit = comparator_commit,
             issue_url = file_url,
             notify = notify,
+            sign_off = sign_off,
             qcer = qcer,
           )
         )
@@ -202,6 +204,7 @@ ghqc_status <- function(milestone_names,
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
       notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+      sign_off <- get_sign_off_column(git_status)
 
       # return res
       res <- dplyr::tibble(
@@ -218,6 +221,7 @@ ghqc_status <- function(milestone_names,
         comparator_commit = comparator_commit,
         issue_url = file_url,
         notify = notify,
+        sign_off = sign_off,
         qcer = qcer,
       ) # tibble
 
@@ -241,6 +245,7 @@ ghqc_status <- function(milestone_names,
                            "comparator_commit",
                            "issue_url",
                            "Notify",
+                           "Sign off",
                            "QCer")
   # make factors
   status_df <- status_df %>%
@@ -337,6 +342,7 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
       Notify = FALSE,
+      `Sign off` = FALSE,
       QCer = NA_character_,
     )
   })
@@ -452,7 +458,7 @@ get_file_qc_status <- function(file,
                   ))
     } # QC notification posted
 
-    ### File changes since last posted commit
+    ### File changes to notify
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
@@ -468,10 +474,10 @@ get_file_qc_status <- function(file,
         commit_diff_url
       ))
 
-      return(list(qc_status = "File changes since last posted commit",
+      return(list(qc_status = "File changes to notify",
                   diagnostics = diagnostics
                   ))
-    } # File changes since last posted commit
+    } # File changes to notify
 
     ### QC in progress
     return(list(qc_status = "QC in progress",

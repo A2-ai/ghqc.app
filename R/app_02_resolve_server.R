@@ -258,7 +258,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
             input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
           )
 
-          comment_body_parts <- create_comment_body(org,
+          comment_body_parts <- create_notify_comment_body(org,
                                               repo,
                                               message = input$message,
                                               issue_number = issue_parts()$issue_number,
@@ -349,7 +349,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
 
       tryCatch(
         {
-          post_notify_comment(owner = org,
+          post_comment(owner = org,
                        repo = repo,
                        issue_number = issue_parts()$issue_number,
                        body = comment_body_string())

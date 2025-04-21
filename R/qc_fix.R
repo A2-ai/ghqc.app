@@ -79,7 +79,7 @@ create_diff_body <- function(diff, reference_commit, reference_script, comparato
                "{diff_formatted}")
 }
 
-create_comment_body <- function(owner,
+create_notify_comment_body <- function(owner,
                                 repo,
                                 issue_number,
                                 message = NULL,
@@ -180,7 +180,7 @@ create_comment_body <- function(owner,
 }
 
 
-post_notify_comment <- function(owner, repo, issue_number, body) {
+post_comment <- function(owner, repo, issue_number, body) {
   debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {owner}/{repo}..."))
 
   comment <- gh::gh("POST /repos/:owner/:repo/issues/:issue_number/comments",
@@ -192,6 +192,32 @@ post_notify_comment <- function(owner, repo, issue_number, body) {
   )
 
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
+}
+
+create_sign_off_comment_body <- function(owner, repo, issue_number, file_path, final_qc_commit, remote) {
+  remote_url <- parse_remote_url(remote$url)
+
+  file_contents_url <- get_file_contents_url(file_path = file_path,
+                                             git_sha = final_qc_commit,
+                                             owner,
+                                             repo,
+                                             remote_url)
+
+  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at final qc commit</a>")
+
+  metadata_body <- glue::glue("## Metadata\n",
+                         "* final qc commit: {final_qc_commit}\n",
+                         "* {file_contents_html}\n",
+                         .trim = FALSE
+  )
+
+  comment_body_first <- as.character(glue::glue("# QC complete\n\n",
+                                                .trim = FALSE))
+
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                                 .trim = FALSE))
+
+  return(c(comment_body_first, comment_body_second))
 }
 
 
