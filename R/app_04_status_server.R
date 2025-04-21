@@ -294,15 +294,33 @@ ghqc_status_server <- function(id,
       }
     }) # file_directory_filter
 
+    # button <- function(ns) {
+    #   function(i) {
+    #     row_id <- sprintf("row_%d", i)
+    #     sprintf(
+    #       '<button id="%s" type="button" class="btn btn-sm btn-primary"
+    #     onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
+    #     Notify
+    #    </button>',
+    #       ns(paste0("button_", row_id)),
+    #       ns("show_modal_row"),
+    #       i
+    #     )
+    #   }
+    # }
+
     button <- function(ns) {
-      function(i) {
+      function(i, hard = TRUE) {
         row_id <- sprintf("row_%d", i)
+        btn_class <- if (hard) "btn btn-sm btn-primary" else "btn btn-sm btn-secondary"
+
         sprintf(
-          '<button id="%s" type="button" class="btn btn-sm btn-primary"
+          '<button id="%s" type="button" class="%s"
         onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
         Notify
        </button>',
           ns(paste0("button_", row_id)),
+          btn_class,
           ns("show_modal_row"),
           i
         )
@@ -481,17 +499,23 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
 
       # add notify button
-      df$Notify <- sapply(1:nrow(df), function(i) {
-        row <- df[i, ]
+      if (nrow(df) > 0) {
+        df$Notify <- sapply(1:nrow(df), function(i) {
+          row <- df[i, ]
 
-        if (row$Notify == TRUE) {
-          button(ns)(i)
-        }
-        else {
-          NA_character_
-        }
+          if (row$Notify == "hard") {
+            button(ns)(i, hard = TRUE)
+          }
+          else if (row$Notify == "soft") {
+            button(ns)(i, hard = FALSE)
+          }
+          else {
+            NA_character_
+          }
 
-      })
+        })
+      }
+
 
       # remove info columns
       df <- df[, !colnames(df) %in% c("milestone_name",

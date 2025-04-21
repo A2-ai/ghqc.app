@@ -236,22 +236,37 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
-get_okay_to_comment_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
-  okay_to_comment_qc_statuses <- c("QC in progress",
-                                   "File changes since last posted commit",
-                                   "QC complete",
-                                   "Pushed file changes after Issue closure",
-                                   "Uncommented pushed file changes before Issue closure"
-  )
+get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
+
+  # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
+  hard_notify_qc_statuses <- c("File changes since last posted commit",
+                                "Pushed file changes after Issue closure",
+                                "Uncommented pushed file changes before Issue closure"
+                                )
+
+  # soft notify statuses are statuses where there's no changes in the qc file to notify,
+  # but the user may still want to update
+  # the issue - maybe a relevant file changed or something like that
+  soft_notify_qc_statuses <- c("QC in progress", "QC complete")
 
   qc_branch_merged <- stringr::str_detect(qc_status, "^QC branch merged to")
 
   has_valid_git_status <- is.na(git_status) || git_status == "Up-to-date" # allowing git status to be NA in case when QC branch deleted and merged
-  has_valid_qc_status <- qc_status %in% okay_to_comment_qc_statuses || qc_branch_merged
+  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || qc_branch_merged # TODO: see if file changes in case of merge
+
+  has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses
 
   # comparator commit cannot be qc commit (it would be redundant to comment the same commit twice)
   possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
 
-  okay_to_comment <- has_valid_git_status && has_valid_qc_status && possible_updates
-  return(okay_to_comment)
+  if (has_valid_git_status && has_hard_notify_qc_status && possible_updates) {
+    return("hard")
+  }
+
+  else if (has_valid_git_status && has_soft_notify_qc_status && possible_updates)
+  return("soft")
+
+  else {
+    return("none")
+  }
 }

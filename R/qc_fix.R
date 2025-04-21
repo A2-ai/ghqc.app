@@ -69,8 +69,14 @@ create_diff_body <- function(diff, reference_commit, reference_script, comparato
   if (!diff) return("")
 
     diff_formatted <- format_diff(reference_script = reference_script, comparator_script = comparator_script)
+
+    if (diff_formatted >= 65450) {
+      info(.le$logger, "File difference too long to render")
+      diff_formatted <- glue::glue("File difference too long to render.")
+    }
+
     glue::glue("## File Difference\n\n",
-               "{diff_formatted}\n\n")
+               "{diff_formatted}")
 }
 
 create_comment_body <- function(owner,
@@ -150,33 +156,14 @@ create_comment_body <- function(owner,
                                                 )
   debug(.le$logger, glue::glue("Got metadata body"))
 
-  comment_body <- glue::glue("{assignees_body}",
+  comment_body <- glue::glue("# QC notification\n\n",
+                             "{assignees_body}",
                              "{message_body}",
                              "{metadata_body}",
                              "{diff_body}",
                              .trim = FALSE)
 
   comment_body <- as.character(comment_body)
-
-  comment_length <- nchar(comment_body)
-
-  if (comment_length >= 65530) {
-    info(.le$logger, "File difference too long to render")
-
-    diff_body <- glue::glue("## File Difference\n\n",
-                            "File difference too long to render.\n\n"
-                            )
-
-    comment_body <- glue::glue("{assignees_body}",
-                               "{message_body}",
-                               "{metadata_body}",
-                               "{diff_body}",
-                               .trim = FALSE)
-
-    comment_body <- as.character(comment_body)
-
-    info(.le$logger, "Created commit comparison url")
-  }
 
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')

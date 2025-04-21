@@ -38,6 +38,7 @@ ghqc_status <- function(milestone_names,
     milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
 
     issues_df <- map_df(issues, function(issue) {
+      #browser()
       # get column values for file
       file_name <- issue$title
       issue_number <- issue$number
@@ -50,12 +51,13 @@ ghqc_status <- function(milestone_names,
 
       # latest_qc_commit is the most recent commented commit in file's issue
       init_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
-      latest_qc_commit <- get_latest_qc_commit(issue_body = issue_body,
+      latest_qc_commit <- get_latest_qc_commit(file_name = file_name,
+                                               issue_body = issue_body,
                                                num_comments = issue$comments,
                                                comments_url = issue$comments_url,
                                                init_qc_commit = init_qc_commit
                                                )
-      debug(.le$logger, glue::glue("Retrieved current QC commit for {file_name}: {latest_qc_commit}"))
+      debug(.le$logger, glue::glue("Retrieved last QC commit for {file_name}: {latest_qc_commit}"))
 
       # branch from metadata might be different from current branch
       metadata_branch <- get_branch_from_issue_body(issue_body)
@@ -68,7 +70,7 @@ ghqc_status <- function(milestone_names,
         if (!check_remote_branch_deleted(metadata_branch)) {
           qc_status <- "QC Status not available"
           comparator_commit <- NA_character_
-          okay_to_comment <- FALSE
+          notify <- FALSE
 
           diagnostics_list <- format_diagnostics_list(list(
             glue::glue("Current branch: {current_branch}"),
@@ -91,7 +93,7 @@ ghqc_status <- function(milestone_names,
           if (!is.null(merged_into)) {
             qc_status <- glue::glue("QC branch merged to {merged_into}")
             comparator_commit <- get_remote_commits_full_name(merged_into)[1] # comparator commit will be the latest remote commit on the merged_into branch
-            okay_to_comment <- get_okay_to_comment_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+            notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit) # TODO
 
             # see if file changed after latest qc commit
             last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, comparator_commit)$last_commit_that_changed_file
@@ -111,7 +113,7 @@ ghqc_status <- function(milestone_names,
           else {
             qc_status <- "QC branch deleted"
             comparator_commit <- NA_character_
-            okay_to_comment <- FALSE
+            notify <- FALSE
           }
 
           diagnostics <- format_diagnostics_list(diagnostics_items)
@@ -131,7 +133,7 @@ ghqc_status <- function(milestone_names,
             latest_qc_commit = latest_qc_commit,
             comparator_commit = comparator_commit,
             issue_url = file_url,
-            okay_to_comment = okay_to_comment,
+            notify = notify,
             qcer = qcer,
           )
         )
@@ -189,7 +191,7 @@ ghqc_status <- function(milestone_names,
       # this is safer than just giving the last commit in which the file changed -
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
-      okay_to_comment <- get_okay_to_comment_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+      notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit)
 
       # return res
       res <- dplyr::tibble(
@@ -205,7 +207,7 @@ ghqc_status <- function(milestone_names,
         latest_qc_commit = latest_qc_commit,
         comparator_commit = comparator_commit,
         issue_url = file_url,
-        okay_to_comment = okay_to_comment,
+        notify = notify,
         qcer = qcer,
       ) # tibble
 
@@ -338,7 +340,7 @@ get_imageless_comments <- function(comments_url) {
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
 
-get_latest_qc_commit <- function(issue_body, num_comments, comments_url, init_qc_commit) {
+get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, init_qc_commit) {
   # start by initializing latest_qc_commit as init qc commit
   latest_qc_commit <- init_qc_commit
 
@@ -356,6 +358,10 @@ get_latest_qc_commit <- function(issue_body, num_comments, comments_url, init_qc
       latest_qc_commit <- comment_metadata$`current commit`
       break
     }
+  }
+
+  if (is.null(latest_qc_commit)) {
+    rlang::abort(glue::glue("Error retrieving last qc commit for {file_name}"))
   }
 
   return(latest_qc_commit)
