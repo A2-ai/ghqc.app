@@ -194,19 +194,19 @@ post_comment <- function(owner, repo, issue_number, body) {
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
 }
 
-create_approve_comment_body <- function(owner, repo, issue_number, file_path, final_qc_commit, remote) {
+create_approve_comment_body <- function(owner, repo, issue_number, file_path, approved_qc_commit, remote) {
   remote_url <- parse_remote_url(remote$url)
 
   file_contents_url <- get_file_contents_url(file_path = file_path,
-                                             git_sha = final_qc_commit,
+                                             git_sha = approved_qc_commit,
                                              owner,
                                              repo,
                                              remote_url)
 
-  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at final qc commit</a>")
+  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at approved qc commit</a>")
 
   metadata_body <- glue::glue("## Metadata\n",
-                         "* final qc commit: {final_qc_commit}\n",
+                         "* approved qc commit: {approved_qc_commit}\n",
                          "* {file_contents_html}\n",
                          .trim = FALSE
   )

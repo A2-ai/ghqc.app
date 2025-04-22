@@ -15,7 +15,7 @@ ghqc_notify_ui <- function(id) {
     waiter_show_on_load(
       html = tagList(
         spin_1(),
-        h4("Loading in ...", style = "color: white;")
+        h4("Loading in...", style = "color: white;")
       ),
       color = "darkgrey"
     ),

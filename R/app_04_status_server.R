@@ -360,7 +360,7 @@ ghqc_status_server <- function(id,
           repo = repo,
           issue_number = df[row_index, ]$issue_number,
           file_path = df[row_index, ]$file_name,
-          final_qc_commit = df[row_index, ]$comparator_commit,
+          approved_qc_commit = df[row_index, ]$comparator_commit,
           remote = remote # TODO
         )
       }, error = function(e) {
@@ -380,7 +380,7 @@ ghqc_status_server <- function(id,
 
       post_approve_trigger(FALSE)
 
-      w_pc <- create_waiter(ns, "Signing off on QC Review...")
+      w_pc <- create_waiter(ns, "Approving QC...")
       w_pc$show()
       on.exit(w_pc$hide())
 
@@ -393,13 +393,13 @@ ghqc_status_server <- function(id,
 
           showModal(modalDialog(
             title = tags$div(
+              tags$span("QC approved", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
               actionButton(ns("dismiss_modal"), "Dismiss"),
               style = "text-align: right;"
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$p("QC review complete."),
-            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on Github", target = "_blank")
           ))
         },
         error = function(e) {
@@ -506,13 +506,13 @@ ghqc_status_server <- function(id,
 
           showModal(modalDialog(
             title = tags$div(
+              tags$span("QC notification posted", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
               actionButton(ns("dismiss_modal"), "Dismiss"),
               style = "text-align: right;"
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$p("QC notification posted successfully."),
-            tags$a(href = df[row_index, ]$issue_url, "Click here to visit the Issue on Github", target = "_blank")
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on Github", target = "_blank")
           ))
         },
         error = function(e) {
@@ -740,7 +740,7 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "Git Status",
           color = DT::styleEqual(
-            c("Up-to-date",
+            c("Up to date",
               "Remote file changes",
               "File does not exist locally",
               "Local uncommitted file changes",

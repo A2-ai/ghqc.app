@@ -397,7 +397,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
           footer = NULL,
           easyClose = TRUE,
           tags$p(success_note),
-          tags$a(href = milestone_url, "Click here to visit the Milestone on Github", target = "_blank")
+          tags$a(href = milestone_url, "Click here to view the Milestone on Github", target = "_blank")
         )
       )
     })

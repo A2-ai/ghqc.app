@@ -381,7 +381,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
         footer = NULL,
         easyClose = TRUE,
         tags$p("QC notification posted successfully."),
-        tags$a(href = post_comment(), "Click here to visit the Issue on Github", target = "_blank")
+        tags$a(href = post_comment(), "Click here to view the Issue on Github", target = "_blank")
       ))
     })
 
