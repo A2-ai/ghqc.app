@@ -47,7 +47,6 @@ get_approve_column <- function(qc_status, git_status) {
 }
 
 get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
-  browser()
   has_valid_git_status <- is.na(git_status) || git_status == "Up to date" # allowing git status to be NA in case when QC branch deleted and merged
 
   if (!has_valid_git_status) { # don't give option to notify if git status not up to date

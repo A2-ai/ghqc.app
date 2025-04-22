@@ -31,7 +31,7 @@ get_file_qc_status <- function(file,
                                                                                                                            latest_qc_commit,
                                                                                                                            head_commit = remote_commits[1])$last_commit_that_changed_file
       if (!is.null(last_remote_commit_that_changed_file_after_aproved_qc_commit)) {
-        return(pushed_file_changes_after_approved_qc_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short))
+        return(pushed_file_changes_after_approved_qc_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url))
       }
 
       return(approved(latest_qc_commit_short))
@@ -176,7 +176,7 @@ local_unpushed_commits_with_file_changes_after_qc_approval <- function(file, lat
   )
 } # local_unpushed_commits_with_file_changes_after_qc_approval
 
-pushed_file_changes_after_approved_qc_commit <- function(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short) {
+pushed_file_changes_after_approved_qc_commit <- function(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url) {
   qc_status <- "Pushed file changes after approved QC commit"
 
   last_file_change_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, file, repo_url)
