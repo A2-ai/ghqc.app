@@ -38,7 +38,6 @@ ghqc_status <- function(milestone_names,
     milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
 
     issues_df <- map_df(issues, function(issue) {
-      #browser()
       # get column values for file
       file_name <- issue$title
       issue_number <- issue$number
@@ -51,12 +50,13 @@ ghqc_status <- function(milestone_names,
 
       # latest_qc_commit is the most recent commented commit in file's issue
       init_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
-      latest_qc_commit <- get_latest_qc_commit(file_name = file_name,
+      latest_qc_commit_info <- get_latest_qc_commit(file_name = file_name,
                                                issue_body = issue_body,
                                                num_comments = issue$comments,
                                                comments_url = issue$comments_url,
                                                init_qc_commit = init_qc_commit
                                                )
+      latest_qc_commit <- latest_qc_commit_info$latest_qc_commit
       debug(.le$logger, glue::glue("Retrieved last QC commit for {file_name}: {latest_qc_commit}"))
 
       # branch from metadata might be different from current branch
@@ -204,7 +204,7 @@ ghqc_status <- function(milestone_names,
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
       notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit)
-      sign_off <- get_sign_off_column(git_status)
+      sign_off <- get_sign_off_column(qc_status, git_status)
 
       # return res
       res <- dplyr::tibble(
@@ -358,10 +358,10 @@ get_imageless_comments <- function(comments_url) {
 
 get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, init_qc_commit) {
   # start by initializing latest_qc_commit as init qc commit
-  latest_qc_commit <- init_qc_commit
+  #latest_qc_commit <- init_qc_commit
 
   if (num_comments == 0) {
-    return(latest_qc_commit)
+    return(init_qc_commit)
   }
 
   comments <- get_imageless_comments(comments_url)$body
@@ -371,16 +371,31 @@ get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_u
   for (comment in rev(comments)) {
     comment_metadata <- get_comment_metadata(comment)
     if (length(comment_metadata) > 0) {
-      latest_qc_commit <- comment_metadata$`current commit`
-      break
-    }
-  }
+      final_qc_commit <-  comment_metadata$`final qc commit`
+      if (!is.null(final_qc_commit)) {
+        return(list(
+          latest_qc_commit = final_qc_commit,
+          final = TRUE
+        ))
+      }
+      current_qc_commit <- comment_metadata$`current commit`
+      if (!is.null(current_qc_commit)) {
+        return(list(
+          latest_qc_commit = current_qc_commit,
+          final = FALSE
+        ))
+      }
+    } # if any metadata
+  } # for comments
 
-  if (is.null(latest_qc_commit)) {
-    rlang::abort(glue::glue("Error retrieving last qc commit for {file_name}"))
-  }
+  # if (is.null(latest_qc_commit)) {
+  #   rlang::abort(glue::glue("Error retrieving last qc commit for {file_name}"))
+  # }
 
-  return(latest_qc_commit)
+  return(list(
+    latest_qc_commit = init_qc_commit,
+    final = FALSE
+  ))
 }
 
 get_comment_metadata <- function(body) {
@@ -458,7 +473,7 @@ get_file_qc_status <- function(file,
                   ))
     } # QC notification posted
 
-    ### File changes to notify
+    ### QC notification suggested
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
@@ -474,13 +489,13 @@ get_file_qc_status <- function(file,
         commit_diff_url
       ))
 
-      return(list(qc_status = "File changes to notify",
+      return(list(qc_status = "QC notification suggested",
                   diagnostics = diagnostics
                   ))
-    } # File changes to notify
+    } # QC notification suggested
 
-    ### QC in progress
-    return(list(qc_status = "QC in progress",
+    ### In progress
+    return(list(qc_status = "In progress",
                 diagnostics = format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
                 ))
   } # open
@@ -547,7 +562,7 @@ get_file_qc_status <- function(file,
 
     } # if file changed
 
-   return(list(qc_status = "QC complete",
+   return(list(qc_status = "Complete",
                diagnostics = format_diagnostics_list(list(glue::glue("Final QC commit: {latest_qc_commit_short}")))
                ))
   } # closed

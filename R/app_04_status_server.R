@@ -188,8 +188,8 @@ ghqc_status_server <- function(id,
       # QC Status Filter
       if (input$qc_status_filter == "On track") {
         on_track <- c(
-          "QC in progress",
-          "QC complete"
+          "In progress",
+          "Complete"
         )
         df <- df[df$`QC Status` %in% on_track, ]
       }
@@ -324,22 +324,24 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(nrow(df) >= row_index)
       sign_off_comment_parts <- sign_off_comment_body()
-      #browser()
       display_comment_body <- glue::glue_collapse(sign_off_comment_parts)
 
       path <- create_gfm_file(display_comment_body)
       html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
 
+      file_name <- df[row_index, ]$file_name
+
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_sign_off_post"), "Post"),
+          actionButton(ns("proceed_sign_off_post"), "Sign off"),
           style = "text-align: right;"
         ),
         footer = NULL,
         easyClose = TRUE,
         tagList(
+          HTML(glue::glue("Post this comment if no further feedback or file changes are pending, and you approve the final version of <b>{file_name}</b>.<br><br>")),
           textInput(ns("sign_off_message"), "Message", placeholder = "(Optional)"),
           HTML(html)
         )
@@ -367,7 +369,6 @@ ghqc_status_server <- function(id,
     })
 
     post_sign_off_comment <- reactive({
-      browser()
       req(post_sign_off_trigger())
       sign_off_comment_parts <- sign_off_comment_body()
       req(sign_off_comment_parts)
@@ -385,7 +386,7 @@ ghqc_status_server <- function(id,
 
       tryCatch(
         {
-          post_comment(owner = org,
+          sign_off(owner = org,
                        repo = repo,
                        issue_number = df[row_index, ]$issue_number,
                        body = display_comment_body)
@@ -443,7 +444,7 @@ ghqc_status_server <- function(id,
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_sign_off_post"), "Post"),
+          actionButton(ns("proceed_notify_post"), "Post"),
           style = "text-align: right;"
         ),
         footer = NULL,
@@ -720,8 +721,8 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("QC in progress",
-              "QC complete",
+            c("In progress",
+              "Complete",
               "QC notification posted",
               "Local uncommitted file changes after Issue closure",
               "Local unpushed commits with file changes after Issue closure",
@@ -762,7 +763,7 @@ ghqc_status_server <- function(id,
     })
 
 
-    observeEvent(input$proceed_notification_post, {
+    observeEvent(input$proceed_notify_post, {
       debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
       removeModal()
       post_notification_trigger(TRUE)
@@ -774,7 +775,7 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$proceed_sign_off_post, {
-      browser()
+
       debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
       removeModal()
       post_sign_off_trigger(TRUE)

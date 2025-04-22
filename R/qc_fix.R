@@ -211,13 +211,21 @@ create_sign_off_comment_body <- function(owner, repo, issue_number, file_path, f
                          .trim = FALSE
   )
 
-  comment_body_first <- as.character(glue::glue("# QC complete\n\n",
+  comment_body_first <- as.character(glue::glue("# QC Complete\n\n",
                                                 .trim = FALSE))
 
   comment_body_second <- as.character(glue::glue("{metadata_body}",
                                                  .trim = FALSE))
 
   return(c(comment_body_first, comment_body_second))
+}
+
+sign_off <- function(owner, repo, issue_number, body) {
+  # step 1: post comment
+  post_comment(owner, repo, issue_number, body)
+
+  # step 2: close issue
+  close_issue(owner, repo, issue_number)
 }
 
 

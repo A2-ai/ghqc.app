@@ -496,3 +496,14 @@ get_branch_from_issue_body <- function(issue_body) {
     rlang::abort(conditionMessage(e))
   })
 }
+
+close_issue <- function(owner, repo, issue_number) {
+  gh::gh(
+    "PATCH /repos/:owner/:repo/issues/:issue_number",
+    owner = owner,
+    repo = repo,
+    issue_number = issue_number,
+    .api_url = .le$github_api_url,
+    state = "closed"
+  )
+}
