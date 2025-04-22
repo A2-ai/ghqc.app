@@ -236,8 +236,8 @@ find_merged_into <- function(commit_sha) {
   return(NULL)
 }
 
-get_sign_off_column <- function(qc_status, git_status) {
-  if (qc_status == "Complete") {
+get_approve_column <- function(qc_status, git_status) {
+  if (qc_status == "Approved") {
     return(FALSE)
   }
 
@@ -262,7 +262,7 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("QC notification suggested",
+  hard_notify_qc_statuses <- c("Notification pending",
                                 "Pushed file changes after Issue closure",
                                 "Uncommented pushed file changes before Issue closure"
                                 )
@@ -271,7 +271,6 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # but the user may still want to update
   # the issue - maybe a relevant file changed or something like that
   soft_notify_qc_statuses <- c("In progress",
-                               "Complete",
                                "File changes since QC branch merged and deleted") # yes there are file changes, but since the merge has already happened, make it soft
 
   has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses

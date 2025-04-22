@@ -194,7 +194,7 @@ post_comment <- function(owner, repo, issue_number, body) {
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
 }
 
-create_sign_off_comment_body <- function(owner, repo, issue_number, file_path, final_qc_commit, remote) {
+create_approve_comment_body <- function(owner, repo, issue_number, file_path, final_qc_commit, remote) {
   remote_url <- parse_remote_url(remote$url)
 
   file_contents_url <- get_file_contents_url(file_path = file_path,
@@ -211,7 +211,7 @@ create_sign_off_comment_body <- function(owner, repo, issue_number, file_path, f
                          .trim = FALSE
   )
 
-  comment_body_first <- as.character(glue::glue("# QC Complete\n\n",
+  comment_body_first <- as.character(glue::glue("# QC Approved\n\n",
                                                 .trim = FALSE))
 
   comment_body_second <- as.character(glue::glue("{metadata_body}",
@@ -220,7 +220,7 @@ create_sign_off_comment_body <- function(owner, repo, issue_number, file_path, f
   return(c(comment_body_first, comment_body_second))
 }
 
-sign_off <- function(owner, repo, issue_number, body) {
+approve <- function(owner, repo, issue_number, body) {
   # step 1: post comment
   post_comment(owner, repo, issue_number, body)
 

@@ -71,7 +71,7 @@ ghqc_status <- function(milestone_names,
           qc_status <- "QC Status not available"
           comparator_commit <- NA_character_
           notify <- FALSE
-          sign_off <- FALSE
+          approve <- FALSE
 
           diagnostics_list <- format_diagnostics_list(list(
             glue::glue("Current branch: {current_branch}"),
@@ -145,7 +145,7 @@ ghqc_status <- function(milestone_names,
             comparator_commit = comparator_commit,
             issue_url = file_url,
             notify = notify,
-            sign_off = sign_off,
+            approve = approve,
             qcer = qcer,
           )
         )
@@ -204,7 +204,7 @@ ghqc_status <- function(milestone_names,
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
       notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit)
-      sign_off <- get_sign_off_column(qc_status, git_status)
+      approve <- get_approve_column(qc_status, git_status)
 
       # return res
       res <- dplyr::tibble(
@@ -221,7 +221,7 @@ ghqc_status <- function(milestone_names,
         comparator_commit = comparator_commit,
         issue_url = file_url,
         notify = notify,
-        sign_off = sign_off,
+        approve = approve,
         qcer = qcer,
       ) # tibble
 
@@ -245,7 +245,7 @@ ghqc_status <- function(milestone_names,
                            "comparator_commit",
                            "issue_url",
                            "Notify",
-                           "Sign off",
+                           "Approve",
                            "QCer")
   # make factors
   status_df <- status_df %>%
@@ -342,7 +342,7 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
       Notify = FALSE,
-      `Sign off` = FALSE,
+      `Approve` = FALSE,
       QCer = NA_character_,
     )
   })
@@ -442,7 +442,7 @@ get_file_qc_status <- function(file,
   ## For open issues
   if (issue_state == "Open") {
 
-    ### QC notification posted - this is not the same as git_status == "Remote file changes"
+    ### Notification posted - this is not the same as git_status == "Remote file changes"
     if (!latest_qc_commit %in% local_commits) {  # if local commit is older than the latest_qc_commit (even if it didn't change the file - "No file difference" is possible)
       latest_local_commit <- local_commits[1]
       local_commit_pushed <- latest_local_commit %in% remote_commits
@@ -468,12 +468,12 @@ get_file_qc_status <- function(file,
 
       diagnostics <- format_diagnostics_list(diagnostics_items)
 
-      return(list(qc_status = "QC notification posted",
+      return(list(qc_status = "Notification posted",
                   diagnostics = diagnostics
                   ))
     } # QC notification posted
 
-    ### QC notification suggested
+    ### Notification pending
     last_remote_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                             latest_qc_commit,
                                                                                             head_commit = remote_commits[1])$last_commit_that_changed_file
@@ -489,10 +489,10 @@ get_file_qc_status <- function(file,
         commit_diff_url
       ))
 
-      return(list(qc_status = "QC notification suggested",
+      return(list(qc_status = "Notification pending",
                   diagnostics = diagnostics
                   ))
-    } # QC notification suggested
+    } # Notification suggested
 
     ### In progress
     return(list(qc_status = "In progress",
@@ -562,7 +562,7 @@ get_file_qc_status <- function(file,
 
     } # if file changed
 
-   return(list(qc_status = "Complete",
+   return(list(qc_status = "Approved",
                diagnostics = format_diagnostics_list(list(glue::glue("Final QC commit: {latest_qc_commit_short}")))
                ))
   } # closed

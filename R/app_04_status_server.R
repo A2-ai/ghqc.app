@@ -77,7 +77,7 @@ ghqc_status_server <- function(id,
 
     # comment reactives
     post_notification_trigger <- reactiveVal(FALSE)
-    post_sign_off_trigger <- reactiveVal(FALSE)
+    post_approve_trigger <- reactiveVal(FALSE)
 
 
     # cache previously rendered sets of milestones
@@ -189,13 +189,13 @@ ghqc_status_server <- function(id,
       if (input$qc_status_filter == "On track") {
         on_track <- c(
           "In progress",
-          "Complete"
+          "Approved"
         )
         df <- df[df$`QC Status` %in% on_track, ]
       }
       else if (input$qc_status_filter == "Needs attention") {
         needs_attention <- c(
-          "QC notification posted",
+          "Notification posted",
           "Local uncommitted file changes after Issue closure",
           "Local unpushed commits with file changes after Issue closure",
           "Pushed file changes after Issue closure",
@@ -304,27 +304,27 @@ ghqc_status_server <- function(id,
 
     # QC COMPLETE
 
-    sign_off_button <- function(ns) {
+    approve_button <- function(ns) {
       function(i) {
         row_id <- sprintf("row_%d", i)
         sprintf(
           '<button id="%s" type="button" class="btn btn-sm btn-primary"
         onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Sign off
+        Approve
        </button>',
-          ns(paste0("sign_off_button_", row_id)),
-          ns("show_sign_off_modal_row"),
+          ns(paste0("approve_button_", row_id)),
+          ns("show_approve_modal_row"),
           i
         )
       }
     }
 
-    observeEvent(input$show_sign_off_modal_row, {
-      row_index <- input$show_sign_off_modal_row$row
+    observeEvent(input$show_approve_modal_row, {
+      row_index <- input$show_approve_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
-      sign_off_comment_parts <- sign_off_comment_body()
-      display_comment_body <- glue::glue_collapse(sign_off_comment_parts)
+      approve_comment_parts <- approve_comment_body()
+      display_comment_body <- glue::glue_collapse(approve_comment_parts)
 
       path <- create_gfm_file(display_comment_body)
       html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
@@ -335,27 +335,27 @@ ghqc_status_server <- function(id,
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_sign_off_post"), "Sign off"),
+          actionButton(ns("proceed_approve_post"), "Approve"),
           style = "text-align: right;"
         ),
         footer = NULL,
         easyClose = TRUE,
         tagList(
           HTML(glue::glue("Post this comment if no further feedback or file changes are pending, and you approve the final version of <b>{file_name}</b>.<br><br>")),
-          textInput(ns("sign_off_message"), "Message", placeholder = "(Optional)"),
+          textInput(ns("approve_message"), "Message", placeholder = "(Optional)"),
           HTML(html)
         )
 
       ))
     })
 
-    sign_off_comment_body <- reactive({
-      row_index <- input$show_sign_off_modal_row$row
+    approve_comment_body <- reactive({
+      row_index <- input$show_approve_modal_row$row
       df <- filtered_data()
       req(df)
 
       tryCatch({
-        create_sign_off_comment_body(
+        create_approve_comment_body(
           owner = org,
           repo = repo,
           issue_number = df[row_index, ]$issue_number,
@@ -368,17 +368,17 @@ ghqc_status_server <- function(id,
       })
     })
 
-    post_sign_off_comment <- reactive({
-      req(post_sign_off_trigger())
-      sign_off_comment_parts <- sign_off_comment_body()
-      req(sign_off_comment_parts)
-      row_index <- input$show_sign_off_modal_row$row
+    post_approve_comment <- reactive({
+      req(post_approve_trigger())
+      approve_comment_parts <- approve_comment_body()
+      req(approve_comment_parts)
+      row_index <- input$show_approve_modal_row$row
       df <- filtered_data()
       req(df)
 
-      display_comment_body <- glue::glue_collapse(c(sign_off_comment_parts[1], input$sign_off_message, "\n\n", sign_off_comment_parts[2]))
+      display_comment_body <- glue::glue_collapse(c(approve_comment_parts[1], input$approve_message, "\n\n", approve_comment_parts[2]))
 
-      post_sign_off_trigger(FALSE)
+      post_approve_trigger(FALSE)
 
       w_pc <- create_waiter(ns, "Signing off on QC Review...")
       w_pc$show()
@@ -386,7 +386,7 @@ ghqc_status_server <- function(id,
 
       tryCatch(
         {
-          sign_off(owner = org,
+          approve(owner = org,
                        repo = repo,
                        issue_number = df[row_index, ]$issue_number,
                        body = display_comment_body)
@@ -440,16 +440,19 @@ ghqc_status_server <- function(id,
       path <- create_gfm_file(display_comment_body)
       html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
 
+      file_name <- df[row_index, ]$file_name
+
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
           actionButton(ns("return"), "Cancel", style = "color: red;"),
-          actionButton(ns("proceed_notify_post"), "Post"),
+          actionButton(ns("proceed_notify_post"), "Notify"),
           style = "text-align: right;"
         ),
         footer = NULL,
         easyClose = TRUE,
         tagList(
+          HTML(glue::glue("Post this comment to optionally notify collaborators about the most recent commit in Issue <b>{file_name}</b>.<br><br>")),
           textInput(ns("notify_message"), "Message", placeholder = "(Optional)"),
           HTML(html)
         )
@@ -637,11 +640,11 @@ ghqc_status_server <- function(id,
         })
 
 
-        df$`Sign off` <- sapply(1:nrow(df), function(i) {
+        df$`Approve` <- sapply(1:nrow(df), function(i) {
           row <- df[i, ]
 
-          if (row$`Sign off`) {
-            sign_off_button(ns)(i)
+          if (row$`Approve`) {
+            approve_button(ns)(i)
           }
           else {
             NA_character_
@@ -722,8 +725,8 @@ ghqc_status_server <- function(id,
           "QC Status",
           color = DT::styleEqual(
             c("In progress",
-              "Complete",
-              "QC notification posted",
+              "Approved",
+              "Notification posted",
               "Local uncommitted file changes after Issue closure",
               "Local unpushed commits with file changes after Issue closure",
               "Pushed file changes after Issue closure",
@@ -774,16 +777,16 @@ ghqc_status_server <- function(id,
       post_notify_comment()
     })
 
-    observeEvent(input$proceed_sign_off_post, {
+    observeEvent(input$proceed_approve_post, {
 
       debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
       removeModal()
-      post_sign_off_trigger(TRUE)
+      post_approve_trigger(TRUE)
     })
 
     # note: it only works with this, idk why
     observe({
-      post_sign_off_comment()
+      post_approve_comment()
     })
 
 
