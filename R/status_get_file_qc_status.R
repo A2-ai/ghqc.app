@@ -119,14 +119,10 @@ get_file_qc_status <- function(file,
 
 ### QC Statuses
 
-
-
 issue_reopened_after_qc_approval <- function(latest_qc_commit_short) {
   qc_status <- "Issue re-opened after approval"
 
-  diagnostics_list <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
-  diagnostics <- glue::glue("Close Issue to complete QC, or delete QC approval comment to resume QC review.{vspace()}
-                                {diagnostics_list}")
+  diagnostics <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
 
   list(qc_status = qc_status,
        diagnostics = diagnostics

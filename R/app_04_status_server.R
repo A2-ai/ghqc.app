@@ -643,11 +643,14 @@ ghqc_status_server <- function(id,
         df$`Approve` <- sapply(1:nrow(df), function(i) {
           row <- df[i, ]
 
-          if (row$`Approve`) {
+          if (row$`Approve` == "approve") {
             approve_button(ns)(i)
           }
-          else {
+          else if (row$`Approve` == "none") {
             NA_character_
+          }
+          else {
+            row$`Approve`
           }
         })
       } # if rows
