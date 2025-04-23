@@ -56,10 +56,10 @@ get_approve_column <- function(qc_status, git_status) {
       return("Synchronize repository to approve")
     }
     if (qc_status == "Issue re-opened after approval") {
-      return("Close Issue, or delete \"QC approved\" comment to update approved QC commit")
+      return("Close Issue, or delete \"QC Approved\" comment to update approved QC commit")
     }
     if (qc_status %in% c("Local unpushed commits with file changes after approved QC commit", "Pushed file changes after approved QC commit")) {
-      return("Delete \"QC approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
+      return("Delete \"QC Approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
     }
     else {
       return("none")

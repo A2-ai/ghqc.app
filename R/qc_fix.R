@@ -156,7 +156,7 @@ create_notify_comment_body <- function(owner,
                                                 )
   debug(.le$logger, glue::glue("Got metadata body"))
 
-  comment_body_first <- as.character(glue::glue("# QC notification\n\n",
+  comment_body_first <- as.character(glue::glue("# QC Notification\n\n",
                                                 "{assignees_body}",
                                                 "{message_body}",
                                                 .trim = FALSE))
