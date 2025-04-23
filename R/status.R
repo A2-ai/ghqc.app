@@ -56,80 +56,67 @@ ghqc_status <- function(milestone_names,
                                                comments_url = issue$comments_url,
                                                init_qc_commit = init_qc_commit
                                                )
+
       latest_qc_commit <- latest_qc_commit_info$latest_qc_commit
       qc_approved <- latest_qc_commit_info$qc_approved
       debug(.le$logger, glue::glue("Retrieved last QC commit for {file_name}: {latest_qc_commit}"))
 
       # branch from metadata might be different from current branch
-      metadata_branch <- get_branch_from_issue_body(issue_body)
+      qc_branch <- get_branch_from_issue_body(issue_body)
       # if it is different, don't get git status
-      if (metadata_branch != current_branch) {
-        # if not on the qc branch, then getting the git status doesn't make sense
-        git_status <- NA_character_
+      if (qc_branch != current_branch) {
 
         # QC BRANCH NOT DELETED
-        if (!check_remote_branch_deleted(metadata_branch)) {
-          qc_status <- "QC Status not available"
-          comparator_commit <- NA_character_
-          notify <- FALSE
-          approve <- FALSE
+        if (!check_remote_branch_deleted(qc_branch)) {
+          git_status <- glue::glue("View on QC branch: <em>{qc_branch}</em>") # if not on the qc branch, then getting the git status doesn't make sense
+          remote_name <- get_remote_for_branch(qc_branch)
+          remote_commits_on_qc_branch <- get_remote_commits(remote_name, qc_branch)
+          qc_status_info <- get_file_qc_status_non_local_qc_branch(file_name,
+                                                                   issue_state,
+                                                                   remote_commits_on_qc_branch,
+                                                                   latest_qc_commit,
+                                                                   repo_url,
+                                                                   qc_approved)
 
-          diagnostics_list <- format_diagnostics_list(list(
-            glue::glue("Current branch: {current_branch}"),
-            glue::glue("QC branch: {metadata_branch}")
-          ))
-          diagnostics <- glue::glue("Switch to QC branch to view status.<br>{diagnostics_list}")
-
+          qc_status <- qc_status_info$qc_status
+          diagnostics <- qc_status_info$diagnostics
         } # remote branch not deleted
 
         else { # else remote branch has been deleted
-          latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name, repo_url)
-          diagnostics_items <- list(
-            glue::glue("QC branch: {metadata_branch}"),
-            glue::glue("Approved QC commit: {latest_qc_commit_short}") # TODO
-          )
-
           merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit in case current qc commit is from the merged_in branch
-
-          # QC BRANCH MERGED AND DELETED
           if (!is.null(merged_into)) {
-            qc_status <- glue::glue("QC branch merged to {merged_into}")
-            comparator_commit <- get_remote_commits_full_name(merged_into)[1] # comparator commit will be the latest remote commit on the merged_into branch
-
-
-            # see if file changed after latest qc commit
-            last_commit_that_changed_file <- last_commit_that_changed_file_after_latest_qc_commit(file_name, latest_qc_commit, comparator_commit)$last_commit_that_changed_file
-            if (!is.null(last_commit_that_changed_file)) {
-              last_commit_that_changed_file_short <- get_hyperlinked_commit(last_commit_that_changed_file, file_name, repo_url)
-              commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
-                                                             old_commit = latest_qc_commit,
-                                                             new_commit = last_commit_that_changed_file)
-              diagnostics_items <- append(diagnostics_items,
-                                          c(glue::glue("Last file change: {last_commit_that_changed_file_short}"),
-                                            commit_diff_url)
-                                          )
-              notify <- get_notify_column(qc_status = "File changes since QC branch merged and deleted",
-                                          git_status,
-                                          latest_qc_commit,
-                                          comparator_commit)
-            } # if file changed after latest qc commit
-            else {
-              notify <- get_notify_column(qc_status = "No file changes since QC branch merged and deleted",
-                                          git_status,
-                                          latest_qc_commit,
-                                          comparator_commit)
-            }
-          } # if merged_into
-
-          # QC BRANCH NOT MERGED AND DELETED
+            git_status <- glue::glue("Deleted QC branch: <em>{qc_branch}</em>{vspace()}
+                                     Merged into: {merged_into}"
+                                     )
+          }
           else {
-            qc_status <- "QC branch deleted"
-            comparator_commit <- NA_character_
-            notify <- FALSE
+            git_status <- glue::glue("Deleted QC branch: <em>{qc_branch}</em>")
           }
 
-          diagnostics <- format_diagnostics_list(diagnostics_items)
+          latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name, repo_url)
+
+          if (qc_approved) {
+            qc_status <- "Approved"
+            diagnostics_items <- list(
+              glue::glue("Approved QC commit: {latest_qc_commit_short}")
+            )
+          }
+          else {
+            qc_status <- "QC branch deleted before QC Approved"
+            diagnostics_items <- list(
+              glue::glue("Last posted commit: {latest_qc_commit_short}")
+            )
+          }
+
+          diagnostics_list <- format_diagnostics_list(diagnostics_items)
+          diagnostics <- glue::glue("Restore and switch to QC branch to approve QC{vspace()}
+                                    {diagnostics_list}")
         } # else remote branch has been deleted
+
+        # must be on the QC branch to perform operations
+        comparator_commit <- NA_character_
+        notify <- "none"
+        approve <- FALSE
 
         return(
           dplyr::tibble(
@@ -151,7 +138,7 @@ ghqc_status <- function(milestone_names,
           )
         )
 
-      } # metadata_branch != current_branch
+      } # qc_branch != current_branch
 
       # git status
       debug(.le$logger, glue::glue("Retrieving git status for {file_name}..."))

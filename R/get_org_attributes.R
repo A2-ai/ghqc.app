@@ -507,3 +507,25 @@ close_issue <- function(owner, repo, issue_number) {
     state = "closed"
   )
 }
+
+get_remote_for_branch <- function(branch_name) {
+  branches <- gert::git_branch_list()
+
+  branch_info <- branches[branches$name == branch_name, ]
+
+  if (nrow(branch_info) == 0) {
+    stop(paste("Branch", branch_name, "not found."))
+  }
+
+  upstream <- branch_info$upstream
+  if (is.na(upstream) || upstream == "") {
+    return(NA)  # No tracking branch
+  }
+
+  # Extract remote name from "refs/remotes/origin/branch_name"
+  if (grepl("^refs/remotes/", upstream)) {
+    sub("^refs/remotes/([^/]+)/.*$", "\\1", upstream)
+  } else {
+    sub("/.*", "", upstream)  # fallback for older style like "origin/main"
+  }
+}

@@ -127,7 +127,9 @@ get_imageless_comments <- function(comments_url) {
 
 get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, init_qc_commit) {
   if (num_comments == 0) {
-    return(init_qc_commit)
+    return(list(latest_qc_commit = init_qc_commit,
+                qc_approved = FALSE
+                ))
   }
 
   comments <- get_imageless_comments(comments_url)$body
