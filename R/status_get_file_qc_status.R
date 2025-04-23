@@ -7,6 +7,7 @@ get_file_qc_status <- function(file,
                                repo_url,
                                qc_approved) {
 
+
   latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
 
   # qc approved
@@ -31,7 +32,7 @@ get_file_qc_status <- function(file,
                                                                                                                            latest_qc_commit,
                                                                                                                            head_commit = remote_commits[1])$last_commit_that_changed_file
       if (!is.null(last_remote_commit_that_changed_file_after_aproved_qc_commit)) {
-        return(pushed_file_changes_after_approved_qc_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url))
+        return(pushed_file_changes_after_approved_qc_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url, file, latest_qc_commit))
       }
 
       return(approved(latest_qc_commit_short))
@@ -176,7 +177,7 @@ local_unpushed_commits_with_file_changes_after_qc_approval <- function(file, lat
   )
 } # local_unpushed_commits_with_file_changes_after_qc_approval
 
-pushed_file_changes_after_approved_qc_commit <- function(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url) {
+pushed_file_changes_after_approved_qc_commit <- function(last_remote_commit_that_changed_file_after_aproved_qc_commit, latest_qc_commit_short, repo_url, file, latest_qc_commit) {
   qc_status <- "Pushed file changes after approved QC commit"
 
   last_file_change_short <- get_hyperlinked_commit(last_remote_commit_that_changed_file_after_aproved_qc_commit, file, repo_url)
@@ -184,11 +185,13 @@ pushed_file_changes_after_approved_qc_commit <- function(last_remote_commit_that
                                                  old_commit = latest_qc_commit,
                                                  new_commit = last_remote_commit_that_changed_file_after_aproved_qc_commit)
 
-  diagnostics <- format_diagnostics_list(list(
+  diagnostics_list <- format_diagnostics_list(list(
     glue::glue("Approved QC commit: {latest_qc_commit_short}"),
     glue::glue("Last file change: {last_file_change_short}"),
     commit_diff_url
   ))
+  diagnostics <- glue::glue("Delete QC approval comment to resume QC review.{vspace()}
+                                {diagnostics_list}")
 
   list(qc_status = qc_status,
        diagnostics = diagnostics
