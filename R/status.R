@@ -97,20 +97,16 @@ ghqc_status <- function(milestone_names,
 
           if (qc_approved) {
             qc_status <- "Approved"
-            diagnostics_items <- list(
-              glue::glue("Approved QC commit: {latest_qc_commit_short}")
-            )
+            diagnostics <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
+
           }
           else {
-            qc_status <- "QC branch deleted before QC Approved"
-            diagnostics_items <- list(
-              glue::glue("Last posted commit: {latest_qc_commit_short}")
-            )
-          }
-
-          diagnostics_list <- format_diagnostics_list(diagnostics_items)
-          diagnostics <- glue::glue("Restore and switch to QC branch to approve QC{vspace()}
+            qc_status <- "QC branch deleted before QC approved"
+            diagnostics_list <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
+            diagnostics <- glue::glue("Restore and switch to QC branch to approve QC{vspace()}
                                     {diagnostics_list}")
+
+          }
         } # else remote branch has been deleted
 
         # must be on the QC branch to perform operations
@@ -137,7 +133,6 @@ ghqc_status <- function(milestone_names,
             qcer = qcer,
           )
         )
-
       } # qc_branch != current_branch
 
       # git status
@@ -149,7 +144,6 @@ ghqc_status <- function(milestone_names,
       end_time <- Sys.time()
       elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 3)
       debug(.le$logger, glue::glue("Retrieved git status for {file_name} in {elapsed} seconds"))
-
 
       # qc status
       qc_status_info <- tryCatch({

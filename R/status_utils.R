@@ -63,7 +63,7 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("Notification pending",
+  hard_notify_qc_statuses <- c("Notification suggested",
                                 "Pushed file changes after Issue closure",
                                 "Uncommented pushed file changes before Issue closure"
                                 )

@@ -175,7 +175,7 @@ notification_posted <- function(local_commits, remote_commits, file, repo_url, l
 } # notification_posted
 
 notification_pending <- function(last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short) {
-  qc_status <- "Notification pending"
+  qc_status <- "Notification suggested"
   last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_file_change_after_qc_commit, file, repo_url)
   commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
                                                  old_commit = latest_qc_commit,
