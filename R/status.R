@@ -101,7 +101,7 @@ ghqc_status <- function(milestone_names,
 
           }
           else {
-            qc_status <- "QC branch deleted before QC approved"
+            qc_status <- "QC branch deleted before approval"
             diagnostics_list <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
             diagnostics <- glue::glue("Restore and switch to QC branch to approve QC{vspace()}
                                     {diagnostics_list}")

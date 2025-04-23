@@ -71,7 +71,7 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # soft notify statuses are statuses where there's no changes in the qc file to notify,
   # but the user may still want to update
   # the issue - maybe a relevant file changed or something like that
-  soft_notify_qc_statuses <- c("In progress",
+  soft_notify_qc_statuses <- c("Awaiting approval",
                                "File changes since QC branch merged and deleted") # yes there are file changes, but since the merge has already happened, make it soft
 
   has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses

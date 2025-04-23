@@ -122,7 +122,7 @@ get_file_qc_status <- function(file,
 
 
 issue_reopened_after_qc_approval <- function(latest_qc_commit_short) {
-  qc_status <- "Issue re-opened after QC approval"
+  qc_status <- "Issue re-opened after approval"
 
   diagnostics_list <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
   diagnostics <- glue::glue("Close Issue to complete QC, or delete QC approval comment to resume QC review.{vspace()}
@@ -193,7 +193,7 @@ notification_pending <- function(last_remote_file_change_after_qc_commit, file, 
 } # notification_pending
 
 in_progress <- function(latest_qc_commit_short) {
-  qc_status <- "In progress"
+  qc_status <- "Awaiting approval"
   diagnostics <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
 
   list(qc_status = qc_status,
@@ -202,7 +202,7 @@ in_progress <- function(latest_qc_commit_short) {
 } # in_progress
 
 local_uncommitted_file_changes_after_qc_approval <- function(latest_qc_commit_short) {
-  qc_status <- "Local uncommitted file changes after QC approval"
+  qc_status <- "Local uncommitted file changes after approval"
   diagnostics <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
 
   list(qc_status = qc_status,
@@ -211,7 +211,7 @@ local_uncommitted_file_changes_after_qc_approval <- function(latest_qc_commit_sh
 } # local_uncommitted_file_changes_after_qc_approval
 
 local_unpushed_commits_with_file_changes_after_qc_approval <- function(file, latest_qc_commit, local_commits, latest_qc_commit_short) {
-  qc_status <- "Local unpushed commits with file changes after QC approval"
+  qc_status <- "Local unpushed commits with file changes after approved QC commit"
 
   last_local_change_after_qc_commit <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                               latest_qc_commit,
@@ -250,7 +250,7 @@ pushed_file_changes_after_approved_qc_commit <- function(last_remote_file_change
 } # pushed_file_changes_after_approved_qc_commit
 
 approval_pending <- function(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit) {
-  qc_status <- "Approval pending"
+  qc_status <- "Requires approval"
   diagnostics_items <- list(glue::glue("Last posted commit: {latest_qc_commit_short}"))
 
   # if file changes since last notification

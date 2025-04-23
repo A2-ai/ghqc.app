@@ -188,7 +188,7 @@ ghqc_status_server <- function(id,
       # QC Status Filter
       if (input$qc_status_filter == "On track") {
         on_track <- c(
-          "In progress",
+          "Awaiting approval",
           "Approved"
         )
         df <- df[df$`QC Status` %in% on_track, ]
@@ -724,19 +724,19 @@ ghqc_status_server <- function(id,
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("In progress",
+            c("Awaiting approval",
               "Approved",
-              "Issue re-opened after QC approval",
-              "Notification posted",
               "Notification suggested",
-              "Local uncommitted file changes after QC approval",
-              "Local unpushed commits with file changes after QC approval",
+              "Notification posted",
+              "Issue re-opened after approval",
+              "Local uncommitted file changes after approval",
+              "Local unpushed commits with file changes after approved QC commit",
               "Pushed file changes after approved QC commit",
-              "Approval pending",
+              "Requires approval",
               "Error",
-              "QC branch deleted before QC approved"
+              "QC branch deleted before approval"
               ),
-            c("green", "green", "#a94442", "#a94442", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("green", "green", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%
