@@ -267,13 +267,11 @@ pushed_file_changes_after_approved_qc_commit <- function(last_remote_file_change
                                                  old_commit = latest_qc_commit,
                                                  new_commit = last_remote_file_change_after_qc_commit)
 
-  diagnostics_list <- format_diagnostics_list(list(
+  diagnostics <- format_diagnostics_list(list(
     glue::glue("Approved QC commit: {latest_qc_commit_short}"),
     glue::glue("Last file change: {last_file_change_short}"),
     commit_diff_url
   ))
-  diagnostics <- glue::glue("Delete QC approval comment to resume QC review.{vspace()}
-                                {diagnostics_list}")
 
   list(qc_status = qc_status,
        diagnostics = diagnostics
