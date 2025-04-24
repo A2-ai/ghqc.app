@@ -38,7 +38,6 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
 
 
 get_approve_column <- function(qc_status, git_status) {
-  browser()
   if (qc_status == "Approved") {
     return("none")
   }
