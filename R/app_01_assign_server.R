@@ -352,7 +352,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       req(qc_trigger())
       qc_trigger(FALSE)
 
-      w_create_qc_items <- create_waiter(ns, "Assigning file(s) for QC ...")
+      w_create_qc_items <- create_waiter(ns, "Assigning file(s) for QC...")
       w_create_qc_items$show()
       tryCatch(
         {

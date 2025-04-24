@@ -320,8 +320,8 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      Notify = FALSE,
-      `Approve` = FALSE,
+      Notify = "none",
+      `Approve` = "none",
       QCer = NA_character_,
     )
   })
