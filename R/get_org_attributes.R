@@ -508,24 +508,16 @@ close_issue <- function(owner, repo, issue_number) {
   )
 }
 
-get_remote_for_branch <- function(branch_name) {
-  branches <- gert::git_branch_list()
+get_remote_ref_for_branch <- function(branch_name) {
+  branches <- gert::git_branch_list(local = FALSE)
 
-  branch_info <- branches[branches$name == branch_name, ]
+  # Find matching remote branch by leaf name
+  match_idx <- which(basename(branches$name) == branch_name)
 
-  if (nrow(branch_info) == 0) {
-    stop(paste("Branch", branch_name, "not found."))
+  if (length(match_idx) == 0) {
+    rlang::abort(paste("Branch", branch_name, "not found in remote branches."))
   }
 
-  upstream <- branch_info$upstream
-  if (is.na(upstream) || upstream == "") {
-    return(NA)  # No tracking branch
-  }
-
-  # Extract remote name from "refs/remotes/origin/branch_name"
-  if (grepl("^refs/remotes/", upstream)) {
-    sub("^refs/remotes/([^/]+)/.*$", "\\1", upstream)
-  } else {
-    sub("/.*", "", upstream)  # fallback for older style like "origin/main"
-  }
+  # Return the full remote name, e.g., "origin/qc_branch_1"
+  return(branches$name[match_idx[1]])
 }

@@ -42,27 +42,38 @@ get_approve_column <- function(qc_status, git_status) {
     return("none")
   }
 
+  if (stringr::str_detect(git_status, "View on QC branch:")) {
+    return("Switch to QC branch")
+  }
+
+  if (stringr::str_detect(git_status, "Deleted QC branch:")) {
+    return("Restore QC branch")
+  }
+
   valid_git_status <- !is.na(git_status) && git_status == "Up to date"
   if (!valid_git_status) {
     return("Synchronize repository")
   }
 
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "Notification suggested", "Requires approval") # , "QC branch deleted before approval"
-
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "Notification suggested", "Requires approval") # ,
   if (valid_qc_status) {
     return("approve")
   }
 
   # Needs further explanation
 
+  # "Notification posted" is possible when git status is "Up to date". In this case, force sync because the post was intentional
   if (qc_status %in% c("Notification posted", "Local uncommitted file changes after approval")) {
     return("Synchronize repository")
   }
-  if (qc_status == "Issue re-opened after approval") {
+  if (qc_status == "Issue reopened after approval") {
     return("Close Issue, or delete \"QC Approved\" comment to update approved QC commit")
   }
   if (qc_status %in% c("Local unpushed commits with file changes after approved QC commit", "Pushed file changes after approved QC commit")) {
     return("Delete \"QC Approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
+  }
+  if (qc_status == "QC branch deleted before approval") {
+    return("Restore and switch to QC branch")
   }
   else {
     return("none")

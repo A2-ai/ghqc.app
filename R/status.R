@@ -69,8 +69,8 @@ ghqc_status <- function(milestone_names,
         # QC BRANCH NOT DELETED
         if (!check_remote_branch_deleted(qc_branch)) {
           git_status <- glue::glue("View on QC branch: <em>{qc_branch}</em>") # if not on the qc branch, then getting the git status doesn't make sense
-          remote_name <- get_remote_for_branch(qc_branch)
-          remote_commits_on_qc_branch <- get_remote_commits(remote_name, qc_branch)
+          remote_ref <- get_remote_ref_for_branch(qc_branch)
+          remote_commits_on_qc_branch <- get_remote_commits_full_name(remote_ref)
           qc_status_info <- get_file_qc_status_non_local_qc_branch(file_name,
                                                                    issue_state,
                                                                    remote_commits_on_qc_branch,
@@ -83,7 +83,7 @@ ghqc_status <- function(milestone_names,
         } # remote branch not deleted
 
         else { # else remote branch has been deleted
-          merged_into <- find_merged_into(init_qc_commit) #  needs to be initial qc commit in case current qc commit is from the merged_in branch
+          merged_into <- find_merged_into(initial_qc_commit) #  needs to be initial qc commit in case current qc commit is from the merged_in branch
           if (!is.null(merged_into)) {
             git_status <- glue::glue("Deleted QC branch: <em>{qc_branch}</em>{vspace()}
                                      Merged into: {merged_into}"
@@ -102,17 +102,14 @@ ghqc_status <- function(milestone_names,
           }
           else {
             qc_status <- "QC branch deleted before approval"
-            diagnostics_list <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
-            diagnostics <- glue::glue("Restore and switch to QC branch to approve QC{vspace()}
-                                    {diagnostics_list}")
-
+            diagnostics <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
           }
         } # else remote branch has been deleted
 
         # must be on the QC branch to perform operations
         comparator_commit <- NA_character_
         notify <- "none"
-        approve <- FALSE
+        approve <- get_approve_column(qc_status, git_status)
 
         return(
           dplyr::tibble(
