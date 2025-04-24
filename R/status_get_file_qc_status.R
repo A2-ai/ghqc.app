@@ -205,8 +205,11 @@ initial_qc_commit_posted <- function(local_commits, remote_commits, file, repo_u
   )
 }
 
-notification_pending <- function(last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short) {
-  qc_status <- "Notification suggested"
+notification_pending <- function(git_status, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short)
+  # if there are remote file changes, chances are that the collaborator neglected to
+  # post the QC notification. Using "notification pending" changes the language so that the
+  # person pulling doesn't feel that the responsibility of the notification is on them
+  qc_status <- ifelse(git_status == "Remote file changes", "Notification pending", "Notification suggested")
   last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_file_change_after_qc_commit, file, repo_url)
   commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
                                                  old_commit = latest_qc_commit,
