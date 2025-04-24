@@ -308,7 +308,8 @@ ghqc_status_server <- function(id,
       function(i) {
         row_id <- sprintf("row_%d", i)
         sprintf(
-          '<button id="%s" type="button" class="btn btn-sm btn-primary"
+          '<button id="%s" type="button" class="btn btn-sm"
+        style="background-color: #56a230; color: white; border-color: #56a230;"
         onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
         Approve
        </button>',
@@ -720,15 +721,15 @@ ghqc_status_server <- function(id,
           "Issue State",
           color = DT::styleEqual(
             c("Open", "Closed"),
-            c("#a94442", "green")
+            c("black", "#27770a")
           )
         ) %>%
         # format QC Status column
         DT::formatStyle(
           "QC Status",
           color = DT::styleEqual(
-            c("Awaiting approval",
-              "Approved",
+            c("Approved",
+              "Awaiting approval",
               "Notification suggested",
               "Notification posted",
               "Initial QC commit posted",
@@ -740,7 +741,7 @@ ghqc_status_server <- function(id,
               "Error",
               "QC branch deleted before approval"
               ),
-            c("green", "green", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("#27770a", "black", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%
@@ -754,7 +755,7 @@ ghqc_status_server <- function(id,
               "Local uncommitted file changes",
               "Local unpushed commits with file changes"
               ),
-            c("green", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("#27770a", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%
