@@ -33,7 +33,6 @@ Imports:
     processx (>= 3.8.3),
     rmarkdown (>= 2.24),
     rvest (>= 1.0.3),
-    digest (>= 0.6.34),
     jsTreeR (>= 2.5.0),
     log4r (>= 0.4.3),
     rprojroot (>= 2.0.3),
