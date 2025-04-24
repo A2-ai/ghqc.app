@@ -38,7 +38,7 @@ get_file_qc_status_non_local_qc_branch <- function(file,
       # can't check if remote changes have been pulled
 
       if (!is.null(last_remote_file_change_after_qc_commit)) {
-        return(notification_pending(last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short))
+        return(notification_pending(git_status = NA_character_, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short))
       }
 
       return(in_progress(latest_qc_commit_short))
@@ -46,7 +46,7 @@ get_file_qc_status_non_local_qc_branch <- function(file,
 
     # Closed and qc not approved
     else if (issue_state == "Closed") {
-      return(approval_pending(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit))
+      return(requires_approval(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit))
     } # Closed and qc not approved
   } # qc not approved
 }
@@ -108,7 +108,7 @@ get_file_qc_status <- function(file,
       }
 
       if (!is.null(last_remote_file_change_after_qc_commit)) {
-        return(notification_pending(last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short))
+        return(notification_pending(git_status, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short))
       }
 
       return(in_progress(latest_qc_commit_short))
@@ -116,7 +116,7 @@ get_file_qc_status <- function(file,
 
     # Closed and qc not approved
     else if (issue_state == "Closed") {
-      return(approval_pending(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit))
+      return(requires_approval(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit))
     } # Closed and qc not approved
   } # qc not approved
 } # get_file_qc_status
@@ -205,11 +205,11 @@ initial_qc_commit_posted <- function(local_commits, remote_commits, file, repo_u
   )
 }
 
-notification_pending <- function(git_status, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short)
+notification_pending <- function(git_status, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short) {
   # if there are remote file changes, chances are that the collaborator neglected to
   # post the QC notification. Using "notification pending" changes the language so that the
   # person pulling doesn't feel that the responsibility of the notification is on them
-  qc_status <- ifelse(git_status == "Remote file changes", "Notification pending", "Notification suggested")
+  qc_status <- ifelse(is.na(git_status) || git_status == "Remote file changes", "Notification pending", "Notification suggested")
   last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_file_change_after_qc_commit, file, repo_url)
   commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
                                                  old_commit = latest_qc_commit,
@@ -281,7 +281,7 @@ pushed_file_changes_after_approved_qc_commit <- function(last_remote_file_change
   )
 } # pushed_file_changes_after_approved_qc_commit
 
-approval_pending <- function(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit) {
+requires_approval <- function(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit) {
   qc_status <- "Requires approval"
   diagnostics_items <- list(glue::glue("Last posted commit: {latest_qc_commit_short}"))
 
@@ -301,5 +301,5 @@ approval_pending <- function(latest_qc_commit_short, last_remote_file_change_aft
   list(qc_status = qc_status,
        diagnostics = diagnostics
   )
-} # approval_pending
+} # requires_approval
 
