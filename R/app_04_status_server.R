@@ -731,6 +731,7 @@ ghqc_status_server <- function(id,
               "Approved",
               "Notification suggested",
               "Notification posted",
+              "Initial QC commit posted",
               "Issue re-opened after approval",
               "Local uncommitted file changes after approval",
               "Local unpushed commits with file changes after approved QC commit",
@@ -739,7 +740,7 @@ ghqc_status_server <- function(id,
               "Error",
               "QC branch deleted before approval"
               ),
-            c("green", "green", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("green", "green", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%

@@ -38,34 +38,37 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
 
 
 get_approve_column <- function(qc_status, git_status) {
+  browser()
   if (qc_status == "Approved") {
     return("none")
   }
 
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "Notification suggested", "Requires approval", "QC branch deleted before approval")
   valid_git_status <- !is.na(git_status) && git_status == "Up to date"
+  if (!valid_git_status) {
+    return("Synchronize repository")
+  }
 
-  if (valid_qc_status && valid_git_status) {
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "Notification suggested", "Requires approval") # , "QC branch deleted before approval"
+
+  if (valid_qc_status) {
     return("approve")
   }
-  else if (valid_qc_status && !valid_git_status) {
-    return("Synchronize repository to approve")
+
+  # Needs further explanation
+
+  if (qc_status %in% c("Notification posted", "Local uncommitted file changes after approval")) {
+    return("Synchronize repository")
+  }
+  if (qc_status == "Issue re-opened after approval") {
+    return("Close Issue, or delete \"QC Approved\" comment to update approved QC commit")
+  }
+  if (qc_status %in% c("Local unpushed commits with file changes after approved QC commit", "Pushed file changes after approved QC commit")) {
+    return("Delete \"QC Approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
   }
   else {
-    if (qc_status %in% c("Notification posted", "Local uncommitted file changes after approval")) {
-      return("Synchronize repository to approve")
-    }
-    if (qc_status == "Issue re-opened after approval") {
-      return("Close Issue, or delete \"QC Approved\" comment to update approved QC commit")
-    }
-    if (qc_status %in% c("Local unpushed commits with file changes after approved QC commit", "Pushed file changes after approved QC commit")) {
-      return("Delete \"QC Approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
-    }
-    else {
-      return("none")
-    }
+    return("none")
   }
-  #return(valid_git_status)
+
 }
 
 get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
@@ -147,9 +150,9 @@ get_imageless_comments <- function(comments_url) {
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
 
-get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, init_qc_commit) {
+get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
   if (num_comments == 0) {
-    return(list(latest_qc_commit = init_qc_commit,
+    return(list(latest_qc_commit = initial_qc_commit,
                 qc_approved = FALSE
                 ))
   }
@@ -180,7 +183,7 @@ get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_u
 
 
   return(list(
-    latest_qc_commit = init_qc_commit,
+    latest_qc_commit = initial_qc_commit,
     qc_approved = FALSE
   ))
 }

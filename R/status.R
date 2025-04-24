@@ -49,12 +49,12 @@ ghqc_status <- function(milestone_names,
       issue_body <- issue$body
 
       # latest_qc_commit is the most recent commented commit in file's issue
-      init_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
+      initial_qc_commit <- get_init_qc_commit_from_issue_body(issue_body)
       latest_qc_commit_info <- get_latest_qc_commit(file_name = file_name,
                                                issue_body = issue_body,
                                                num_comments = issue$comments,
                                                comments_url = issue$comments_url,
-                                               init_qc_commit = init_qc_commit
+                                               initial_qc_commit = initial_qc_commit
                                                )
 
       latest_qc_commit <- latest_qc_commit_info$latest_qc_commit
@@ -155,6 +155,7 @@ ghqc_status <- function(milestone_names,
                                   local_commits = local_commits,
                                   remote_commits = remote_commits,
                                   latest_qc_commit = latest_qc_commit,
+                                  initial_qc_commit = initial_qc_commit,
                                   repo_url = repo_url,
                                   qc_approved = qc_approved
                                   )

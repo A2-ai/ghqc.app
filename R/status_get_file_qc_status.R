@@ -12,7 +12,6 @@ get_file_qc_status_non_local_qc_branch <- function(file,
                                                                                                   latest_qc_commit,
                                                                                                   head_commit = remote_commits[1])$last_commit_that_changed_file
 
-
   # qc approved
   if (qc_approved) {
     # Open and qc approved
@@ -58,6 +57,7 @@ get_file_qc_status <- function(file,
                                local_commits,
                                remote_commits,
                                latest_qc_commit,
+                               initial_qc_commit,
                                repo_url,
                                qc_approved) {
 
@@ -66,6 +66,7 @@ get_file_qc_status <- function(file,
   last_remote_file_change_after_qc_commit <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                                   latest_qc_commit,
                                                                                                   head_commit = remote_commits[1])$last_commit_that_changed_file
+
 
   # qc approved
   if (qc_approved) {
@@ -98,7 +99,12 @@ get_file_qc_status <- function(file,
     # Open and qc not approved
     if (issue_state == "Open") {
       if (!latest_qc_commit %in% local_commits) { # if local commit is older than the latest_qc_commit (even if it didn't change the file - "No file difference" is possible)
-        return(notification_posted(local_commits, remote_commits, file, repo_url, latest_qc_commit_short, latest_qc_commit))
+        if (latest_qc_commit == initial_qc_commit) {
+          return(initial_qc_commit_posted(local_commits, remote_commits, file, repo_url, latest_qc_commit_short, latest_qc_commit))
+        }
+        else {
+          return(notification_posted(local_commits, remote_commits, file, repo_url, latest_qc_commit_short, latest_qc_commit))
+        }
       }
 
       if (!is.null(last_remote_file_change_after_qc_commit)) {
@@ -139,7 +145,6 @@ approved <- function(latest_qc_commit_short) {
 } # approved
 
 ### This is not the same as git_status == "Remote file changes"
-
 notification_posted <- function(local_commits, remote_commits, file, repo_url, latest_qc_commit_short, latest_qc_commit) {
   qc_status <- "Notification posted"
   latest_local_commit <- local_commits[1]
@@ -169,6 +174,36 @@ notification_posted <- function(local_commits, remote_commits, file, repo_url, l
        diagnostics = diagnostics
   )
 } # notification_posted
+
+initial_qc_commit_posted <- function(local_commits, remote_commits, file, repo_url, latest_qc_commit_short, latest_qc_commit) {
+  qc_status <- "Initial QC commit posted"
+  latest_local_commit <- local_commits[1]
+  local_commit_pushed <- latest_local_commit %in% remote_commits
+
+  # give hyperlink if latest local commit is pushed to remote
+  local_commit_short <- ifelse(local_commit_pushed,
+                               get_hyperlinked_commit(latest_local_commit, file, repo_url),
+                               substr(latest_local_commit, 1, 7))
+
+  diagnostics_items <- list(
+    glue::glue("Initial QC commit: {latest_qc_commit_short}"),
+    glue::glue("Local commit: {local_commit_short}")
+  )
+
+  if (local_commit_pushed) {
+    # only give commit diff if local commit is pushed
+    commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
+                                                   old_commit = latest_local_commit,
+                                                   new_commit = latest_qc_commit)
+    diagnostics_items <- append(diagnostics_items, commit_diff_url)
+  }
+
+  diagnostics <- format_diagnostics_list(diagnostics_items)
+
+  list(qc_status = qc_status,
+       diagnostics = diagnostics
+  )
+}
 
 notification_pending <- function(last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short) {
   qc_status <- "Notification suggested"
