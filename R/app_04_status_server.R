@@ -785,7 +785,6 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$proceed_approve_preview, {
-      browser()
       removeModal()
       df <- filtered_data()
       row_index <- input$show_approve_modal_row$row

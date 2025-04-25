@@ -356,13 +356,12 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
       w_create_qc_items$show()
       tryCatch(
         {
-          create_yaml("test",
-                      milestone = rv_milestone(),
-                      description = input$milestone_description,
-                      files = qc_items()
-          )
+          yaml <- create_yaml(milestone = rv_milestone(),
+                              description = input$milestone_description,
+                              files = qc_items()
+                              )
 
-          create_checklists("test.yaml")
+          create_checklists(yaml)
           removeClass("create_qc_items", "enabled-btn")
           addClass("create_qc_items", "disabled-btn")
         },

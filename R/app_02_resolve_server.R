@@ -323,7 +323,7 @@ ghqc_notify_server <- function(id, milestone_list) {
       ))
     })
 
-    post_comment <- reactive({
+    post_notify_comment <- reactive({
       req(post_trigger())
       req(comment_body_string())
       post_trigger(FALSE)
@@ -339,6 +339,7 @@ ghqc_notify_server <- function(id, milestone_list) {
 
       tryCatch(
         {
+          browser()
           post_comment(issue_number = issue_parts()$issue_number,
                        body = comment_body_string())
 
@@ -369,7 +370,7 @@ ghqc_notify_server <- function(id, milestone_list) {
         footer = NULL,
         easyClose = TRUE,
         tags$p("QC notification posted successfully."),
-        tags$a(href = post_comment(), "Click here to view the Issue on Github", target = "_blank")
+        tags$a(href = post_notify_comment(), "Click here to view the Issue on Github", target = "_blank")
       ))
     })
 

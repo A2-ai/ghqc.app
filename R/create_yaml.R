@@ -91,8 +91,7 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
 #   - confidence interval is 95%
 #   - 500 simulations given
 #   - generated figures match
-create_yaml <- function(name,
-                        files, # files must be a list of lists not a vector of lists
+create_yaml <- function(files, # files must be a list of lists not a vector of lists
                         milestone = NULL,
                         description = NULL
                         ) {
@@ -107,7 +106,7 @@ create_yaml <- function(name,
   # make into yaml string
   yaml_string <- yaml::as.yaml(data)
   # make path
-  yaml_path <- file.path(paste0(name, ".yaml"))
+  yaml_path <- tempfile(fileext = ".yaml")
   withr::defer_parent(fs::file_delete(yaml_path))
   # create yaml
   write(yaml_string, file = yaml_path)

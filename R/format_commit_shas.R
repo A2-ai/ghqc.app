@@ -11,9 +11,8 @@
 get_commits_df <- function(issue_number) {
   init_qc_commit <- get_init_qc_commit(issue_number)
   metadata_branch <- get_branch_from_metadata(issue_number)
-  remote_name <- .le$remote_name
 
-  remote_log_output <- system(glue::glue("git log {remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+  remote_log_output <- system(glue::glue("git log {.le$remote_name}/{metadata_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
   remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
   names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
 

@@ -456,7 +456,7 @@ create_set_of_issue_sections <- function(issues, token) {
 #' @importFrom log4r warn error info debug
 create_milestone_report_section <- function(milestone_name, env, just_tables = FALSE, token) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
-  issues <- get_all_issues_in_milestone( milestone_name)
+  issues <- get_all_issues_in_milestone(milestone_name)
 
   debug(.le$logger, glue::glue("Creating summary table for Milestone: {milestone_name}..."))
   # summary table

@@ -155,12 +155,9 @@ create_notify_comment_body <- function(issue_number,
                                                 "{message_body}",
                                                 .trim = FALSE))
 
-
   comment_body_second <- as.character(glue::glue("{metadata_body}",
                                    "{diff_body}",
                                    .trim = FALSE))
-
-
 
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
@@ -183,7 +180,7 @@ post_comment <- function(issue_number, body) {
                     repo = .le$repo,
                     issue_number = issue_number,
                     body = body
-  )
+                    )
 
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
 }

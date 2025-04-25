@@ -22,7 +22,7 @@ create_issue <- function(file, issue_params, remote, file_names) {
 
   # create the issue
   debug(.le$logger, glue::glue("Creating Issue... {issue_params$title}"))
-  issue <- do.call(gh::gh, c("POST /repos/{.le$org}/{.le$repo}/issues", issue_params))
+  issue <- do.call(gh::gh, c("POST /repos/:org/:repo/issues", issue_params))
   debug(.le$logger, glue::glue("Created Issue {issue_params$title}"))
 
   debug(.le$logger, glue::glue("Adding 'ghqc' label to {issue_params$title}"))
@@ -31,7 +31,7 @@ create_issue <- function(file, issue_params, remote, file_names) {
                        issue_number = issue$number,
                        labels = array("ghqc"),
                        .api_url = .le$github_api_url)
-  label <- do.call(gh::gh, c("POST /repos/{.le$org}/{.le$repo}/issues/{issue_number}/labels", label_params))
+  label <- do.call(gh::gh, c("POST /repos/:org/:repo/issues/:issue_number/labels", label_params))
   debug(.le$logger, glue::glue("Label 'ghqc' added to {issue_params$title}"))
 
   # return the issue number
@@ -39,7 +39,7 @@ create_issue <- function(file, issue_params, remote, file_names) {
 } # create_issue
 
 #' @importFrom log4r warn error info debug
-create_issues <- function() {
+create_issues <- function(data) {
   # create list of issue_params to input to api call -
   # will build up in pieces because some are optional
   issue_params <- list(
@@ -88,7 +88,7 @@ create_issues <- function() {
 
 #' @importFrom gh gh
 ghqc_label_exists <- function() {
-  labels <- do.call(gh::gh, c("GET /repos/{.le$org}/{.le$repo}/labels",
+  labels <- do.call(gh::gh, c("GET /repos/:org/:repo/labels",
                               list(org = .le$org,
                                    repo = .le$repo,
                                    .api_url = .le$github_api_url
@@ -106,7 +106,7 @@ create_ghqc_label <- function() {
     description = "Issue created by the ghqc package",
     .api_url = .le$github_api_url
   )
-  do.call(gh::gh, c("POST /repos/{.le$org}/{.le$repo}/labels", issue_params))
+  do.call(gh::gh, c("POST /repos/:org/:repo/labels", issue_params))
 }
 
 

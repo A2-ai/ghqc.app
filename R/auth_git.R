@@ -22,7 +22,7 @@ check_remote_set <- function() {
 }
 
 #' @importFrom log4r warn error info debug
-check_upstream_set <- function(remote_name) {
+check_upstream_set <- function() {
   repo <- get_simple_path()
 
   current_branch <- gert::git_branch()
@@ -33,8 +33,8 @@ check_upstream_set <- function(remote_name) {
                                  "  git branch -M main \n",
                                  "  git branch -M master \n",
                                  "Push the branch to the remote repository using: \n",
-                                 "  git push -u {remote_name} main \n",
-                                 "  git push -u {remote_name} master"))
+                                 "  git push -u {.le$remote_name} main \n",
+                                 "  git push -u {.le$remote_name} master"))
     rlang::abort(glue::glue("There were no branches found for the existing repo: {.le$repo}"))
   }
 
@@ -46,9 +46,9 @@ check_upstream_set <- function(remote_name) {
     error(.le$logger, glue::glue(
       "The current branch '{current_branch}' has no tracking information.  \n",
       "If you are planning on basing your work on an upstream branch that already exists at the remote, retrieve them with: \n",
-      "  git fetch {remote_name} \n",
+      "  git fetch {.le$remote_name} \n",
       "If you wish to set tracking information for this branch you can do so with: \n",
-      "  git branch --set-upstream-to={remote_name}/{current_branch} {current_branch}"
+      "  git branch --set-upstream-to={.le$remote_name}/{current_branch} {current_branch}"
     ))
     rlang::abort(glue::glue(
       "The current branch '{current_branch}' has no tracking information.
@@ -144,7 +144,7 @@ check_github_credentials <- function() {
   assign("github_api_url", github_api_url, envir = .le)
 
 
-  check_upstream_set(remote_name)
+  check_upstream_set()
   token <- get_gh_token(base_git_url)
   assign("token", token, envir = .le)
 
