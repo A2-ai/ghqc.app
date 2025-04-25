@@ -92,12 +92,12 @@ create_checklist_section <- function(issue_body) {
   checklist_section <- create_small_section("Issue Body", clean_issue_body)
 }
 
-issue_to_markdown <- function(issue_number, token) {
+issue_to_markdown <- function(issue_number) {
   # collect issue info
   issue <- get_issue(issue_number)
   milestones <- get_all_milestone_objects()
 
-  issue_comments <- get_issue_comments(issue_number, token)
+  issue_comments <- get_issue_comments(issue_number)
 
   issue_events <- get_issue_events(issue_number)
   events_list <- get_events_list(issue_events)
@@ -441,9 +441,9 @@ print(table)
   )
 }
 
-create_set_of_issue_sections <- function(issues, token) {
+create_set_of_issue_sections <- function(issues) {
   issue_numbers <- sapply(issues, function(issue) issue$number)
-  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue$number, token))
+  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue$number))
   issue_titles <- sapply(issues, function(issue) issue$title)
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
@@ -454,7 +454,7 @@ create_set_of_issue_sections <- function(issues, token) {
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone_report_section <- function(milestone_name, env, just_tables = FALSE, token) {
+create_milestone_report_section <- function(milestone_name, env, just_tables = FALSE) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
   issues <- get_all_issues_in_milestone(milestone_name)
 
@@ -464,7 +464,7 @@ create_milestone_report_section <- function(milestone_name, env, just_tables = F
   summary_table_section <- create_summary_table_section(summary_csv)
   info(.le$logger, glue::glue("Created summary table for Milestone: {milestone_name}"))
   # issues
-  issue_sections <- create_set_of_issue_sections(issues, token)
+  issue_sections <- create_set_of_issue_sections(issues)
 
   res <- {
     if (just_tables) {
@@ -663,8 +663,7 @@ create_milestone_df <- function(milestone_names) {
 ghqc_report <- function(milestone_names = NULL,
                         input_name = NULL,
                         just_tables = FALSE,
-                        location = ".",
-                        token) {
+                        location = ".") {
 
   # get user input if milestone_names not inputted (check existence here)
   if (is.null(milestone_names)) {
@@ -698,7 +697,7 @@ ghqc_report <- function(milestone_names = NULL,
   debug(.le$logger, "Creating Milestone sections...")
   # create milestone sections
   milestone_sections <- lapply(milestone_names, function(milestone_name) {
-    milestone_body <- create_milestone_report_section(milestone_name, parent.frame(n = 2), just_tables, token)
+    milestone_body <- create_milestone_report_section(milestone_name, parent.frame(n = 2), just_tables)
     create_big_section(milestone_name, milestone_body)
   })
   info(.le$logger, "Created Milestone sections")

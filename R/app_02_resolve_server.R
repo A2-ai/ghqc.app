@@ -339,7 +339,6 @@ ghqc_notify_server <- function(id, milestone_list) {
 
       tryCatch(
         {
-          browser()
           post_comment(issue_number = issue_parts()$issue_number,
                        body = comment_body_string())
 

@@ -67,18 +67,18 @@ get_env_url <- function() {
 }
 
 #' @importFrom log4r warn error info debug
-check_remote_matches_env_url <- function(remote_url) {
+check_remote_matches_env_url <- function() {
   env_url <- get_env_url()
-  if (remote_url != env_url && env_url != "https://") {
-    info(.le$logger, glue::glue("GITHUB_API_URL environment variable: \"{env_url}\" does not match remote URL: \"{remote_url}\". No action necessary"))
+  if (.le$base_git_url != env_url && env_url != "https://") {
+    info(.le$logger, glue::glue("GITHUB_API_URL environment variable: \"{env_url}\" does not match remote URL: \"{.le$base_git_url}\". No action necessary"))
   }
 }
 
 #' @importFrom log4r warn error info debug
-get_gh_api_url <- function(remote_url) {
+get_gh_api_url <- function() {
   tryCatch(
     {
-      glue::glue("{remote_url}/api/v3")
+      glue::glue("{.le$base_git_url}/api/v3")
     }, error = function(e) {
       rlang::abort(message = conditionMessage(e))
     }
@@ -86,32 +86,32 @@ get_gh_api_url <- function(remote_url) {
 }
 
 #' @importFrom log4r warn error info debug
-get_gh_token <- function(url) {
+get_gh_token <- function() {
   tryCatch({
-    pat <- gitcreds::gitcreds_get(url = get_gh_api_url(url))$password
+    pat <- gitcreds::gitcreds_get(url = .le$github_api_url)$password
   }, error = function(e) {
-    error(.le$logger, message = glue::glue("Could not find GitHub PAT for {url} due to: {conditionMessage(e)}. Set your GitHub credentials before continuing"))
-    rlang::abort(message = glue::glue("Could not find GitHub PAT for {url}. Set your GitHub credentials before continuing"), parent = e$parent)
+    error(.le$logger, message = glue::glue("Could not find GitHub PAT for {.le$github_api_url} due to: {conditionMessage(e)}. Set your GitHub credentials before continuing"))
+    rlang::abort(message = glue::glue("Could not find GitHub PAT for {.le$github_api_url}. Set your GitHub credentials before continuing"), parent = e$parent)
   })
 
   if (nchar(pat) != 40) {
-    error(.le$logger, glue::glue("Retrieved GitHub PAT is not 40 characters. Reconfigure your Git Credentials for {url} before continuing"))
-    rlang::abort(message = glue::glue("Retrieved GitHub PAT is not 40 characters. Reconfigure your Git Credentials for {url} before continuing"))
+    error(.le$logger, glue::glue("Retrieved GitHub PAT is not 40 characters. Reconfigure your Git Credentials for {.le$github_api_url} before continuing"))
+    rlang::abort(message = glue::glue("Retrieved GitHub PAT is not 40 characters. Reconfigure your Git Credentials for {.le$github_api_url} before continuing"))
   }
   info(.le$logger, glue::glue("Retrieved GitHub PAT successfully: {paste0(substr(pat, 1, 4), strrep('*', nchar(pat)-4))}"))
   pat
 }
 
 #' @importFrom log4r warn error info debug
-try_api_call <- function(url, token) {
+try_api_call <- function() {
   tryCatch({
-    debug(.le$logger, glue::glue("Attempting test api call..."))
-    gh::gh("GET /user", .api_url = get_gh_api_url(url)) # , .token = token
-    info(.le$logger, glue::glue("Successful test api call to {get_gh_api_url(url)}"))
+    debug(.le$logger, glue::glue("Attempting test API call..."))
+    gh::gh("GET /user", .api_url = .le$github_api_url)
+    info(.le$logger, glue::glue("Successful test api call to {.le$github_api_url}"))
   }, error = function(e) {
-    pat_substr <- paste0(substr(token, 1, 4), strrep("*", nchar(token)-4))
-    error(.le$logger, message = glue::glue("{url} could not be accessed using {pat_substr} due to: {conditionMessage(e)}. Ensure your GitHub credentials are correct before continuing"))
-    rlang::abort(message = glue::glue("{url} could not be accessed using {pat_substr}. Ensure your GitHub credentials are correct before continuing", parent = e$parent))
+    pat_substr <- paste0(substr(.le$token, 1, 4), strrep("*", nchar(.le$token)-4))
+    error(.le$logger, message = glue::glue("{.le$github_api_url} could not be accessed using {pat_substr} due to: {conditionMessage(e)}. Ensure your GitHub credentials are correct before continuing"))
+    rlang::abort(message = glue::glue("{.le$github_api_url} could not be accessed using {pat_substr}. Ensure your GitHub credentials are correct before continuing", parent = e$parent))
   })
 }
 
@@ -140,16 +140,15 @@ check_github_credentials <- function() {
   repo <- gh_info$repo
   assign("repo", repo, envir = .le)
 
-  github_api_url <- get_gh_api_url(base_git_url)
+  github_api_url <- get_gh_api_url()
   assign("github_api_url", github_api_url, envir = .le)
 
-
   check_upstream_set()
-  token <- get_gh_token(base_git_url)
+  token <- get_gh_token()
   assign("token", token, envir = .le)
 
-  try_api_call(base_git_url, token)
-  check_remote_matches_env_url(base_git_url)
+  try_api_call()
+  check_remote_matches_env_url()
 
 
 }

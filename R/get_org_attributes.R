@@ -198,10 +198,11 @@ get_issue <- function(issue_number) {
 } # get_issue
 
 #' @importFrom log4r warn error info debug
-get_issue_comments <- function(issue_number, token) {
+get_issue_comments <- function(issue_number) {
   api_url <- .le$github_api_url
   base_url <- ifelse(api_url == "https://github.com/api/v3", "https://api.github.com", api_url)
-  url <- glue::glue("{.le$base_git_url}/repos/{.le$org}/{.le$repo}/issues/{issue_number}/comments")
+  url <- file.path(base_url, "repos", .le$org, .le$repo, "issues", issue_number, "comments")
+  token <- .le$token
 
   req <- httr2::request(url) %>%
     httr2::req_headers(

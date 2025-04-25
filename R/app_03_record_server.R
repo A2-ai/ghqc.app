@@ -173,8 +173,7 @@ ghqc_record_server <- function(id, all_milestones) {
           milestone_names = input$select_milestone,
           input_name = input$pdf_name,
           just_tables = input$just_tables,
-          location = input$pdf_location,
-          token = token
+          location = input$pdf_location
         )
 
         showModal(
