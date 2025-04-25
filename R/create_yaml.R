@@ -75,8 +75,7 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
 
 #### Example output
 
-# owner: A2-Ai
-# repo: test-qc-api
+
 # files:
 # - name: file1.cpp
 #   checklist_type: cpp
@@ -93,16 +92,12 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
 #   - 500 simulations given
 #   - generated figures match
 create_yaml <- function(name,
-                        org,
-                        repo,
                         files, # files must be a list of lists not a vector of lists
                         milestone = NULL,
                         description = NULL
                         ) {
 
   data <- list(
-    owner = org,
-    repo = repo,
     files = files # files must be a list of lists not a vector of lists
   )
 
@@ -111,8 +106,6 @@ create_yaml <- function(name,
 
   # make into yaml string
   yaml_string <- yaml::as.yaml(data)
-  # validate contents
-  #validate_yaml_contents(data) # error
   # make path
   yaml_path <- file.path(paste0(name, ".yaml"))
   withr::defer_parent(fs::file_delete(yaml_path))

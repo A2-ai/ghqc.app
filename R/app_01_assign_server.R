@@ -8,11 +8,11 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
-    req(remote, root_dir)
+    req(root_dir)
       waiter_hide()
   })
 
@@ -142,11 +142,11 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
     })
 
     observe({
-      req(org, repo, rv_milestone())
+      req(rv_milestone())
 
       issue_titles <- tryCatch(
         {
-          issues_in_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = rv_milestone())
+          issues_in_milestone <- get_all_issues_in_milestone(milestone_name = rv_milestone())
           issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
           issue_titles_with_root_dir <- file.path(basename(root_dir), issue_titles)
           issue_titles_with_root_dir
@@ -289,7 +289,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
 
           issues_in_milestone <- tryCatch(
             {
-              get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = rv_milestone())
+              get_all_issues_in_milestone(milestone_name = rv_milestone())
             },
             error = function(e) {
               debug(.le$logger, glue::glue("There were no Milestones to query: {conditionMessage(e)}"))
@@ -357,14 +357,12 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       tryCatch(
         {
           create_yaml("test",
-                      org = org,
-                      repo = repo,
                       milestone = rv_milestone(),
                       description = input$milestone_description,
                       files = qc_items()
           )
 
-          create_checklists("test.yaml", remote)
+          create_checklists("test.yaml")
           removeClass("create_qc_items", "enabled-btn")
           addClass("create_qc_items", "disabled-btn")
         },
@@ -376,7 +374,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       )
 
       w_create_qc_items$hide()
-      milestone_url <- get_milestone_url(org, repo, rv_milestone())
+      milestone_url <- get_milestone_url(rv_milestone())
 
       custom_checklist_selected <- function() {
         qc_items <- qc_items()

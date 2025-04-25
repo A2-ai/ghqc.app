@@ -19,16 +19,12 @@ ghqc_status_app <- function(milestones = NULL) {
   # error handling before starting app
   rproj_root_dir()
   creds <- check_github_credentials()
-  remote <- creds$remote
-  remote_name <- remote$name
-  org <- get_org_errors(remote)
-  repo <- get_repo_errors(remote)
 
-  all_ghqc_milestones <- list_ghqc_milestones(org, repo)
+  all_ghqc_milestones <- list_ghqc_milestones()
 
   # error if no ghqc milestones
   if (length(all_ghqc_milestones) == 0) {
-    error(.le$logger, glue::glue("There were no ghqc Milestones found in {org}/{repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
+    error(.le$logger, glue::glue("There were no ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
     rlang::abort("There were no open Milestones found.")
   }
 
@@ -49,7 +45,7 @@ ghqc_status_app <- function(milestones = NULL) {
 
   current_branch <- gert::git_branch()
   local_commits <- get_local_commits()
-  remote_commits <- get_remote_commits(remote_name, current_branch)
+  remote_commits <- get_remote_commits(current_branch)
 
   ahead_behind_status <- check_ahead_behind()
   # get files with remote changes
@@ -70,12 +66,9 @@ ghqc_status_app <- function(milestones = NULL) {
         id = "ghqc_status_app",
         all_ghqc_milestone_names = all_ghqc_milestone_names,
         default_milestones = default_milestones,
-        org,
-        repo,
         local_commits,
         remote_commits,
         current_branch,
-        remote,
         ahead_behind_status,
         files_changed_in_remote_commits,
         files_changed_in_unpushed_local_commits,

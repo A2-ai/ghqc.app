@@ -1,14 +1,12 @@
 
-format_issue_body <- function(checklist_type, file_path, relevant_files, owner, repo, remote, file_names) {
-  remote_url <- parse_remote_url(remote$url)
-
+format_issue_body <- function(checklist_type, file_path, relevant_files, file_names) {
   checklists <- get_checklists()
   file_items <- checklists[[checklist_type]]
   qc_checklist <- format_checklist_items(file_items)
 
-  metadata <- format_metadata(checklist_type, file_path, owner, repo, remote_url)
+  metadata <- format_metadata(checklist_type, file_path)
 
-  relevant_files <- format_relevant_files(relevant_files, owner, repo, remote_url, file_names)
+  relevant_files <- format_relevant_files(relevant_files, file_names)
 
   note <- get_prepended_checklist_note()
 
@@ -19,7 +17,7 @@ format_issue_body <- function(checklist_type, file_path, relevant_files, owner, 
                                             qc_checklist = qc_checklist)
 }
 
-format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_names) {
+format_relevant_files <- function(relevant_files, file_names) {
   if (is.null(relevant_files)) {
     return("")
   }
@@ -29,7 +27,7 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
 
     file_name <- ifelse(is.null(file$name) || file$name == "", file$file_path, file$name)
     branch <- gert::git_branch()
-    file_contents_url <- file.path(remote_url, owner, repo, "blob", branch, file$file_path)
+    file_contents_url <- file.path(.le$full_repo_url, "blob", branch, file$file_path)
 
     file_section <- glue::glue(
       "- **{file_name}**\n   - [`{file$file_path}`]({file_contents_url})", .trim = FALSE
@@ -138,7 +136,7 @@ format_collaborators <- function(collaborators, prefix = "") {
   }
 }
 
-format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) {
+format_metadata <- function(checklist_type, file_path) {
   authors <- get_authors(file_path)
   latest_author <- authors$latest
   author_section <- glue::glue("* author: {latest_author}")
@@ -152,10 +150,10 @@ format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) 
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
 
-  git_branch <- get_branch_url(git_sha, owner, repo, remote_url)
+  git_branch <- get_branch_url(git_sha)
   git_branch_section <- glue::glue("* git branch: {git_branch}")
 
-  file_contents_url <- get_file_contents_url(file_path, git_sha, owner, repo, remote_url)
+  file_contents_url <- get_file_contents_url(file_path, git_sha)
   file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at initial qc commit</a>")
   file_content_url_section <- glue::glue("* {file_contents_html}")
 
@@ -164,25 +162,25 @@ format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) 
   glue::glue_collapse(metadata, "\n")
 }
 
-get_branch_url <- function(git_sha, owner, repo, remote_url) {
+get_branch_url <- function(git_sha) {
   branch <- gert::git_branch()
-  https_url <- file.path(remote_url, owner, repo, "tree", git_sha)
+  https_url <- file.path(.le$full_repo_url, "tree", git_sha)
 
   glue::glue("[{branch}]({https_url})")
 }
 
-get_file_history_url <- function(file_path, owner, repo, remote_url) {
+get_file_history_url <- function(file_path) {
   branch <- gert::git_branch()
   file_path <- gsub(" ", "%20", file_path)
 
   # get something like https://github.com/A2-ai/project_x/commits/main/scripts/DA.R
-  file_history_url <- file.path(remote_url, owner, repo, "commits", branch, file_path)
+  file_history_url <- file.path(.le$full_repo_url, "commits", branch, file_path)
 }
 
-get_file_contents_url <- function(file_path, git_sha, owner, repo, remote_url) {
+get_file_contents_url <- function(file_path, git_sha) {
   file_path <- gsub(" ", "%20", file_path)
 
-  file_contents_url <- file.path(remote_url, owner, repo, "blob", substr(git_sha, 1, 6), file_path)
+  file_contents_url <- file.path(.le$full_repo_url, "blob", substr(git_sha, 1, 6), file_path)
 }
 
 format_body_content <- function(metadata, checklist_type, note, qc_checklist, relevant_files) {

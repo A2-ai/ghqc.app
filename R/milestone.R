@@ -2,9 +2,9 @@
 
 # check if a milestone exists
 #' @importFrom log4r warn error info debug
-milestone_exists <- function(title, owner, repo) {
+milestone_exists <- function(title) {
   # list milestones
-  milestones <- get_all_milestone_objects(owner, repo)
+  milestones <- get_all_milestone_objects()
 
   # return true if any matches
   any_matches <- any(sapply(milestones, function(milestone) milestone$title == title))
@@ -12,9 +12,9 @@ milestone_exists <- function(title, owner, repo) {
 }
 
 #' @importFrom log4r warn error info debug
-get_milestone_from_name <- function(owner, repo, name_in) {
+get_milestone_from_name <- function(name_in) {
   # list milestones
-  milestones <- get_all_milestone_objects(owner = owner, repo = repo)
+  milestones <- get_all_milestone_objects()
   # try to get milestone number
   milestone <- lapply(milestones, function(milestone) {
     if (milestone$title == name_in) {
@@ -41,9 +41,9 @@ get_milestone_from_name <- function(owner, repo, name_in) {
 
 # look up number for milestone that exists - return null if it can't be found
 #' @importFrom log4r warn error info debug
-look_up_existing_milestone_number <- function(params) {
-  debug(.le$logger, glue::glue("Retrieving Milestone: {params$title}"))
-  milestone <- get_milestone_from_name(params$owner, params$repo, params$title)
+look_up_existing_milestone_number <- function(milestone_name) {
+  debug(.le$logger, glue::glue("Retrieving Milestone: {milestone_name}"))
+  milestone <- get_milestone_from_name(milestone_name)
 
   if (!is.null(milestone)) {
     if (!is.list(milestone)) {
@@ -52,37 +52,37 @@ look_up_existing_milestone_number <- function(params) {
       milestone$number
     }
   } else {
-    debug(.le$logger, glue::glue("Milestone: {params$title} does not currently exist"))
+    debug(.le$logger, glue::glue("Milestone: {milestone_name} does not currently exist"))
     NULL
   }
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone <- function(params) {
+create_milestone <- function(milestone_name) {
   params$.api_url <- .le$github_api_url
 
-  debug(.le$logger, glue::glue("Creating Milestone: {params$title}..."))
-  milestone <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/milestones", params))
-  info(.le$logger, glue::glue("Created Milestone: {params$title}"))
+  debug(.le$logger, glue::glue("Creating Milestone: {milestone_name}..."))
+  milestone <- gh::gh("POST /repos/:org/:repo/milestones", org = .le$org, repo = .le$repo, title = milestone_name, .api_url = .le$github_api_url) # TODO
+  info(.le$logger, glue::glue("Created Milestone: {milestone_name}"))
   milestone
 } # create_milestone
 
 #' @importFrom log4r warn error info debug
-get_milestone_number <- function(params) {
+get_milestone_number <- function(milestone_name) {
 
   searched_number <- tryCatch({
-      look_up_existing_milestone_number(params)
+      look_up_existing_milestone_number(milestone_name)
     }, error = function(e){
       debug(.le$logger, glue::glue("No Milestones found: {conditionMessage(e)}"))
       return(NULL)
     })
 
   if (is.null(searched_number)){
-    milestone <- create_milestone(params)
+    milestone <- create_milestone(milestone_name)
     milestone$number
   }
   else {
-    debug(.le$logger, glue::glue("Retrieved Milestone: {params$title}, #{searched_number}"))
+    debug(.le$logger, glue::glue("Retrieved Milestone: {milestone_name}, #{searched_number}"))
     searched_number
   }
 } # get_milestone_number

@@ -92,17 +92,17 @@ create_checklist_section <- function(issue_body) {
   checklist_section <- create_small_section("Issue Body", clean_issue_body)
 }
 
-issue_to_markdown <- function(owner, repo, issue_number, token) {
+issue_to_markdown <- function(issue_number, token) {
   # collect issue info
-  issue <- get_issue(owner, repo, issue_number)
-  milestones <- get_all_milestone_objects(owner, repo)
+  issue <- get_issue(issue_number)
+  milestones <- get_all_milestone_objects()
 
-  issue_comments <- get_issue_comments(owner, repo, issue_number, token)
+  issue_comments <- get_issue_comments(issue_number, token)
 
-  issue_events <- get_issue_events(owner, repo, issue_number)
+  issue_events <- get_issue_events(issue_number)
   events_list <- get_events_list(issue_events)
 
-  timeline <- get_issue_timeline(owner, repo, issue_number)
+  timeline <- get_issue_timeline(issue_number)
 
   # create sections
   issue_section <- create_qc_data_section(issue_creation_time = issue$created_at,
@@ -142,10 +142,10 @@ get_pdf_name <- function(input_name, milestone_names, just_tables, repo) {
   base_name <- {
     if (is.null(input_name) || input_name == "") {
       if (just_tables) {
-        glue::glue("tables-{repo}-{milestone_str}")
+        glue::glue("tables-{.le$repo}-{milestone_str}")
       }
       else {
-        glue::glue("{repo}-{milestone_str}")
+        glue::glue("{.le$repo}-{milestone_str}")
       }
 
     }
@@ -360,7 +360,7 @@ create_intro <- function(repo, milestone_names) {
   intro <- glue::glue(
     "---
   title: \"QC Record: {milestone_names_list}\"
-  subtitle: \"Git repository: {repo}\"
+  subtitle: \"Git repository: {.le$repo}\"
   author: {author}
   date: {date}
   header-includes:
@@ -441,9 +441,9 @@ print(table)
   )
 }
 
-create_set_of_issue_sections <- function(issues, owner, repo, token) {
+create_set_of_issue_sections <- function(issues, token) {
   issue_numbers <- sapply(issues, function(issue) issue$number)
-  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(owner, repo, issue$number, token))
+  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue$number, token))
   issue_titles <- sapply(issues, function(issue) issue$title)
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
@@ -454,9 +454,9 @@ create_set_of_issue_sections <- function(issues, owner, repo, token) {
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone_report_section <- function(owner, repo, milestone_name, env, just_tables = FALSE, token) {
+create_milestone_report_section <- function(milestone_name, env, just_tables = FALSE, token) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
-  issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
+  issues <- get_all_issues_in_milestone( milestone_name)
 
   debug(.le$logger, glue::glue("Creating summary table for Milestone: {milestone_name}..."))
   # summary table
@@ -464,7 +464,7 @@ create_milestone_report_section <- function(owner, repo, milestone_name, env, ju
   summary_table_section <- create_summary_table_section(summary_csv)
   info(.le$logger, glue::glue("Created summary table for Milestone: {milestone_name}"))
   # issues
-  issue_sections <- create_set_of_issue_sections(issues, owner, repo, token)
+  issue_sections <- create_set_of_issue_sections(issues, token)
 
   res <- {
     if (just_tables) {
@@ -487,12 +487,12 @@ clean_input <- function(milestones_in) {
   unlist(milestones_list)
 }
 
-get_inputted_milestone_names <- function(owner, repo) {
+get_inputted_milestone_names <- function() {
   # gate with interactive() to avoid hanging
   if (interactive()) {
 
-    milestones <- list_ghqc_milestone_names(owner, repo)
-    print(glue::glue("Non-empty Milestones in {repo}:\n"))
+    milestones <- list_ghqc_milestone_names()
+    print(glue::glue("Non-empty Milestones in {.le$repo}:\n"))
     print(milestones)
     valid_input <- FALSE
     while (!valid_input) {
@@ -502,7 +502,7 @@ get_inputted_milestone_names <- function(owner, repo) {
 
       # check they exist and are non-empty
       result <- tryCatch({
-        check_milestones(clean_input, owner, repo)
+        check_milestones(clean_input)
         TRUE
       },
       warning = function(w) {
@@ -527,17 +527,17 @@ get_inputted_milestone_names <- function(owner, repo) {
   }
 } # get_inputted_milestone_names
 
-check_milestones <- function(milestone_names, owner, repo) {
+check_milestones <- function(milestone_names) {
   # check that each milestone exists and is non-empty
   lapply(milestone_names, function(milestone_name) {
-    exists <- milestone_exists(milestone_name, owner, repo)
+    exists <- milestone_exists(milestone_name)
     if (!exists) {
-      stop(glue::glue("\"{milestone_name}\" is not a Milestone in {repo}"))
+      stop(glue::glue("\"{milestone_name}\" is not a Milestone in {.le$repo}"))
     }
-    milestone <- get_milestone_from_name(owner, repo, milestone_name)
+    milestone <- get_milestone_from_name(milestone_name)
     non_empty <- check_that_milestone_is_non_empty(milestone)
     if (!non_empty) {
-      stop(glue::glue("\"{milestone_name}\" in {repo} is an empty Milestone (no issues)"))
+      stop(glue::glue("\"{milestone_name}\" in {.le$repo} is an empty Milestone (no issues)"))
     }
   })
 }
@@ -546,8 +546,8 @@ unchecked_items_in_issue <- function(issue) {
   unchecked_items <- stringr::str_detect(issue$body, "- \\[ \\]")
 }
 
-create_milestone_table <- function(milestone_names, owner, repo) {
-  milestone_df <- create_milestone_df(milestone_names, owner, repo)
+create_milestone_table <- function(milestone_names) {
+  milestone_df <- create_milestone_df(milestone_names)
   milestone_csv <- create_milestone_csv(milestone_df)
 
   glue::glue(
@@ -596,13 +596,13 @@ create_milestone_csv <- function(milestone_df) {
 }
 
 
-create_milestone_df <- function(milestone_names, owner, repo) {
+create_milestone_df <- function(milestone_names) {
   milestone_objects <- lapply(milestone_names, function(milestone_name) {
-    get_milestone_from_name(owner, repo, milestone_name)
+    get_milestone_from_name(milestone_name)
   })
 
   issues_in_milestones <- sapply(milestone_names, function(milestone_name) {
-    issues <- get_all_issues_in_milestone(owner, repo, milestone_name)
+    issues <- get_all_issues_in_milestone(milestone_name)
     issue_names <- lapply(issues, function(issue) {
       issue_name <- issue$title
       # insert line breaks here before adding makecell and additional chars
@@ -664,17 +664,15 @@ ghqc_report <- function(milestone_names = NULL,
                         input_name = NULL,
                         just_tables = FALSE,
                         location = ".",
-                        owner,
-                        repo,
                         token) {
 
   # get user input if milestone_names not inputted (check existence here)
   if (is.null(milestone_names)) {
-    milestone_names <- get_inputted_milestone_names(owner, repo)
+    milestone_names <- get_inputted_milestone_names()
   }
   else {
     # check that milestones exist and are non-empty
-    check_milestones(milestone_names, owner, repo)
+    check_milestones(milestone_names)
   }
 
   if (fs::is_file(location)) {
@@ -695,12 +693,12 @@ ghqc_report <- function(milestone_names = NULL,
   info(.le$logger, "Created QC Record introduction")
 
   # create milestone table
-  milestone_table <- create_milestone_table(milestone_names, owner, repo)
+  milestone_table <- create_milestone_table(milestone_names)
 
   debug(.le$logger, "Creating Milestone sections...")
   # create milestone sections
   milestone_sections <- lapply(milestone_names, function(milestone_name) {
-    milestone_body <- create_milestone_report_section(owner, repo, milestone_name, parent.frame(n = 2), just_tables, token)
+    milestone_body <- create_milestone_report_section(milestone_name, parent.frame(n = 2), just_tables, token)
     create_big_section(milestone_name, milestone_body)
   })
   info(.le$logger, "Created Milestone sections")

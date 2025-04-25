@@ -11,12 +11,9 @@ NULL
 ghqc_status_server <- function(id,
                                all_ghqc_milestone_names,
                                default_milestones,
-                               org,
-                               repo,
                                local_commits,
                                remote_commits,
                                current_branch,
-                               remote,
                                ahead_behind_status,
                                files_changed_in_remote_commits,
                                files_changed_in_unpushed_local_commits,
@@ -38,12 +35,9 @@ ghqc_status_server <- function(id,
     observe({
       req(all_ghqc_milestone_names,
           default_milestones,
-          org,
-          repo,
           local_commits,
           remote_commits,
           current_branch,
-          remote,
           ahead_behind_status,
           files_changed_in_remote_commits,
           files_changed_in_unpushed_local_commits,
@@ -137,8 +131,6 @@ ghqc_status_server <- function(id,
 
           result <- ghqc_status(
             milestone_names = milestone,
-            org,
-            repo,
             current_branch_rv(),
             local_commits_rv(),
             remote_commits_rv(),
@@ -302,7 +294,7 @@ ghqc_status_server <- function(id,
 
 
 
-    # QC COMPLETE
+    # QC APPROVED
 
     approve_button <- function(ns) {
       function(i) {
@@ -320,16 +312,39 @@ ghqc_status_server <- function(id,
       }
     }
 
+    # when the green approve button is clicked
     observeEvent(input$show_approve_modal_row, {
       row_index <- input$show_approve_modal_row$row
       df <- filtered_data()
       req(nrow(df) >= row_index)
+
+      file_name <- df[row_index, ]$file_name
+      warnings <- approve_warnings(df[row_index, ])
+
+      if (!is.null(warnings)) {
+        # Show confirmation modal *before* showing the preview modal
+        showModal(modalDialog(
+          title = "Confirm approval",
+          HTML(paste0("<p>The following warnings were detected:</p><ul>",
+                      paste0("<li>", warnings, collapse = ""),
+                      "</ul><p>Do you want to proceed anyway?</p>")),
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton(ns("proceed_approve_preview"), "Proceed anyway", class = "btn btn-warning")
+          ),
+          easyClose = FALSE
+        ))
+      } else {
+        # No warnings — show approval preview modal immediately
+        show_approve_preview_modal(df, row_index)
+      }
+    })
+
+    show_approve_preview_modal <- function(df, row_index) {
       approve_comment_parts <- approve_comment_body()
       display_comment_body <- glue::glue_collapse(approve_comment_parts)
-
       path <- create_gfm_file(display_comment_body)
       html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
-
       file_name <- df[row_index, ]$file_name
 
       showModal(modalDialog(
@@ -346,9 +361,8 @@ ghqc_status_server <- function(id,
           textInput(ns("approve_message"), "Message", placeholder = "(Optional)"),
           HTML(html)
         )
-
       ))
-    })
+    }
 
     approve_comment_body <- reactive({
       row_index <- input$show_approve_modal_row$row
@@ -357,20 +371,16 @@ ghqc_status_server <- function(id,
 
       tryCatch({
         create_approve_comment_body(
-          owner = org,
-          repo = repo,
           issue_number = df[row_index, ]$issue_number,
           file_path = df[row_index, ]$file_name,
-          approved_qc_commit = df[row_index, ]$comparator_commit,
-          remote = remote # TODO
+          approved_qc_commit = df[row_index, ]$comparator_commit
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
       })
     })
 
-    post_approve_comment <- reactive({
-      req(post_approve_trigger())
+    post_approve_comment <- observeEvent(post_approve_trigger(), {
       approve_comment_parts <- approve_comment_body()
       req(approve_comment_parts)
       row_index <- input$show_approve_modal_row$row
@@ -387,10 +397,9 @@ ghqc_status_server <- function(id,
 
       tryCatch(
         {
-          approve(owner = org,
-                       repo = repo,
-                       issue_number = df[row_index, ]$issue_number,
-                       body = display_comment_body)
+          approve(issue_number = df[row_index, ]$issue_number,
+                 body = display_comment_body
+                 )
 
           showModal(modalDialog(
             title = tags$div(
@@ -468,22 +477,18 @@ ghqc_status_server <- function(id,
 
       tryCatch({
         create_notify_comment_body(
-          owner = org,
-          repo = repo,
           message = NULL,
           issue_number = df[row_index, ]$issue_number,
           diff = TRUE,
           comparator_commit = df[row_index, ]$comparator_commit,
-          reference_commit = df[row_index, ]$latest_qc_commit,
-          remote = remote # TODO
+          reference_commit = df[row_index, ]$latest_qc_commit
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
       })
     })
 
-    post_notify_comment <- reactive({
-      req(post_notification_trigger())
+    post_notify_comment <- observeEvent(post_notification_trigger(), {
       notify_comment_parts <- notify_comment_body()
       req(notify_comment_parts)
       row_index <- input$show_notify_modal_row$row
@@ -500,9 +505,7 @@ ghqc_status_server <- function(id,
 
       tryCatch(
         {
-          post_comment(owner = org,
-                      repo = repo,
-                      issue_number = df[row_index, ]$issue_number,
+          post_comment(issue_number = df[row_index, ]$issue_number,
                       body = display_comment_body)
 
           showModal(modalDialog(
@@ -781,23 +784,19 @@ ghqc_status_server <- function(id,
       post_notification_trigger(TRUE)
     })
 
-    # note: it only works with this, idk why
-    observe({
-      post_notify_comment()
+    observeEvent(input$proceed_approve_preview, {
+      browser()
+      removeModal()
+      df <- filtered_data()
+      row_index <- input$show_approve_modal_row$row
+      show_approve_preview_modal(df, row_index)
     })
 
     observeEvent(input$proceed_approve_post, {
-
       debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
       removeModal()
       post_approve_trigger(TRUE)
     })
-
-    # note: it only works with this, idk why
-    observe({
-      post_approve_comment()
-    })
-
 
     observeEvent(input$return, {
       debug(.le$logger, glue::glue("Button returned and modal removed."))
@@ -839,7 +838,7 @@ ghqc_status_server <- function(id,
       # recompute reactiveVal variables
       current_branch_rv(gert::git_branch())
       local_commits_rv(get_local_commits())
-      remote_commits_rv(get_remote_commits(remote$name, current_branch_rv()))
+      remote_commits_rv(get_remote_commits(current_branch_rv()))
       ahead_behind_status_rv(check_ahead_behind())
       files_changed_in_remote_commits_rv(get_files_changed_in_remote_commits(remote_commits_rv(), ahead_behind_status_rv()))
       files_changed_in_unpushed_local_commits_rv(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))

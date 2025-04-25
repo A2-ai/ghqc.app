@@ -6,7 +6,7 @@
 #' @importFrom gert git_status
 NULL
 
-ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
+ghqc_notify_server <- function(id, milestone_list) {
   moduleServer(id, function(input, output, session) {
 
     # This section ensures that when an error occurs, the app stops
@@ -25,7 +25,6 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
     post_trigger <- reactiveVal(FALSE)
 
     observe({
-      req(remote)
       waiter_hide()
     })
 
@@ -49,10 +48,10 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
       tryCatch(
         {
           if (input$select_milestone == "All Issues") {
-            all_issues <- get_all_issues_in_repo(owner = org, repo = repo)
+            all_issues <- get_all_issues_in_repo()
             issue_choices <- convert_issue_df_format(all_issues)
           } else {
-            issues_by_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = input$select_milestone)
+            issues_by_milestone <- get_all_issues_in_milestone(milestone_name = input$select_milestone)
             issue_choices <- convert_issue_df_format(issues_by_milestone)
           }
 
@@ -81,15 +80,9 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
     })
 
     all_commits <- reactive({
-      req(org, repo, issue_parts()$issue_number)
+      req(issue_parts()$issue_number)
 
-
-      get_commits_df(
-        issue_number = issue_parts()$issue_number,
-        owner = org,
-        repo = repo,
-        remote = remote
-      )
+      get_commits_df(issue_number = issue_parts()$issue_number)
     })
 
     ref_commits <- reactive({
@@ -258,20 +251,17 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
             input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
           )
 
-          comment_body_parts <- create_notify_comment_body(org,
-                                              repo,
-                                              message = input$message,
-                                              issue_number = issue_parts()$issue_number,
-                                              diff = input$show_diff,
-                                              comparator_commit = commits_for_compare$comparator_commit,
-                                              reference_commit = commits_for_compare$reference_commit,
-                                              remote = remote
+          comment_body_parts <- create_notify_comment_body(message = input$message,
+                                                          issue_number = issue_parts()$issue_number,
+                                                          diff = input$show_diff,
+                                                          comparator_commit = commits_for_compare$comparator_commit,
+                                                          reference_commit = commits_for_compare$reference_commit
           )
           comment_body <- glue::glue_collapse(comment_body_parts)
         },
         error = function(e) {
           log_string <- glue::glue(
-            "There was an error creating preview comment for Issue {issue_parts()$issue_number} in repository {org}/{repo}.\n",
+            "There was an error creating preview comment for Issue {issue_parts()$issue_number} in repository {.le$org}/{.le$repo}.\n",
             "Input Parameters:\n",
             "- Message: {input$message}\n",
             "- Show Diff: {input$show_diff}\n",
@@ -302,7 +292,7 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
         },
         error = function(e) {
           log_string <- glue::glue(
-            "There was an error creating preview comment for Issue {issue_parts()$issue_number} in repository {org}/{repo}.\n",
+            "There was an error creating preview comment for Issue {issue_parts()$issue_number} in repository {.le$org}/{.le$repo}.\n",
             "Input Parameters:\n",
             "- Message: {input$message}\n",
             "- Show Diff: {input$show_diff}\n",
@@ -349,17 +339,15 @@ ghqc_notify_server <- function(id, remote, org, repo, milestone_list) {
 
       tryCatch(
         {
-          post_comment(owner = org,
-                       repo = repo,
-                       issue_number = issue_parts()$issue_number,
+          post_comment(issue_number = issue_parts()$issue_number,
                        body = comment_body_string())
 
-          issue <- get_issue(org, repo, issue_parts()$issue_number)
+          issue <- get_issue(issue_parts()$issue_number)
           issue_url <- issue$html_url
         },
         error = function(e) {
           log_string <- glue::glue(
-            "There was an error creating comment for issue {issue_parts()$issue_number} in repository {org}/{repo}.\n",
+            "There was an error creating comment for issue {issue_parts()$issue_number} in repository {.le$org}/{.le$repo}.\n",
             "Input Parameters:\n",
             "- Message: {input$message}\n",
             "- Show Diff: {input$show_diff}\n",

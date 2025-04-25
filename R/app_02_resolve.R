@@ -16,14 +16,12 @@ ghqc_notify_app <- function() {
   get_options()
 
   # error handling before starting app
-  remote <- check_github_credentials()$remote
-  org <- get_org_errors(remote)
-  repo <- get_repo_errors(remote)
-  milestone_list <- get_open_milestone_list_errors(org = org, repo = repo)
+  check_github_credentials()
+  milestone_list <- get_open_milestone_list_errors()
 
   # error if no open ghqc milestones
   if (length(milestone_list) == 0) {
-    error(.le$logger, glue::glue("There were no open ghqc Milestones found in {org}/{repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
+    error(.le$logger, glue::glue("There were no open ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
     rlang::abort("There were no open ghqc Milestones found.")
   }
 
@@ -39,9 +37,6 @@ ghqc_notify_app <- function() {
     server = function(input, output, session) {
       ghqc_notify_server(
         id = "ghqc_notify_app",
-        remote = remote,
-        org = org,
-        repo = repo,
         milestone_list = milestone_list
       )
     }

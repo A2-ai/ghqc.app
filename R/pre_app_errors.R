@@ -32,35 +32,10 @@ get_valid_checklists <- function() {
   return(yaml_checklists)
 } # get_valid_checklists
 
-
-get_org_errors <- function(remote) {
+get_members_errors <- function() {
   tryCatch(
     {
-      get_organization(remote)
-    },
-    error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving organization: {conditionMessage(e)}"))
-      rlang::abort(conditionMessage(e))
-    }
-  )
-}
-
-get_repo_errors <- function(remote) {
-  tryCatch(
-    {
-      get_current_repo(remote)
-    },
-    error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving repo: {conditionMessage(e)}"))
-      rlang::abort(conditionMessage(e))
-    }
-  )
-}
-
-get_members_errors <- function(org, repo) {
-  tryCatch(
-    {
-      get_collaborators(owner = org, repo = repo)
+      get_collaborators()
     },
     error = function(e) {
       error(.le$logger, glue::glue("There was an error retrieving members: {conditionMessage(e)}"))
@@ -69,10 +44,10 @@ get_members_errors <- function(org, repo) {
   )
 }
 
-get_open_milestone_list_errors <- function(org, repo) {
+get_open_milestone_list_errors <- function() {
   tryCatch(
     {
-      milestone_list <- get_open_milestone_names(org = org, repo = repo)
+      milestone_list <- get_open_milestone_names()
       rev(milestone_list)
     },
     error = function(e) {
@@ -83,10 +58,10 @@ get_open_milestone_list_errors <- function(org, repo) {
   )
 }
 
-get_all_milestone_list_errors <- function(org, repo) {
+get_all_milestone_list_errors <- function() {
   tryCatch(
     {
-      all_milestones <- list_ghqc_milestone_names(org = org, repo = repo)
+      all_milestones <- list_ghqc_milestone_names()
       rev(all_milestones)
     },
     error = function(e) {

@@ -1,5 +1,5 @@
-get_init_qc_commit <- function(owner, repo, issue_number) {
-  issue <- get_issue(owner, repo, issue_number)
+get_init_qc_commit <- function(issue_number) {
+  issue <- get_issue(issue_number)
   get_init_qc_commit_from_issue_body(issue$body)
 
 }
@@ -45,8 +45,8 @@ create_message_body <- function(message) {
   else glue::glue("{message}\n\n\n")
 }
 
-get_commit_comparison_url <- function(remote_url, owner, repo, reference_commit, comparator_commit) {
-  url <- glue::glue("{remote_url}/{owner}/{repo}/compare/{reference_commit}..{comparator_commit}")
+get_commit_comparison_url <- function(reference_commit, comparator_commit) {
+  url <- file.path(.le$full_repo_url, "compare", glue::glue("{reference_commit}..{comparator_commit}"))
   url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">commit comparison</a>")
   return(url_html)
 }
@@ -79,18 +79,15 @@ create_diff_body <- function(diff, reference_commit, reference_script, comparato
                "{diff_formatted}")
 }
 
-create_notify_comment_body <- function(owner,
-                                repo,
-                                issue_number,
+create_notify_comment_body <- function(issue_number,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
                                 comparator_commit = "current",
                                 remote) {
 
-  remote_url <- parse_remote_url(remote$url)
 
-  issue <- get_issue(owner, repo, issue_number)
+  issue <- get_issue(issue_number)
   ## check if file exists locally
   if (!fs::file_exists(issue$title)) {
     log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
@@ -102,7 +99,7 @@ create_notify_comment_body <- function(owner,
   }
 
   # log
-  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
+  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {.le$org}/{.le$repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
   assignees_list <- create_assignees_list(assignees = issue$assignees,
@@ -119,12 +116,12 @@ create_notify_comment_body <- function(owner,
   if (reference_commit == "original" && comparator_commit == "current") {
     # reference = oldest
     debug(.le$logger, glue::glue("Getting reference commit..."))
-    reference_commit <- get_init_qc_commit(owner, repo, issue_number)
+    reference_commit <- get_init_qc_commit(issue_number)
     debug(.le$logger, glue::glue("Got reference commit: {reference_commit}"))
 
     # comparator = newest
     debug(.le$logger, glue::glue("Getting comparator commit..."))
-    comparator_commit <- get_commits_df(issue_number = issue_number, owner = owner, repo = repo, remote = remote)$commit[1]
+    comparator_commit <- get_commits_df(issue_number = issue_number)$commit[1]
     debug(.le$logger, glue::glue("Got comparator commit: {comparator_commit}"))
   }
 
@@ -143,10 +140,7 @@ create_notify_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  commit_comparison <- get_commit_comparison_url(remote_url = remote_url,
-                                                 owner = owner,
-                                                 repo = repo,
-                                                 reference_commit = reference_commit,
+  commit_comparison <- get_commit_comparison_url(reference_commit = reference_commit,
                                                  comparator_commit = comparator_commit
                                                  )
 
@@ -171,7 +165,7 @@ create_notify_comment_body <- function(owner,
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
 
-  info(.le$logger, glue::glue("Created comment body for issue #{issue_number} in {owner}/{repo} with
+  info(.le$logger, glue::glue("Created comment body for issue #{issue_number} in {.le$org}/{.le$repo} with
                               Assignee(s):     {log_assignees}
                               Previous commit: {reference_commit}
                               Original commit: {comparator_commit}"))
@@ -180,28 +174,23 @@ create_notify_comment_body <- function(owner,
 }
 
 
-post_comment <- function(owner, repo, issue_number, body) {
-  debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {owner}/{repo}..."))
+post_comment <- function(issue_number, body) {
+  debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {.le$org}/{.le$repo}..."))
 
-  comment <- gh::gh("POST /repos/:owner/:repo/issues/:issue_number/comments",
+  comment <- gh::gh("POST /repos/:org/:repo/issues/:issue_number/comments",
                     .api_url = .le$github_api_url,
-                    owner = owner,
-                    repo = repo,
+                    org = .le$org,
+                    repo = .le$repo,
                     issue_number = issue_number,
                     body = body
   )
 
-  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
+  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
 }
 
-create_approve_comment_body <- function(owner, repo, issue_number, file_path, approved_qc_commit, remote) {
-  remote_url <- parse_remote_url(remote$url)
-
+create_approve_comment_body <- function(issue_number, file_path, approved_qc_commit) {
   file_contents_url <- get_file_contents_url(file_path = file_path,
-                                             git_sha = approved_qc_commit,
-                                             owner,
-                                             repo,
-                                             remote_url)
+                                             git_sha = approved_qc_commit)
 
   file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at approved qc commit</a>")
 
@@ -220,12 +209,12 @@ create_approve_comment_body <- function(owner, repo, issue_number, file_path, ap
   return(c(comment_body_first, comment_body_second))
 }
 
-approve <- function(owner, repo, issue_number, body) {
+approve <- function(issue_number, body) {
   # step 1: post comment
-  post_comment(owner, repo, issue_number, body)
+  post_comment(issue_number, body)
 
   # step 2: close issue
-  close_issue(owner, repo, issue_number)
+  close_issue(issue_number)
 }
 
 

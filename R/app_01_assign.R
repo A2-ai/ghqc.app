@@ -14,16 +14,10 @@ ghqc_assign_app <- function() {
 
   # error handling before starting app
   root_dir <- rproj_root_dir()
-  remote <- check_github_credentials()$remote
+  check_github_credentials()
   checklists <- get_valid_checklists()
-  org <- get_org_errors(remote)
-  repo <- get_repo_errors(remote)
-  members <- get_members_errors(org = org,
-                                repo = repo)
-
-  milestone_list <- get_open_milestone_list_errors(org = org,
-                                              repo = repo)
-
+  members <- get_members_errors()
+  milestone_list <- get_open_milestone_list_errors()
 
   app <- shinyApp(
     ui = ghqc_assign_ui(
@@ -32,11 +26,8 @@ ghqc_assign_app <- function() {
     server = function(input, output, session) {
       ghqc_assign_server(
         id = "ghqc_assign_app",
-        remote = remote,
         root_dir = root_dir,
         checklists = checklists,
-        org = org,
-        repo = repo,
         members = members,
         milestone_list = milestone_list
       )

@@ -11,15 +11,11 @@ ghqc_record_app <- function() {
   get_options()
 
   # error handling before starting app
-  res <- check_github_credentials()
-  remote <- res$remote
-  token <- res$token
-  org <- get_org_errors(remote)
-  repo <- get_repo_errors(remote)
-  all_milestones <- get_all_milestone_list_errors(org = org, repo = repo)
+   check_github_credentials()
+  all_milestones <- get_all_milestone_list_errors()
 
   if (length(all_milestones) == 0 || is.null(all_milestones)) {
-    error(.le$logger, glue::glue("There were no Milestones found in {org}/{repo}. Create a Milestone by using the Assign app."))
+    error(.le$logger, glue::glue("There were no Milestones found in {.le$org}/{.le$repo}. Create a Milestone by using the Assign app."))
     rlang::abort("No Milestones found")
   }
 
@@ -30,11 +26,7 @@ ghqc_record_app <- function() {
     server = function(input, output, session) {
       ghqc_record_server(
         id = "ghqc_record_app",
-        remote = remote,
-        org = org,
-        repo = repo,
-        all_milestones = all_milestones,
-        token = token
+        all_milestones = all_milestones
       )
     }
   )

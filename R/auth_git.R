@@ -28,14 +28,14 @@ check_upstream_set <- function(remote_name) {
   current_branch <- gert::git_branch()
 
   if (is.null(current_branch)){
-    error(.le$logger, glue::glue("There were no branches found for the existing repository: {repo} \n",
+    error(.le$logger, glue::glue("There were no branches found for the existing repository: {.le$repo} \n",
                                  "To create a branch, use one of the below for you default branch name: \n",
                                  "  git branch -M main \n",
                                  "  git branch -M master \n",
                                  "Push the branch to the remote repository using: \n",
                                  "  git push -u {remote_name} main \n",
                                  "  git push -u {remote_name} master"))
-    rlang::abort(glue::glue("There were no branches found for the existing repo: {repo}"))
+    rlang::abort(glue::glue("There were no branches found for the existing repo: {.le$repo}"))
   }
 
   col_names <- c("name", "upstream") # doing this to pass rcmdcheck: check_upstream_set: no visible binding for global variable ‘upstream’
@@ -122,17 +122,35 @@ check_github_credentials <- function() {
   check_remote_set()
 
   remote <- get_remote()
-  remote_url <- parse_remote_url(remote$url)
-  check_upstream_set(remote$name)
+  remote_name <- remote$name
+  assign("remote_name", remote_name, envir = .le)
 
-  token <- get_gh_token(remote_url)
-  try_api_call(remote_url, token)
-  check_remote_matches_env_url(remote_url)
-  assign("github_api_url", get_gh_api_url(remote_url), envir = .le)
+  remote_git_url <- remote$url
+  gh_info <- parse_remote_url(remote_git_url)
 
-  return(list(
-    remote = remote,
-    token = token
-  ))
+  base_git_url <- gh_info$base_url
+  assign("base_git_url", base_git_url, envir = .le)
+
+  full_repo_url <- gh_info$full_url
+  assign("full_repo_url", full_repo_url, envir = .le)
+
+  org <- gh_info$org
+  assign("org", org, envir = .le)
+
+  repo <- gh_info$repo
+  assign("repo", repo, envir = .le)
+
+  github_api_url <- get_gh_api_url(base_git_url)
+  assign("github_api_url", github_api_url, envir = .le)
+
+
+  check_upstream_set(remote_name)
+  token <- get_gh_token(base_git_url)
+  assign("token", token, envir = .le)
+
+  try_api_call(base_git_url, token)
+  check_remote_matches_env_url(base_git_url)
+
+
 }
 

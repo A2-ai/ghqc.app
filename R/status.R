@@ -2,8 +2,6 @@
 #' @importFrom log4r info debug warn error
 #' @importFrom rlang .data
 ghqc_status <- function(milestone_names,
-                        org,
-                        repo,
                         current_branch,
                         local_commits,
                         remote_commits,

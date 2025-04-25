@@ -7,20 +7,7 @@ get_names_and_usernames <- function(username) {
   ))
 }
 
-#' @importFrom log4r warn error info debug
-get_repos <- function(org) {
-  debug(.le$logger, glue::glue("Retrieving repos in org {org}..."))
-  repos <- tryCatch(
-    {
-      gh::gh("GET /orgs/:org/repos", .api_url = .le$github_api_url, org = org, .limit = Inf)
-    },
-    error = function(e) {
-      error(.le$logger, glue::glue("Failed to get repos in org {org}. {conditionMessage(e)}"))
-    }
-  )
 
-  purrr::map_chr(repos, "name")
-}
 
 
 filter_for_non_empty_milestones <- function(milestones) {
@@ -35,76 +22,76 @@ filter_for_non_empty_milestones <- function(milestones) {
   return(non_empty_milestones)
 }
 
-filter_for_ghqc_milestones <- function(owner, repo, milestones) {
+filter_for_ghqc_milestones <- function(milestones) {
   if (length(milestones) == 0) return(milestones)
-  labels <- sapply(milestones, function(x) gh::gh("GET /repos/:owner/:repo/milestones/:milestone_number/labels", owner = owner, repo = repo, milestone_number = x$number, .api_url = .le$github_api_url))
+  labels <- sapply(milestones, function(x) gh::gh("GET /repos/:org/:repo/milestones/:milestone_number/labels", org = .le$org, repo = .le$repo, milestone_number = x$number, .api_url = .le$github_api_url))
   milestones[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
 #' @importFrom log4r warn error info debug
-get_open_milestone_objects <- function(owner, repo) {
-  debug(.le$logger, glue::glue("Retrieving open Milestone(s) in organization {owner}, repo {repo}..."))
+get_open_milestone_objects <- function() {
+  debug(.le$logger, glue::glue("Retrieving open Milestone(s) in organization {.le$org}, repo {.le$repo}..."))
 
-  milestones <- gh::gh("GET /repos/:owner/:repo/milestones", .api_url = .le$github_api_url, owner = owner, repo = repo, state = "open", .limit = Inf)
-  debug(.le$logger, glue::glue("Retrieved {length(milestones)} open Milestone(s) in repo {repo}"))
-  ghqc_milestones <- filter_for_ghqc_milestones(owner, repo, milestones)
-  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} open ghqc Milestone(s) in repo {repo}"))
+  milestones <- gh::gh("GET /repos/:org/:repo/milestones", .api_url = .le$github_api_url, org = .le$org, repo = .le$repo, state = "open", .limit = Inf)
+  debug(.le$logger, glue::glue("Retrieved {length(milestones)} open Milestone(s) in repo {.le$repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} open ghqc Milestone(s) in repo {.le$repo}"))
   non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
 }
 
 #' @importFrom log4r warn error info debug
-get_closed_milestone_objects <- function(owner, repo) {
-  debug(.le$logger, glue::glue("Retrieving closed Milestone(s) in organization {owner}, repo {repo}..."))
+get_closed_milestone_objects <- function() {
+  debug(.le$logger, glue::glue("Retrieving closed Milestone(s) in organization {.le$org}, repo {.le$repo}..."))
 
-  milestones <- gh::gh("GET /repos/:owner/:repo/milestones", .api_url = .le$github_api_url, owner = owner, repo = repo, state = "closed", .limit = Inf)
-  debug(.le$logger, glue::glue("Retrieved {length(milestones)} closed Milestone(s) in repo {repo}"))
-  ghqc_milestones <- filter_for_ghqc_milestones(owner, repo, milestones)
-  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} closed ghqc Milestone(s) in repo {repo}"))
+  milestones <- gh::gh("GET /repos/:org/:repo/milestones", .api_url = .le$github_api_url, org = .le$org, repo = .le$repo, state = "closed", .limit = Inf)
+  debug(.le$logger, glue::glue("Retrieved {length(milestones)} closed Milestone(s) in repo {.le$repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} closed ghqc Milestone(s) in repo {.le$repo}"))
   non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
 }
 
 #' @importFrom log4r warn error info debug
-get_all_milestone_objects <- function(owner, repo) {
-  gh::gh("GET /repos/:owner/:repo/milestones", owner = owner, repo = repo, .api_url = .le$github_api_url, state = "all", .limit = Inf)
+get_all_milestone_objects <- function() {
+  gh::gh("GET /repos/:org/:repo/milestones", org = .le$org, repo = .le$repo, .api_url = .le$github_api_url, state = "all", .limit = Inf)
 }
 
 #' @importFrom log4r warn error info debug
-get_open_milestone_names <- function(org, repo) {
+get_open_milestone_names <- function() {
 
   tryCatch({
-  milestones <- get_open_milestone_objects(org, repo)
+  milestones <- get_open_milestone_objects()
   purrr::map_chr(milestones, "title")
   }, error = function(e) {
-    error(.le$logger, glue::glue("Failed to retrieve open Milestone name(s) for organization {org} and {repo}."))
+    error(.le$logger, glue::glue("Failed to retrieve open Milestone name(s) for organization {.le$org} and {.le$repo}."))
     rlang::abort(conditionMessage(e))
   })
 }
 
 #' @importFrom log4r warn error info debug
-get_closed_milestone_names <- function(org, repo) {
+get_closed_milestone_names <- function() {
   tryCatch({
-    milestones <- get_closed_milestone_objects(org, repo)
+    milestones <- get_closed_milestone_objects()
     purrr::map_chr(milestones, "title")
   }, error = function(e) {
-    error(.le$logger, glue::glue("Failed to retrieve closed Milestone name(s) for organization {org} and {repo}."))
+    error(.le$logger, glue::glue("Failed to retrieve closed Milestone name(s) for organization {.le$org} and {.le$repo}."))
     rlang::abort(conditionMessage(e))
   })
 }
 
 #' @importFrom log4r warn error info debug
-list_ghqc_milestones <- function(org, repo) {
-  debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {org}, repo {repo}..."))
-  milestones <- get_all_milestone_objects(org, repo)
-  info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {repo}"))
-  ghqc_milestones <- filter_for_ghqc_milestones(org, repo, milestones)
-  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {repo}"))
+list_ghqc_milestones <- function() {
+  debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {.le$org}, repo {.le$repo}..."))
+  milestones <- get_all_milestone_objects()
+  info(.le$logger, glue::glue("Retrieved {length(milestones)} total Milestone(s) in repo {.le$repo}"))
+  ghqc_milestones <- filter_for_ghqc_milestones(milestones)
+  info(.le$logger, glue::glue("Retrieved {length(ghqc_milestones)} ghqc Milestone(s) in repo {.le$repo}"))
   non_empty_milestones <- filter_for_non_empty_milestones(ghqc_milestones)
-  info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty ghqc Milestone(s) in repo {repo}"))
+  info(.le$logger, glue::glue("Retrieved {length(non_empty_milestones)} non-empty ghqc Milestone(s) in repo {.le$repo}"))
   return(non_empty_milestones)
 }
 
-list_ghqc_milestone_names <- function(org, repo) {
-  ghqc_milestones <- list_ghqc_milestones(org, repo)
+list_ghqc_milestone_names <- function() {
+  ghqc_milestones <- list_ghqc_milestones()
   res <- purrr::map_chr(ghqc_milestones, "title")
   return(res)
 }
@@ -117,27 +104,59 @@ get_remote_name <- function(remote_url) {
 }
 
 #' @importFrom log4r info debug
+# parse_remote_url <- function(remote_url) {
+#   browser()
+#   api_url <- {
+#     # if ssh
+#     if (stringr::str_detect(remote_url, "@")) {
+#       debug(.le$logger, glue::glue("Detected ssh remote URL: {remote_url}"))
+#       url <- stringr::str_extract(remote_url, "(?<=@)[^:]+")
+#       glue::glue("https://{url}")
+#     }
+#     # else if https
+#     else if (stringr::str_detect(remote_url, "^https://")) {
+#       debug(.le$logger, glue::glue("Detected https remote URL: {remote_url}"))
+#       dirname(dirname(remote_url))
+#     }
+#     else {
+#       error(.le$logger, glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
+#       rlang::abort(glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
+#     }
+#   }
+#
+#   info(.le$logger, glue::glue("Connected to remote repository url: {api_url}"))
+#   api_url
+# }
+
 parse_remote_url <- function(remote_url) {
-  api_url <- {
-    # if ssh
-    if (stringr::str_detect(remote_url, "@")) {
-      debug(.le$logger, glue::glue("Detected ssh remote URL: {remote_url}"))
-      url <- stringr::str_extract(remote_url, "(?<=@)[^:]+")
-      glue::glue("https://{url}")
-    }
-    # else if https
-    else if (stringr::str_detect(remote_url, "^https://")) {
-      debug(.le$logger, glue::glue("Detected https remote URL: {remote_url}"))
-      dirname(dirname(remote_url))
-    }
-    else {
-      error(.le$logger, glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
-      rlang::abort(glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
-    }
+  # ssh remote
+  if (stringr::str_detect(remote_url, "@")) {
+    debug(.le$logger, glue::glue("Detected ssh remote URL: {remote_url}"))
+    # Convert ssh to https format: git@github.com:org/repo.git → https://github.com/org/repo.git
+    remote_url <- stringr::str_replace(remote_url, "^git@([^:]+):", "https://\\1/")
+  } else if (stringr::str_detect(remote_url, "^https://")) {
+    debug(.le$logger, glue::glue("Detected https remote URL: {remote_url}"))
+  } else {
+    error(.le$logger, glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
+    rlang::abort(glue::glue("Remote url: {remote_url} doesn't match ssh or https formats"))
   }
 
-  info(.le$logger, glue::glue("Connected to remote repository url: {api_url}"))
-  api_url
+  # Remove trailing `.git` if present
+  remote_url <- stringr::str_remove(remote_url, "\\.git$")
+
+  # Parse parts
+  base_url <- dirname(dirname(remote_url))               # https://github.com
+  org <- basename(dirname(remote_url))                   # e.g., A2-ai
+  repo <- basename(remote_url)                           # e.g., ghqc_status_project2
+  full_url <- glue::glue("{base_url}/{.le$org}/{.le$repo}")      # Full remote without .git
+
+  info(.le$logger, glue::glue("Parsed remote URL: {remote_url}"))
+  list(
+    base_url = base_url,
+    full_url = full_url,
+    org = org,
+    repo = repo
+  )
 }
 
 #' @importFrom log4r warn error info debug
@@ -208,78 +227,16 @@ get_remote <- function() {
 }
 
 #' @importFrom log4r warn error info debug
-get_current_repo <- function(remote) {
-  tryCatch({
-  debug(.le$logger, glue::glue("Connecting to repository..."))
-
-  }, error = function(e) {
-    error(.le$logger, glue::glue("No local git repository found."))
-    rlang::abort(conditionMessage(e))
-  })
-  remote_repo_name <- get_remote_name(remote$url)
-}
-
-#' @importFrom log4r warn error info debug
-get_organization_name_from_url <- function(remote_url) {
-  # https url
-  matches <- {
-    if (grepl("https://", remote_url)) {
-      regmatches(remote_url, regexec("https://[^/]+/([^/]+)", remote_url)) #/[^/]+
-    }
-    # ssh url
-    else if (grepl("git@", remote_url)) {
-      regmatches(remote_url, regexec("git@[^:]+:([^/]+)/[^/]+", remote_url))
-    }
-    else {
-      NULL
-      stop("Unknown remote url format")
-    }
-  } # matches
-
-  # if could match org
-  if (length(matches[[1]]) < 2) {
-    stop("Unable to parse organization from url")
-  }
-  else {
-    return(matches[[1]][2])
-  }
-} # get_organization_name_from_url
-
-#' @importFrom log4r warn error info debug
-get_organization <- function(remote) {
-  tryCatch({
-  debug(.le$logger, glue::glue("Connecting to organization..."))
-
-  # remote url
-  debug(.le$logger, glue::glue("Retrieving remote url..."))
-  remote_url <- dirname(remote$url)
-  debug(.le$logger, glue::glue("Retrieved remote url: {remote_url}"))
-
-  # org name
-  debug(.le$logger, glue::glue("Retrieving organization name from remote url..."))
-
-  org_name <- get_organization_name_from_url(remote$url)
-
-  info(.le$logger, glue::glue("Connected to organization: {org_name}"))
-
-  return(org_name)
-  }, error = function(e) {
-    error(.le$logger, "Failed to connect to organization. Ensure the repository exists and that remotes are correctly configured.")
-    rlang::abort(conditionMessage(e))
-  })
-}
-
-#' @importFrom log4r warn error info debug
-get_issue <- function(owner, repo, issue_number) {
-  gh::gh("GET /repos/:owner/:repo/issues/:issue_number", .api_url = .le$github_api_url,
-         owner = owner, repo = repo, issue_number = issue_number)
+get_issue <- function(issue_number) {
+  gh::gh("GET /repos/:org/:repo/issues/:issue_number", .api_url = .le$github_api_url,
+         org = .le$org, repo = .le$repo, issue_number = issue_number)
 } # get_issue
 
 #' @importFrom log4r warn error info debug
-get_issue_comments <- function(owner, repo, issue_number, token) {
+get_issue_comments <- function(issue_number, token) {
   api_url <- .le$github_api_url
   base_url <- ifelse(api_url == "https://github.com/api/v3", "https://api.github.com", api_url)
-  url <- glue::glue("{base_url}/repos/{owner}/{repo}/issues/{issue_number}/comments")
+  url <- glue::glue("{.le$base_git_url}/repos/{.le$org}/{.le$repo}/issues/{issue_number}/comments")
 
   req <- httr2::request(url) %>%
     httr2::req_headers(
@@ -295,34 +252,34 @@ get_issue_comments <- function(owner, repo, issue_number, token) {
 } # get_issue_comments
 
 #' @importFrom log4r warn error info debug
-get_issue_events <- function(owner, repo, issue_number) {
-  gh::gh("GET /repos/:owner/:repo/issues/:issue_number/events", .api_url = .le$github_api_url,
-         owner = owner, repo = repo, issue_number = issue_number)
+get_issue_events <- function(issue_number) {
+  gh::gh("GET /repos/:org/:repo/issues/:issue_number/events", .api_url = .le$github_api_url,
+         org = .le$org, repo = .le$repo, issue_number = issue_number)
 } # get_issue_events
 
 #' @importFrom log4r warn error info debug
-get_issue_timeline <- function(owner, repo, issue_number) {
-  gh::gh("GET /repos/:owner/:repo/issues/:issue_number/timeline", .api_url = .le$github_api_url,
-         owner = owner, repo = repo, issue_number = issue_number)
+get_issue_timeline <- function(issue_number) {
+  gh::gh("GET /repos/:org/:repo/issues/:issue_number/timeline", .api_url = .le$github_api_url,
+         org = .le$org, repo = .le$repo, issue_number = issue_number)
 }
 
 #' @importFrom log4r warn error info debug
-get_issues <- function(owner, repo, milestone) {
-  params <- c(owner, repo)
-  gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-         owner = owner, repo = repo, milestone = milestone, state = "all")
+get_issues <- function(milestone) {
+  gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
+         org = .le$org, repo = .le$repo, milestone = milestone, state = "all")
 }
 
 #' @importFrom log4r warn error info debug
-get_all_issues_in_repo <- function(owner, repo) {
-  debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {repo}..."))
+get_all_issues_in_repo <- function() {
+  debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {.le$repo}..."))
   open_issues <- list()
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-                  owner = owner,
-                  repo = repo,
+    res <- gh::gh("GET /repos/:org/:repo/issues",
+                  .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
                   state = "open",
                   per_page = 100,
                   page = page)
@@ -342,9 +299,9 @@ get_all_issues_in_repo <- function(owner, repo) {
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-                  owner = owner,
-                  repo = repo,
+    res <- gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
                   state = "closed",
                   per_page = 100,
                   page = page)
@@ -361,7 +318,7 @@ get_all_issues_in_repo <- function(owner, repo) {
 
   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   num_issues <- length(issues)
-  info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {repo}"))
+  info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {.le$repo}"))
   return(issues)
 
 }
@@ -375,10 +332,10 @@ get_only_ghqc_issues <- function(issues) {
 
 # sort by open/closed
 #' @importFrom log4r warn error info debug
-get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
+get_all_issues_in_milestone <- function(milestone_name) {
   debug(.le$logger, glue::glue("Retrieving all Issue(s) from Milestone: {milestone_name}..."))
   # get milestone number from name
-  milestone_number <- look_up_existing_milestone_number(list(owner = owner, repo = repo, title = milestone_name))
+  milestone_number <- look_up_existing_milestone_number(milestone_name)
 
   # if the Milestone dne, there are no Issues in the Milestone, return an empty vector
   if (is.null(milestone_number)) {
@@ -390,9 +347,9 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-                  owner = owner,
-                  repo = repo,
+    res <- gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
                   milestone = milestone_number,
                   state = "open",
                   per_page = 100,
@@ -413,9 +370,9 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:owner/:repo/issues", .api_url = .le$github_api_url,
-                  owner = owner,
-                  repo = repo,
+    res <- gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
                   milestone = milestone_number,
                   state = "closed",
                   per_page = 100,
@@ -437,12 +394,13 @@ get_all_issues_in_milestone <- function(owner, repo, milestone_name) {
 }
 
 #' @importFrom log4r warn error info debug
-get_milestone_url <- function(owner, repo, milestone_name) {
-  milestone_number <- get_milestone_number(list(owner = owner, repo = repo, title = milestone_name))
+get_milestone_url <- function(milestone_name) {
+  milestone_number <- get_milestone_number(list(org = .le$org, repo = .le$repo, title = milestone_name))
   milestone <- gh::gh(
-    "GET /repos/{owner}/{repo}/milestones/{milestone_number}", .api_url = .le$github_api_url,
-    owner = owner,
-    repo = repo,
+    "GET /repos/:org/:repo/milestones/{milestone_number}",
+    .api_url = .le$github_api_url,
+    org = .le$org,
+    repo = .le$repo,
     milestone_number = milestone_number
   )
 
@@ -450,22 +408,19 @@ get_milestone_url <- function(owner, repo, milestone_name) {
 }
 
 #' @importFrom log4r warn error info debug
-get_milestone_list_url <- function(org, repo) {
-  remote_url <- parse_remote_url(get_remote()$url)
-  # will look something like:
-  # https://ghe-experiments.dev.a2-ai.cloud/gsk-cpmsprojects/test_ghqc_9005/milestones
-  milestones_url <- file.path(remote_url, org, repo, "milestones")
+get_milestone_list_url <- function() {
+  milestones_url <- file.path(.le$full_repo_url, "milestones")
 }
 
 #' @importFrom log4r warn error info debug
-get_collaborators <- function(owner, repo) {
+get_collaborators <- function() {
   tryCatch({
-    query <- gh::gh("GET /repos/{owner}/{repo}/collaborators", .api_url = .le$github_api_url, .limit = Inf, owner = owner, repo = repo)
+    query <- gh::gh("GET /repos/:org/:repo/collaborators", .api_url = .le$github_api_url, .limit = Inf, org = .le$org, repo = .le$repo,)
     members_list <- purrr::map(query, ~ get_names_and_usernames(.x$login))
     members_df <- purrr::map_df(members_list, ~ as.data.frame(t(.x), stringsAsFactors = FALSE))
     return(members_df)
   }, error = function(e) {
-    error(.le$logger, glue::glue("No collaborators found in {owner}/{repo}"))
+    error(.le$logger, glue::glue("No collaborators found in {.le$org}/{.le$repo}"))
     rlang::abort(conditionMessage(e))
   })
 }
@@ -475,8 +430,8 @@ get_user <- function() {
   return(user$login)
 }
 
-get_branch_from_metadata <- function(owner, repo, issue_number) {
-  issue <- get_issue(owner, repo, issue_number)
+get_branch_from_metadata <- function(issue_number) {
+  issue <- get_issue(issue_number)
   get_branch_from_issue_body(issue$body)
 }
 
@@ -497,11 +452,11 @@ get_branch_from_issue_body <- function(issue_body) {
   })
 }
 
-close_issue <- function(owner, repo, issue_number) {
+close_issue <- function(issue_number) {
   gh::gh(
-    "PATCH /repos/:owner/:repo/issues/:issue_number",
-    owner = owner,
-    repo = repo,
+    "PATCH /repos/:org/:repo/issues/:issue_number",
+    org = .le$org,
+    repo = .le$repo,
     issue_number = issue_number,
     .api_url = .le$github_api_url,
     state = "closed"
