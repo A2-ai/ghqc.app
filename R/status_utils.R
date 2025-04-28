@@ -42,6 +42,10 @@ get_approve_column <- function(qc_status, git_status) {
     return("none")
   }
 
+  if (qc_status == "Approved; Subsequent file changes") { # want this before git_status logic
+    return("Delete \"QC Approved\" comment to resume QC") # (probably don't want to do a hard reset)
+  }
+
   if (stringr::str_detect(git_status, "View on QC branch:")) {
     return("Switch to QC branch")
   }
@@ -52,10 +56,21 @@ get_approve_column <- function(qc_status, git_status) {
 
   valid_git_status <- !is.na(git_status) && git_status == "Up to date"
   if (!valid_git_status) {
+    if (git_status == "Remote file changes") {
+      return("Pull to resume QC")
+    }
+    if (git_status == "Local uncommitted file changes") {
+      return("Commit and push to resume QC")
+    }
+    if (git_status == "Local unpushed commits with file changes") {
+      return("Push to resume QC")
+    }
     return("Synchronize repository")
-  }
+  } # invalid git status
 
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "Notification suggested", "Requires approval") # ,
+
+  # else, git_status is NA or "Up to date"
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Requires approval")
   if (valid_qc_status) {
     return("approve")
   }
@@ -63,15 +78,13 @@ get_approve_column <- function(qc_status, git_status) {
   # Needs further explanation
 
   # "Notification posted" is possible when git status is "Up to date". In this case, force sync because the post was intentional
-  if (qc_status %in% c("Notification posted", "Local uncommitted file changes after approval")) {
-    return("Synchronize repository")
+  if (qc_status == "Notification posted") {
+    return("Pull to resume QC")
   }
   if (qc_status == "Issue reopened after approval") {
-    return("Close Issue, or delete \"QC Approved\" comment to update approved QC commit")
+    return("Close Issue or delete \"QC Approved\" comment to resume QC")
   }
-  if (qc_status %in% c("Local unpushed commits with file changes after approved QC commit", "Pushed file changes after approved QC commit")) {
-    return("Delete \"QC Approved\" comment to update approved QC commit") # Restore repository to approved QC commit, or (probably don't want to do a hard reset)
-  }
+
   if (qc_status == "QC branch deleted before approval") {
     return("Restore and switch to QC branch")
   }
@@ -98,7 +111,7 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("Notification suggested",
+  hard_notify_qc_statuses <- c("File changes to post",
                                 "Pushed file changes after Issue closure",
                                 "Uncommented pushed file changes before Issue closure"
                                 )

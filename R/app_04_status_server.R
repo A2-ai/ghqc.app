@@ -733,18 +733,17 @@ ghqc_status_server <- function(id,
           color = DT::styleEqual(
             c("Approved",
               "Awaiting approval",
-              "Notification suggested",
+              "File changes to post",
               "Notification posted",
+              "File changes to pull",
               "Initial QC commit posted",
               "Issue re-opened after approval",
-              "Local uncommitted file changes after approval",
-              "Local unpushed commits with file changes after approved QC commit",
-              "Pushed file changes after approved QC commit",
+              "Approved; Subsequent file changes",
               "Requires approval",
               "Error",
               "QC branch deleted before approval"
               ),
-            c("#27770a", "black", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
+            c("#27770a", "black", "black", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442", "#a94442"),
             default = "black"
           )
         ) %>%
