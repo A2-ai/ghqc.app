@@ -42,7 +42,7 @@ get_approve_column <- function(qc_status, git_status) {
     return("none")
   }
 
-  if (qc_status == "Approved; Subsequent file changes") { # want this before git_status logic
+  if (qc_status == "Approved; subsequent file changes") { # want this before git_status logic
     return("Delete \"QC Approved\" comment to resume QC") # (probably don't want to do a hard reset)
   }
 
@@ -84,7 +84,6 @@ get_approve_column <- function(qc_status, git_status) {
   if (qc_status == "Issue reopened after approval") {
     return("Close Issue or delete \"QC Approved\" comment to resume QC")
   }
-
   if (qc_status == "QC branch deleted before approval") {
     return("Restore and switch to QC branch")
   }

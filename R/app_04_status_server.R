@@ -738,7 +738,7 @@ ghqc_status_server <- function(id,
               "File changes to pull",
               "Initial QC commit posted",
               "Issue re-opened after approval",
-              "Approved; Subsequent file changes",
+              "Approved; subsequent file changes",
               "Requires approval",
               "Error",
               "QC branch deleted before approval"

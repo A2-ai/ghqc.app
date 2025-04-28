@@ -192,7 +192,7 @@ in_progress <- function(latest_qc_commit_short) {
 
 local_uncommitted_file_changes_after_qc_approval <- function(latest_qc_commit_short) {
   # qc_status <- "Local uncommitted file changes after approval"
-  qc_status <- "Approved; Subsequent file changes"
+  qc_status <- "Approved; subsequent file changes"
   diagnostics <- format_diagnostics_list(list(glue::glue("Approved QC commit: {latest_qc_commit_short}")))
 
   list(qc_status = qc_status,
@@ -202,7 +202,7 @@ local_uncommitted_file_changes_after_qc_approval <- function(latest_qc_commit_sh
 
 local_unpushed_commits_with_file_changes_after_qc_approval <- function(file, latest_qc_commit, local_commits, latest_qc_commit_short) {
   # qc_status <- "Local unpushed commits with file changes after approved QC commit"
-  qc_status <- "Approved; Subsequent file changes"
+  qc_status <- "Approved; subsequent file changes"
 
   last_local_change_after_qc_commit <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                               latest_qc_commit,
@@ -221,7 +221,7 @@ local_unpushed_commits_with_file_changes_after_qc_approval <- function(file, lat
 
 pushed_file_changes_after_approved_qc_commit <- function(last_remote_file_change_after_qc_commit, latest_qc_commit_short, repo_url, file, latest_qc_commit) {
   # qc_status <- "Pushed file changes after approved QC commit"
-  qc_status <- "Approved; Subsequent file changes"
+  qc_status <- "Approved; subsequent file changes"
 
   last_file_change_short <- get_hyperlinked_commit(last_remote_file_change_after_qc_commit, file, repo_url)
   commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
