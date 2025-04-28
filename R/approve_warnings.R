@@ -18,6 +18,12 @@ approve_warnings <- function(issue, row) {
 
 
   # 3: Are there QC comments in-line in the script still?
+  browser()
+  qc_comments <- get_qc_comments(row$file_name)
+  browser()
+  if (length(qc_comments) > 0) {
+    # TODO
+  }
 
 
   # 4: Are there unchecked checklist items?
@@ -30,4 +36,15 @@ approve_warnings <- function(issue, row) {
   return(warnings)
 } # approve_warnings
 
+get_qc_comments <- function(file_path) {
+  is_binary_file <- stringr::str_detect(file_path, exclude_patterns())
+  if (is_binary_file) {
+    return(integer(0))
+  }
+
+  file_content <- readLines(file_path)
+  lines_with_qc_comments <- stringr::str_which(file_content, "#\\s?[Qq][Cc]")
+  file_content[lines_with_qc_comments]
+
+}
 
