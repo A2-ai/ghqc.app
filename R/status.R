@@ -15,8 +15,12 @@ ghqc_status <- function(milestone_names,
 
   all_relevant_files <- list()
 
+  issue_objects <- list()
+
   status_df <- map_df(milestone_names, function(milestone_name) {
     issues <- get_all_issues_in_milestone(milestone_name)
+
+
     files <- purrr::map_chr(issues, "title")
     debug(.le$logger, glue::glue("Retrieving all git statuses..."))
     start_time_git <- Sys.time()
@@ -36,6 +40,8 @@ ghqc_status <- function(milestone_names,
     milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
 
     issues_df <- map_df(issues, function(issue) {
+      issue_objects[[issue$title]] <<- issue
+
       # get column values for file
       file_name <- issue$title
       issue_number <- issue$number
@@ -232,7 +238,8 @@ ghqc_status <- function(milestone_names,
 
   res <- list(
     status = status_df,
-    relevant_files = all_relevant_files
+    relevant_files = all_relevant_files,
+    issue_objects = issue_objects
   )
 
   total_time <- difftime(Sys.time(), total_start_time, units = "secs")

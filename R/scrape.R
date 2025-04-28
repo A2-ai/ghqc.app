@@ -542,8 +542,8 @@ check_milestones <- function(milestone_names) {
   })
 }
 
-unchecked_items_in_issue <- function(issue) {
-  unchecked_items <- stringr::str_detect(issue$body, "- \\[ \\]")
+unchecked_items_in_issue <- function(issue_body) {
+  unchecked_items <- stringr::str_detect(issue_body, "- \\[ \\]")
 }
 
 create_milestone_table <- function(milestone_names) {

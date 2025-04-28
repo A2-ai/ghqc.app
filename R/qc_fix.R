@@ -79,15 +79,13 @@ create_diff_body <- function(diff, reference_commit, reference_script, comparato
                "{diff_formatted}")
 }
 
-create_notify_comment_body <- function(issue_number,
+create_notify_comment_body <- function(issue,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
                                 comparator_commit = "current",
                                 remote) {
 
-
-  issue <- get_issue(issue_number)
   ## check if file exists locally
   if (!fs::file_exists(issue$title)) {
     log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
@@ -99,7 +97,7 @@ create_notify_comment_body <- function(issue_number,
   }
 
   # log
-  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {.le$org}/{.le$repo}"))
+  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue$number}:{issue$title} in {.le$org}/{.le$repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
   assignees_list <- create_assignees_list(assignees = issue$assignees,
@@ -116,12 +114,12 @@ create_notify_comment_body <- function(issue_number,
   if (reference_commit == "original" && comparator_commit == "current") {
     # reference = oldest
     debug(.le$logger, glue::glue("Getting reference commit..."))
-    reference_commit <- get_init_qc_commit(issue_number)
+    reference_commit <- get_init_qc_commit_from_issue_body(issue$body)
     debug(.le$logger, glue::glue("Got reference commit: {reference_commit}"))
 
     # comparator = newest
     debug(.le$logger, glue::glue("Getting comparator commit..."))
-    comparator_commit <- get_commits_df(issue_number = issue_number)$commit[1]
+    comparator_commit <- get_commits_df(issue_number = issue$number)$commit[1]
     debug(.le$logger, glue::glue("Got comparator commit: {comparator_commit}"))
   }
 
@@ -162,7 +160,7 @@ create_notify_comment_body <- function(issue_number,
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
 
-  info(.le$logger, glue::glue("Created comment body for issue #{issue_number} in {.le$org}/{.le$repo} with
+  info(.le$logger, glue::glue("Created comment body for issue #{issue$number} in {.le$org}/{.le$repo} with
                               Assignee(s):     {log_assignees}
                               Previous commit: {reference_commit}
                               Original commit: {comparator_commit}"))
@@ -172,7 +170,7 @@ create_notify_comment_body <- function(issue_number,
 
 
 post_comment <- function(issue_number, body) {
-  debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {.le$org}/{.le$repo}..."))
+  debug(.le$logger, glue::glue("Posting comment to Issue #{issue_number} in {.le$org}/{.le$repo}..."))
 
   comment <- gh::gh("POST /repos/:org/:repo/issues/:issue_number/comments",
                     .api_url = .le$github_api_url,

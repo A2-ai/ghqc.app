@@ -251,11 +251,12 @@ ghqc_notify_server <- function(id, milestone_list) {
             input$compare == "comparators" ~ list(comparator_commit = input$comp_commits, reference_commit = input$ref_commits)
           )
 
-          comment_body_parts <- create_notify_comment_body(message = input$message,
-                                                          issue_number = issue_parts()$issue_number,
-                                                          diff = input$show_diff,
-                                                          comparator_commit = commits_for_compare$comparator_commit,
-                                                          reference_commit = commits_for_compare$reference_commit
+          issue <- get_issue(issue_parts()$issue_number)
+          comment_body_parts <- create_notify_comment_body(issue = issue,
+                                                           message = input$message,
+                                                           diff = input$show_diff,
+                                                           comparator_commit = commits_for_compare$comparator_commit,
+                                                           reference_commit = commits_for_compare$reference_commit
           )
           comment_body <- glue::glue_collapse(comment_body_parts)
         },

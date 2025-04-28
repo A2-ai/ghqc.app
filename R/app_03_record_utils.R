@@ -153,7 +153,7 @@ check_for_open_checklists <- function(milestone_names) {
     )
 
     purrr::map_dfr(issues, function(issue) {
-      if (unchecked_items_in_issue(issue)) {
+      if (unchecked_items_in_issue(issue$body)) {
         data.frame(title = issue$title,
                    url = issue$html_url,
                    milestone = issue$milestone$title,

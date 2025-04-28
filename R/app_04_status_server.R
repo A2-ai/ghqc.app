@@ -142,6 +142,7 @@ ghqc_status_server <- function(id,
           cache[[milestone]] <- list(
             status = result$status,
             relevant_files = result$relevant_files,
+            issue_objects = result$issue_objects,
             repo_files = NULL
           )
         }
@@ -319,20 +320,27 @@ ghqc_status_server <- function(id,
       req(nrow(df) >= row_index)
 
       file_name <- df[row_index, ]$file_name
-      warnings <- approve_warnings(df[row_index, ])
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[issue_name]]
+      warnings <- approve_warnings(issue = issue,
+                                   row = df[row_index, ]
+                                   )
 
       if (!is.null(warnings)) {
-        # Show confirmation modal *before* showing the preview modal
         showModal(modalDialog(
-          title = "Confirm approval",
-          HTML(paste0("<p>The following warnings were detected:</p><ul>",
-                      paste0("<li>", warnings, collapse = ""),
-                      "</ul><p>Do you want to proceed anyway?</p>")),
-          footer = tagList(
-            modalButton("Cancel"),
-            actionButton(ns("proceed_approve_preview"), "Proceed anyway", class = "btn btn-warning")
+          title = tags$div(
+            tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+            actionButton(ns("return"), "Cancel", style = "color: red;"),
+            actionButton(ns("proceed_approve_preview"), "Proceed anyway"),
+            style = "text-align: right;"
           ),
-          easyClose = FALSE
+          footer = NULL,
+          easyClose = TRUE,
+          HTML(glue::glue("<p>The following warnings were detected for <b>{file_name}</b>:</p><ul>",
+                          paste0("<li>", warnings, collapse = vspace()),
+                          "</ul>"))
         ))
       } else {
         # No warnings — show approval preview modal immediately
@@ -417,7 +425,7 @@ ghqc_status_server <- function(id,
           rlang::abort(conditionMessage(e))
         }
       )
-    }) # post_notify_comment
+    }) # post_approve_comment
 
 
 
@@ -476,10 +484,15 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(df)
 
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[issue_name]]
+
       tryCatch({
         create_notify_comment_body(
+          issue = issue,
           message = NULL,
-          issue_number = df[row_index, ]$issue_number,
           diff = TRUE,
           comparator_commit = df[row_index, ]$comparator_commit,
           reference_commit = df[row_index, ]$latest_qc_commit
