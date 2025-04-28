@@ -46,6 +46,10 @@ get_approve_column <- function(qc_status, git_status) {
     return("Delete \"QC Approved\" comment to resume QC") # (probably don't want to do a hard reset)
   }
 
+  if (qc_status == "Initial QC commit posted") { # git_status can be anything
+    return("Pull to begin QC")
+  }
+
   if (stringr::str_detect(git_status, "View on QC branch:")) {
     return("Switch to QC branch")
   }
@@ -59,12 +63,15 @@ get_approve_column <- function(qc_status, git_status) {
     if (git_status == "Remote file changes") {
       return("Pull to resume QC")
     }
+
     if (git_status == "Local uncommitted file changes") {
       return("Commit and push to resume QC")
     }
+
     if (git_status == "Local unpushed commits with file changes") {
       return("Push to resume QC")
     }
+
     return("Synchronize repository")
   } # invalid git status
 
@@ -81,12 +88,15 @@ get_approve_column <- function(qc_status, git_status) {
   if (qc_status == "Notification posted") {
     return("Pull to resume QC")
   }
+
   if (qc_status == "Issue reopened after approval") {
     return("Close Issue or delete \"QC Approved\" comment to resume QC")
   }
+
   if (qc_status == "QC branch deleted before approval") {
     return("Restore and switch to QC branch")
   }
+
   else {
     return("none")
   }
