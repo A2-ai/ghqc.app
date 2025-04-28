@@ -381,6 +381,7 @@ ghqc_status_server <- function(id,
     })
 
     post_approve_comment <- observeEvent(post_approve_trigger(), {
+      req(isTruthy(post_approve_trigger()))
       approve_comment_parts <- approve_comment_body()
       req(approve_comment_parts)
       row_index <- input$show_approve_modal_row$row
@@ -489,6 +490,7 @@ ghqc_status_server <- function(id,
     })
 
     post_notify_comment <- observeEvent(post_notification_trigger(), {
+      req(isTruthy(post_notification_trigger()))
       notify_comment_parts <- notify_comment_body()
       req(notify_comment_parts)
       row_index <- input$show_notify_modal_row$row
