@@ -245,6 +245,7 @@ ghqc_status_server <- function(id,
       if (input$qc_status_filter == "On track") {
         on_track <- c(
           "Awaiting approval",
+          "File changes to post",
           "Approved"
         )
         df <- df[df$`QC Status` %in% on_track, ]
@@ -252,10 +253,14 @@ ghqc_status_server <- function(id,
       else if (input$qc_status_filter == "Needs attention") {
         needs_attention <- c(
           "Notification posted",
-          "Local uncommitted file changes after Issue closure",
-          "Local unpushed commits with file changes after Issue closure",
-          "Pushed file changes after Issue closure",
-          "Uncommented pushed file changes before Issue closure"
+          "Approved; subsequent file changes",
+          "Notification posted",
+          "File changes to pull",
+          "Initial QC commit posted",
+          "Issue re-opened after approval",
+          "Requires approval",
+          "Error",
+          "QC branch deleted before approval"
           )
 
         df <- df[df$`QC Status` %in% needs_attention, ]
