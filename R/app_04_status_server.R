@@ -139,9 +139,21 @@ ghqc_status_server <- function(id,
             files_changed_in_unpushed_local_commits_rv(),
             files_with_uncommitted_local_changes_rv()
           )
+
+          relevant_df <- create_relevant_files_df(
+            all_relevant_files = result$relevant_files,
+            local_commits = local_commits_rv(),
+            remote_commits = remote_commits_rv(),
+            ahead_behind_status = ahead_behind_status_rv(),
+            files_changed_in_remote_commits = files_changed_in_remote_commits_rv(),
+            files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits_rv(),
+            files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
+          )
+
           cache[[milestone]] <- list(
             status = result$status,
             relevant_files = result$relevant_files,
+            relevant_files_df = relevant_df,
             issue_objects = result$issue_objects,
             repo_files = NULL
           )
@@ -158,6 +170,57 @@ ghqc_status_server <- function(id,
       show_table(TRUE)
       waiter_hide()
     } # run_generate
+
+
+    get_combined_status_df <- function(milestones,
+                                       status_cache,
+                                       non_qc_repo_cache,
+                                       show_relevant = TRUE,
+                                       show_repo = TRUE,
+                                       selected_dirs,
+                                       local_commits,
+                                       remote_commits,
+                                       ahead_behind_status,
+                                       files_changed_in_remote_commits,
+                                       files_changed_in_unpushed_local_commits,
+                                       files_with_uncommitted_local_changes) {
+      # Start with cached status
+      df <- do.call(rbind, lapply(status_cache[milestones], `[[`, "status"))
+
+      # Add relevant files
+      if (isTRUE(show_relevant)) {
+        relevant_df <- do.call(rbind, lapply(status_cache[milestones], function(x) x$relevant_files_df))
+        df <- rbind(df, relevant_df)
+      }
+
+      # Add non-QC repo files
+      if (isTRUE(show_repo)) {
+        key <- repo_cache_key(milestones, selected_dirs)
+
+        if (!key %in% names(non_qc_repo_cache)) {
+          all_relevant_files <- do.call(rbind, lapply(status_cache[milestones], `[[`, "relevant_files"))
+          files_with_issues <- df$file_name
+
+          repo_df <- create_non_issue_repo_files_df(
+            files_with_issues = files_with_issues,
+            local_commits = local_commits,
+            remote_commits = remote_commits,
+            all_relevant_files = all_relevant_files,
+            selected_dirs = selected_dirs,
+            ahead_behind_status = ahead_behind_status,
+            files_changed_in_remote_commits = files_changed_in_remote_commits,
+            files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
+            files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
+          )
+
+          non_qc_repo_cache[[key]] <- repo_df
+        }
+
+        df <- rbind(df, non_qc_repo_cache[[key]])
+      }
+
+      df
+    }
 
     # generate table with default milestones when app is first loaded
     observeEvent(selected_milestones(), {
@@ -213,35 +276,20 @@ ghqc_status_server <- function(id,
     })
 
     base_file_list <- reactive({
-      df <- cached_status()
-
-      if (isTruthy(input$show_repo_files)) {
-        milestones <- last_milestones()
-        selected_dirs <- input$file_directory_filter
-        key <- repo_cache_key(milestones, selected_dirs)
-        repo_cache <- non_qc_repo_cache()
-
-        if (!key %in% names(repo_cache)) {
-          repo_df <- create_non_issue_repo_files_df(
-            files_with_issues = df$file_name,
-            local_commits = local_commits_rv(),
-            remote_commits = remote_commits_rv(),
-            all_relevant_files = relevant_files(),
-            selected_dirs = selected_dirs,
-            ahead_behind_status = ahead_behind_status_rv(),
-            files_changed_in_remote_commits = files_changed_in_remote_commits_rv(),
-            files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits_rv(),
-            files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
-          )
-
-          repo_cache[[key]] <- repo_df
-          non_qc_repo_cache(repo_cache)
-        }
-
-        df <- rbind(df, repo_cache[[key]])
-      }
-
-      df
+      get_combined_status_df(
+        milestones = last_milestones(),
+        status_cache = status_cache(),
+        non_qc_repo_cache = non_qc_repo_cache(),
+        show_relevant = isTruthy(input$show_relevant_files),
+        show_repo = isTruthy(input$show_repo_files),
+        selected_dirs = input$file_directory_filter,
+        local_commits = local_commits_rv(),
+        remote_commits = remote_commits_rv(),
+        ahead_behind_status = ahead_behind_status_rv(),
+        files_changed_in_remote_commits = files_changed_in_remote_commits_rv(),
+        files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits_rv(),
+        files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
+      )
     })
 
     combined_status_with_repo_files <- reactive({
@@ -579,19 +627,7 @@ ghqc_status_server <- function(id,
           selected = "All",
           width = "100%"
         ),
-        # Show QCer
-        div(
-          class = "form-group shiny-input-container",
-          tags$label(
-            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
-            "Show QCer",
-            tags$input(
-              id = ns("show_qcer"),
-              type = "checkbox",
-              style = "transform: scale(1.2) translateY(-2px);"
-            )
-          )
-        ),
+
         # File Directory Filter
         selectizeInput(
           ns("file_directory_filter"),
@@ -603,7 +639,6 @@ ghqc_status_server <- function(id,
         # Show non-QC repo files
         div(
           id = ns("show_repo_files_wrapper"),
-          style = "display: none;",
           div(
             class = "form-group shiny-input-container",
             tags$label(
@@ -617,7 +652,37 @@ ghqc_status_server <- function(id,
               )
             )
           )
-        ) # Show non-QC repo files
+        ), # Show non-QC repo files
+        # Show relevant files
+        div(
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            tags$span("Show relevant files"),
+            tags$input(
+              id = ns("show_relevant_files"),
+              type = "checkbox",
+              class = "form-check-input",
+              style = "transform: scale(1.2) translateY(-2px);",
+              checked = "checked"
+            )
+          )
+        ), # Show relevant files
+        # Show QCer
+        div(
+          style = "margin-top: -6px;",
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            "Show QCer",
+            tags$input(
+              id = ns("show_qcer"),
+              type = "checkbox",
+              class = "form-check-input",
+              style = "transform: scale(1.2) translateY(-2px);"
+            )
+          )
+        ) # Show QCer
       ) # tagList
     }) # output$sidebar
 
