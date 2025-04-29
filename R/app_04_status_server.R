@@ -842,7 +842,7 @@ ghqc_status_server <- function(id,
           )
         ) %>%
         DT::formatStyle(
-          'File',
+          c('File', 'Diagnostics'),
           `white-space` = 'normal',
           `word-wrap` = 'break-word',
           `max-width` = '200px'
