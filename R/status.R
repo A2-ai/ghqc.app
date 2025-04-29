@@ -185,7 +185,7 @@ ghqc_status <- function(milestone_names,
       # this is safer than just giving the last commit in which the file changed -
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
-      notify <- get_notify_column(qc_status, git_status, latest_qc_commit, comparator_commit)
+      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
       approve <- get_approve_column(qc_status, git_status)
 
       # return res

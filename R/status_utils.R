@@ -103,7 +103,7 @@ get_approve_column <- function(qc_status, git_status) {
 
 }
 
-get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparator_commit) {
+get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit) {
   has_valid_git_status <- is.na(git_status) || git_status == "Up to date" # allowing git status to be NA in case when QC branch deleted and merged
 
   if (!has_valid_git_status) { # don't give option to notify if git status not up to date
@@ -127,12 +127,13 @@ get_notify_column <- function(qc_status, git_status, latest_qc_commit, comparato
   # soft notify statuses are statuses where there's no changes in the qc file to notify,
   # but the user may still want to update
   # the issue - maybe a relevant file changed or something like that
-  soft_notify_qc_statuses <- c("Awaiting approval",
-                               "Requires approval",
-                               )
+  soft_notify_qc_statuses <- c("Awaiting approval")
 
-  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses
-  has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses
+  changes_after_closure <- qc_status == "Requires approval" && stringr::str_detect(diagnostics, "Commit difference")
+  no_changes_after_closure <- qc_status == "Requires approval" && !stringr::str_detect(diagnostics, "Commit difference")
+
+  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || changes_after_closure
+  has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
 
   if (has_hard_notify_qc_status) {
     return("hard")
