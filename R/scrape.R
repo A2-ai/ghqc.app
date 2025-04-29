@@ -80,7 +80,7 @@ clean_body <- function(body) {
 
 clean_comment_body <- function(body) {
   # cannot be more general here because "### Title" might exist in the code
-  stringr::str_replace_all(body, "(## )(File Difference|Metadata)", function(x) {
+  stringr::str_replace_all(body, "(?m)^(#+)\\s*(.+)$", function(x) {
     extracted <- stringr::str_remove(x, "## ")
     new <- paste0("**", extracted, "**\n\n")
     new
@@ -612,12 +612,13 @@ create_milestone_df <- function(milestone_names) {
       if (issue$state == "open") {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{O}}")
       }
-      if (unchecked_items_in_issue(issue)) {
+      if (unchecked_items_in_issue(issue$body)) {
         issue_name <- glue::glue("{issue_name}\\textcolor{{green}}{{U}}")
       }
 
       return(issue_name)
     })
+
 
     issues_str <- glue::glue_collapse(issue_names, "\n\n")
     issues_str <- kableExtra::linebreak(issues_str)

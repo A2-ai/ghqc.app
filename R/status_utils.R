@@ -89,7 +89,7 @@ get_approve_column <- function(qc_status, git_status) {
     return("Pull to resume QC")
   }
 
-  if (qc_status == "Issue reopened after approval") {
+  if (qc_status == "Issue re-opened after approval") {
     return("Close Issue or delete \"QC Approved\" comment to resume QC")
   }
 
