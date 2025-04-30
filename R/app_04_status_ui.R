@@ -99,7 +99,7 @@ div[id$='-sidebar'] {
           style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
           tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
         ),
-        div("Status QC files", style = "white-space: nowrap;")
+        div("Status QC file(s)", style = "white-space: nowrap;")
       ),
       left = actionButton(ns("close"), "Close", class = "btn-sm"),
       right = actionButton(ns("reset"), "Reset", class = "btn-sm")

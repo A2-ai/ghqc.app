@@ -2,7 +2,7 @@
 % Please edit documentation in R/app_04_status.R
 \name{ghqc_status_app}
 \alias{ghqc_status_app}
-\title{Status QC files}
+\title{Status QC file(s)}
 \usage{
 ghqc_status_app(milestones = NULL)
 }

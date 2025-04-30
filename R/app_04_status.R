@@ -1,6 +1,6 @@
 #' @param milestones The default set of one or more milestones to render in the QC Status table
 #'
-#' @title Status QC files
+#' @title Status QC file(s)
 #'
 #' @description
 #' This function provides an interface to status QC files
