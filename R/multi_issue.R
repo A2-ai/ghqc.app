@@ -2,7 +2,7 @@
 # - organize issues associated with a set of files with milestones
 # - assign a different user to each issue for a given file
 
-create_issue <- function(file, issue_params, remote, file_names) {
+create_issue <- function(file, issue_params, file_names) {
   issue_params$org <- .le$org
   issue_params$repo <- .le$repo
 
@@ -72,7 +72,7 @@ create_issues <- function(data) {
 
   # create an issue for each file
   lapply(data$files, function(file) {
-    issue <- create_issue(file, issue_params, remote, file_names)
+    issue <- create_issue(file, issue_params, file_names)
     debug(.le$logger, glue::glue("Created {get_checklist_display_name_var()} for file: {file$name}"))
     if (!is.null(data$milestone)) {
       debug(.le$logger, glue::glue("Milestone: {data$milestone}"))

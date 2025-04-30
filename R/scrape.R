@@ -136,7 +136,7 @@ issue_to_markdown <- function(issue_number) {
   )
 } # issue_to_markdown
 
-get_pdf_name <- function(input_name, milestone_names, just_tables, repo) {
+get_pdf_name <- function(input_name, milestone_names, just_tables) {
   milestone_str <- glue::glue_collapse(milestone_names, "-")
 
   base_name <- {
@@ -175,7 +175,7 @@ get_pdf_name <- function(input_name, milestone_names, just_tables, repo) {
 }
 
 #' @importFrom log4r warn error info debug
-markdown_to_pdf <- function(rmd_content, repo, milestone_names, just_tables, location, pdf_name) {
+markdown_to_pdf <- function(rmd_content, milestone_names, just_tables, location, pdf_name) {
   debug(.le$logger, "Creating QC Record pdf...")
   # create temporary rmd
   rmd <- tempfile(fileext = ".Rmd")
@@ -332,7 +332,7 @@ create_summary_csv <- function(issues, env) {
   return(summary_csv)
 }
 
-create_intro <- function(repo, milestone_names) {
+create_intro <- function(milestone_names) {
   author <- Sys.info()[["user"]]
   date <- format(Sys.Date(), '%B %d, %Y')
   milestone_names_list <- glue::glue_collapse(milestone_names, sep = ", ")
@@ -688,7 +688,7 @@ ghqc_report <- function(milestone_names = NULL,
 
   debug(.le$logger, "Creating QC Record introduction...")
   # intro
-  intro <- create_intro(repo, milestone_names)
+  intro <- create_intro(milestone_names)
   set_up_chunk <- set_up_chunk()
   info(.le$logger, "Created QC Record introduction")
 
@@ -713,8 +713,7 @@ ghqc_report <- function(milestone_names = NULL,
 
   pdf_name <- get_pdf_name(input_name = input_name,
                            milestone_names = milestone_names,
-                           just_tables = just_tables,
-                           repo = repo)
+                           just_tables = just_tables)
 
   # create pdf from markdown
 
@@ -722,7 +721,6 @@ ghqc_report <- function(milestone_names = NULL,
 
   suppressWarnings(
     markdown_to_pdf(rmd_content = rmd_content,
-                    repo = repo,
                     milestone_names = milestone_names,
                     just_tables = just_tables,
                     location = location,
