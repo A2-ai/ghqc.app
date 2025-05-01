@@ -104,6 +104,43 @@ get_sha <- function() {
   commits$commit[1]
 }
 
+clean_authors <- function(authors) {
+  parsed <- regmatches(authors, regexec("^(.*)<(.*)>$", authors))
+
+  valid <- vapply(parsed, function(x) length(x) == 3, logical(1))
+  parsed_clean <- parsed[valid]
+
+  df <- do.call(rbind, lapply(parsed_clean, function(x) {
+    data.frame(
+      name = trimws(x[2]),
+      email = trimws(x[3]),
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  df_orig <- df
+
+  bad_email <- (
+    nchar(df$email) > 40 |
+      grepl("ip-|compute\\.internal|pcluster|\\d+\\.\\d+\\.\\d+\\.\\d+", df$email)
+  )
+
+  df <- df[!bad_email, ]
+  df <- df[!duplicated(df$name), ]
+  df <- df[!duplicated(df$email), ]
+
+  # if accidentally filtered everything out, just return the first name
+  if (length(df) == 0) {
+    return(authors[1])
+  }
+
+  # Return formatted string
+  cleaned <- paste0(df$name, " <", df$email, ">")
+  return(cleaned)
+}
+
+
+
 
 get_authors <- function(file_path) {
   # https://stackoverflow.com/questions/11533199/how-to-find-the-commit-in-which-a-given-file-was-added
@@ -115,12 +152,15 @@ get_authors <- function(file_path) {
   author_lines <- unlist(stringr::str_extract_all(log, "Author:.*"))
   # remove "Author: " prefix
   authors <- stringr::str_remove(author_lines, "Author: ")
-  # get most recent author
-  latest_author <- authors[1]
+
   # get unique authors
   unique_authors <- unique(stringr::str_remove(authors, "Author: "))
+  clean_authors <- clean_authors(unique_authors)
+  # get most recent author
+  latest_author <- clean_authors[1]
   # get collaborators besides most recent author
-  other_collaborators <- unique_authors[unique_authors != latest_author]
+  other_collaborators <- clean_authors[clean_authors != latest_author]
+  # filter out duplicates and remove long emails
 
   list(latest = latest_author,
        collaborators = other_collaborators)

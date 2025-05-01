@@ -90,7 +90,7 @@ ghqc_status <- function(milestone_names,
           merged_into <- find_merged_into(initial_qc_commit) #  needs to be initial qc commit in case current qc commit is from the merged_in branch
           if (!is.null(merged_into)) {
             git_status <- glue::glue("Deleted QC branch: <em>{qc_branch}</em>{vspace()}
-                                     Merged into: {merged_into}"
+                                     Merged into: <em>{merged_into}</em>"
                                      )
           }
           else {

@@ -30,7 +30,7 @@ get_milestone_from_name <- function(name_in) {
   # milestone is a list if there's more than 1 and a character value otherwise
   # for chr val: milestone[[1]] to give back api url but [[6]] is the ms number
   # for list: milestone[[1]] gives back the first milestone
-  if (is.null(milestone)) {
+  if (is.null(milestone) || length(milestone) == 0) {
     NULL
   }
   # else, if not null (milestone was found with that name)
@@ -83,7 +83,7 @@ get_milestone_number <- function(params) {
     milestone$number
   }
   else {
-    debug(.le$logger, glue::glue("Retrieved Milestone: {milestone_name}, #{searched_number}"))
+    debug(.le$logger, glue::glue("Retrieved Milestone: {params$title}, #{searched_number}"))
     searched_number
   }
 } # get_milestone_number
