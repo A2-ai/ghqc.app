@@ -13,5 +13,5 @@ ghqc_status_app(milestones = NULL)
 Starts a Shiny app and does not return any value.
 }
 \description{
-This function provides an interface to status QC files
+View the status of one or more ghqc Issues and post QC Notification(s) and QC Approval(s)
 }

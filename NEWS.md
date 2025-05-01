@@ -1,3 +1,9 @@
+# ghqc.app 0.5.0
+
+- introduces `ghqc_status_app()`
+- renames `ghqc_resolve_app()` as `ghqc_notify_app()`
+- simplifies metadata in ghqc Issue bodies and comments
+
 # ghqc.app 0.4.18
 
 - fixes bug introduced in 0.4.17 in which assign app toggle bar didn't collapse

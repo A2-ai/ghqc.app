@@ -3,7 +3,7 @@
 #' @title Status QC file(s)
 #'
 #' @description
-#' This function provides an interface to status QC files
+#' View the status of one or more ghqc Issues and post QC Notification(s) and QC Approval(s)
 #'
 #' @return Starts a Shiny app and does not return any value.
 #' @import shiny

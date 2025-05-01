@@ -1,4 +1,4 @@
-#' @title Assign file(s) for QC
+#' @title Assign QC file(s)
 #'
 #' @description
 #' This function provides an interface to assign one or more files for QC in the form of a GitHub Issue(s) within a

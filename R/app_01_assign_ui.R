@@ -35,7 +35,7 @@ ghqc_assign_ui <- function(id) {
           style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
           tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
         ),
-        div("Assign file(s) for QC", style = "white-space: nowrap;")
+        div("Assign QC file(s)", style = "white-space: nowrap;")
       ),
       left = actionButton(ns("close"), "Close", class = "btn-sm"),
       right = actionButton(ns("reset"), "Reset", class = "btn-sm")
@@ -55,7 +55,7 @@ ghqc_assign_ui <- function(id) {
       div(
         class = "button_block",
         miniButtonBlock(
-          actionButton(ns("create_qc_items"), "Assign file(s) for QC")
+          actionButton(ns("create_qc_items"), "Assign QC file(s)")
         )
       )
     )
