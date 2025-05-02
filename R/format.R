@@ -128,10 +128,10 @@ clean_authors <- function(authors) {
   df <- df[!bad_email, ]
   df <- df[!duplicated(df$name), ]
   df <- df[!duplicated(df$email), ]
-  df <- df[df$name %in% "a2aigen", ]
+  df <- df[!df$name %in% "a2aigen", ]
 
   # if accidentally filtered everything out, just return the first name
-  if (length(df) == 0) {
+  if (nrow(df) == 0) {
     return(authors[1])
   }
 
