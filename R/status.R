@@ -126,6 +126,7 @@ ghqc_status <- function(milestone_names,
             git_status = git_status,
             diagnostics = diagnostics,
             issue_number = issue_number,
+            initial_qc_commit = initial_qc_commit,
             latest_qc_commit = latest_qc_commit,
             comparator_commit = comparator_commit,
             issue_url = file_url,
@@ -199,6 +200,7 @@ ghqc_status <- function(milestone_names,
         git_status = git_status,
         diagnostics = diagnostics,
         issue_number = issue_number,
+        initial_qc_commit = initial_qc_commit,
         latest_qc_commit = latest_qc_commit,
         comparator_commit = comparator_commit,
         issue_url = file_url,
@@ -223,6 +225,7 @@ ghqc_status <- function(milestone_names,
                            "Git Status",
                            "Diagnostics",
                            "issue_number",
+                           "initial_qc_commit",
                            "latest_qc_commit",
                            "comparator_commit",
                            "issue_url",
@@ -289,6 +292,7 @@ create_relevant_files_df <- function(all_relevant_files,
       `Git Status` = git_status,
       Diagnostics = glue::glue("Relevant file in Issues:<br>{diagnostics}"),
       issue_number = NA_character_,
+      initial_qc_commit = NA_character_,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
@@ -341,6 +345,7 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       `Git Status` = git_status,
       Diagnostics = NA_character_,
       issue_number = NA_character_,
+      initial_qc_commit = NA_character_,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
@@ -351,85 +356,3 @@ create_non_issue_repo_files_df <- function(files_with_issues,
   })
 }
 
-# create_non_issue_repo_files_df <- function(files_with_issues,
-#                                            local_commits,
-#                                            remote_commits,
-#                                            all_relevant_files,
-#                                            selected_dirs,
-#                                            ahead_behind_status,
-#                                            files_changed_in_remote_commits,
-#                                            files_changed_in_unpushed_local_commits,
-#                                            files_with_uncommitted_local_changes) {
-#
-#   files_with_issues <- unique(files_with_issues)
-#
-#   # add rest of repo files, determine whether they're relevant files or not
-#   git_files <- gert::git_ls()$path
-#   #files_in_repo <- git_files[!stringr::str_detect(git_files, "^\\.") & !stringr::str_detect(git_files, "\\.Rproj$")]
-#   files_without_issues <- git_files[!git_files %in% files_with_issues]
-#   files_in_selected_dirs <- files_without_issues[dirname(files_without_issues) %in% selected_dirs]
-#   if (length(files_in_selected_dirs) == 0) {
-#     return(character(0))
-#   }
-#
-#   git_statuses <- get_git_statuses(files = files_in_selected_dirs,
-#                                    local_commits = local_commits,
-#                                    remote_commits = remote_commits,
-#                                    ahead_behind_status = ahead_behind_status,
-#                                    files_changed_in_remote_commits = files_changed_in_remote_commits,
-#                                    files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
-#                                    files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
-#                                    )
-#
-#
-#   repo_files_df <- map_df(files_in_selected_dirs, function(file) {
-#     debug(.le$logger, glue::glue("Retrieving git status for {file}..."))
-#     start_time <- Sys.time()
-#     git_status <- git_statuses[which(git_statuses$file_name == file), ]$git_status
-#     debug(.le$logger, glue::glue("Retrieved git status for {file} in {difftime(Sys.time(), start_time)} seconds"))
-#
-#     qc_status_info <- {
-#       if (file %in% all_relevant_files$relevant_file_name) {
-#         # get rows in which file is the relevant file
-#         relevant_file_instances <- all_relevant_files[which(all_relevant_files$relevant_file_name == file), ]
-#         # loop over rows
-#         qc_file_strings <- lapply(split(relevant_file_instances, seq_len(nrow(relevant_file_instances))), function(relevant_file_instance) {
-#           qc_file <- relevant_file_instance$qc_file_name
-#           issue_number <- relevant_file_instance$issue_number
-#           milestone_name <- relevant_file_instance$milestone_name
-#           qc_file_string <- glue::glue("#{issue_number}: {qc_file} ({milestone_name})")
-#           return(qc_file_string)
-#         })
-#
-#         qc_status_string <- format_diagnostics_list(qc_file_strings)
-#
-#         list(qc_status = "Relevant file",
-#              diagnostics = glue::glue("Relevant file in Issues:<br>
-#                                       {qc_status_string}")
-#         )
-#       }
-#       else {
-#         list(qc_status = NA_character_,
-#              diagnostics = NA_character_)
-#       }
-#     } # qc_status_info
-#
-#     dplyr::tibble(
-#       milestone_name = "No Milestone",
-#       Milestone = "No Milestone",
-#       file_name = file,
-#       File = file,
-#       `Issue State` = "No Issue",
-#       `QC Status` = qc_status_info$qc_status,
-#       `Git Status` = git_status,
-#       Diagnostics = qc_status_info$diagnostics,
-#       issue_number = NA_character_,
-#       latest_qc_commit = NA_character_,
-#       comparator_commit = NA_character_,
-#       issue_url = NA_character_,
-#       Notify = "none",
-#       `Approve` = "none",
-#       QCer = NA_character_,
-#     )
-#   })
-# } # create_non_issue_repo_files_df

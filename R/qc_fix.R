@@ -46,9 +46,12 @@ create_message_body <- function(message) {
 }
 
 get_commit_comparison_url <- function(reference_commit, comparator_commit) {
-  url <- file.path(.le$full_repo_url, "compare", glue::glue("{reference_commit}..{comparator_commit}"))
-  url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">commit comparison</a>")
-  return(url_html)
+  file.path(.le$full_repo_url, "compare", glue::glue("{reference_commit}..{comparator_commit}"))
+}
+
+get_commit_comparison_html <- function(reference_commit, comparator_commit) {
+  url <- get_commit_comparison_url(reference_commit, comparator_commit)
+  glue::glue("<a href=\"{url}\" target=\"_blank\">commit comparison</a>")
 }
 
 create_comment_metadata_body <- function(reference_commit,
@@ -138,7 +141,7 @@ create_notify_comment_body <- function(issue,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  commit_comparison <- get_commit_comparison_url(reference_commit = reference_commit,
+  commit_comparison <- get_commit_comparison_html(reference_commit = reference_commit,
                                                  comparator_commit = comparator_commit
                                                  )
 
@@ -183,15 +186,22 @@ post_comment <- function(issue_number, body) {
   info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
 }
 
-create_approve_comment_body <- function(issue_number, file_path, approved_qc_commit) {
+create_approve_comment_body <- function(file_path, initial_qc_commit, approved_qc_commit) {
   file_contents_url <- get_file_contents_url(file_path = file_path,
                                              git_sha = approved_qc_commit)
 
   file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at approved qc commit</a>")
 
+  init_vs_approved_commit_diff_url <- get_commit_comparison_url(reference_commit = initial_qc_commit,
+                                                                comparator_commit = approved_qc_commit
+                                                                )
+
+  init_vs_approved_commit_diff_html <- glue::glue("<a href=\"{init_vs_approved_commit_diff_url}\" target=\"_blank\">initial qc commit vs. approved qc commit</a>")
+
   metadata_body <- glue::glue("## Metadata\n",
                          "* approved qc commit: {approved_qc_commit}\n",
                          "* {file_contents_html}\n",
+                         "* {init_vs_approved_commit_diff_html}\n",
                          .trim = FALSE
   )
 

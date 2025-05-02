@@ -352,7 +352,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
       req(qc_trigger())
       qc_trigger(FALSE)
 
-      w_create_qc_items <- create_waiter(ns, "Assigning file(s) for QC...")
+      w_create_qc_items <- create_waiter(ns, "Assigning QC file(s)...")
       w_create_qc_items$show()
       tryCatch(
         {
@@ -379,22 +379,21 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
         qc_items <- qc_items()
         any(sapply(qc_items, function(x) x$checklist_type == "Custom"))
       }
-      success_note <- {
-        if (custom_checklist_selected()) {
-          HTML(glue::glue("Issue(s) created successfully.<br><b>Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.</b>"))
-        }
-        else {
-          "Issue(s) created successfully."
-        }
-      }
+
+      custom_note <- ifelse(custom_checklist_selected(),
+                             HTML(glue::glue("Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
+                             ""
+                             )
 
       showModal(
         modalDialog(
-          title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+          title = tags$div(
+            tags$span("QC assigned", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+            modalButton("Dismiss"), style = "text-align: right;"),
           footer = NULL,
           easyClose = TRUE,
-          tags$p(success_note),
-          tags$a(href = milestone_url, "Click here to view the Milestone on Github", target = "_blank")
+          tags$p(custom_note),
+          tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
         )
       )
     })

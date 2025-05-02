@@ -3,6 +3,7 @@
 - introduces `ghqc_status_app()`
 - renames `ghqc_resolve_app()` as `ghqc_notify_app()`
 - simplifies metadata in ghqc Issue bodies and comments
+- removes duplicate authors in collaborators list and removes emails configured automatically via git for clusters
 
 # ghqc.app 0.4.18
 

@@ -432,8 +432,8 @@ ghqc_status_server <- function(id,
 
       tryCatch({
         create_approve_comment_body(
-          issue_number = df[row_index, ]$issue_number,
           file_path = df[row_index, ]$file_name,
+          initial_qc_commit = df[row_index, ]$initial_qc_commit,
           approved_qc_commit = df[row_index, ]$comparator_commit
         )
       }, error = function(e) {
@@ -471,7 +471,7 @@ ghqc_status_server <- function(id,
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on Github", target = "_blank")
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on GitHub", target = "_blank")
           ))
         },
         error = function(e) {
@@ -584,7 +584,7 @@ ghqc_status_server <- function(id,
             ),
             footer = NULL,
             easyClose = TRUE,
-            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on Github", target = "_blank")
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on GitHub", target = "_blank")
           ))
         },
         error = function(e) {
@@ -749,6 +749,7 @@ ghqc_status_server <- function(id,
       df <- df[, !colnames(df) %in% c("milestone_name",
                                       "file_name",
                                       "issue_number",
+                                      "initial_qc_commit",
                                       "latest_qc_commit",
                                       "comparator_commit",
                                       "issue_url")]
