@@ -573,7 +573,7 @@ knitr::kable(
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
   kable_styling(latex_options = c(\"repeat_header\")) %>%
-  footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{green}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
+  footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{red}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
   column_spec(1, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(2, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(4, width = \"0.43\\\\\\\\textwidth\", latex_valign = \"p\")
@@ -613,7 +613,7 @@ create_milestone_df <- function(milestone_names) {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{O}}")
       }
       if (unchecked_items_in_issue(issue$body)) {
-        issue_name <- glue::glue("{issue_name}\\textcolor{{green}}{{U}}")
+        issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{U}}")
       }
 
       return(issue_name)
