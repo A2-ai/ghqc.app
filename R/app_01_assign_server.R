@@ -16,13 +16,6 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
       waiter_hide()
   })
 
-  observe({
-    req(root_dir)
-    if (getwd() != root_dir) {
-      setwd(root_dir)
-      info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
-    }
-  })
 
   root_dir_reactive <- reactive({
     root_dir
@@ -141,15 +134,18 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
       }
     })
 
+    rv_issue_titles <- reactiveVal()
+
     observe({
       req(rv_milestone())
 
-      issue_titles <- tryCatch(
+      issue_titles_with_root_dir <- tryCatch(
         {
           issues_in_milestone <- get_all_issues_in_milestone(milestone_name = rv_milestone())
           issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
-          issue_titles_with_root_dir <- file.path(basename(root_dir), issue_titles)
-          issue_titles_with_root_dir
+          rv_issue_titles(issue_titles) # assign to reactiveVal
+
+          file.path(basename(root_dir), issue_titles)
         },
         error = function(e) {
           debug(.le$logger, glue::glue("There was no Milestones to query: {conditionMessage(e)}"))
@@ -157,7 +153,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
         }
       )
 
-      session$sendCustomMessage("highlightPaths", issue_titles)
+      session$sendCustomMessage("highlightPaths", issue_titles_with_root_dir)
     })
 
     qc_items <- reactive({
@@ -287,15 +283,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
           git_sync_status <- check_ahead_behind()
           untracked_selected_files <- Filter(function(file) check_if_qc_file_untracked(file), file_names)
 
-          issues_in_milestone <- tryCatch(
-            {
-              get_all_issues_in_milestone(milestone_name = rv_milestone())
-            },
-            error = function(e) {
-              debug(.le$logger, glue::glue("There were no Milestones to query: {conditionMessage(e)}"))
-              return(list())
-            }
-          )
+          issue_titles <- rv_issue_titles()
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {conditionMessage(e)}"))
@@ -309,7 +297,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
         uncommitted_git_files = uncommitted_git_files,
         untracked_selected_files = untracked_selected_files,
         git_sync_status = git_sync_status,
-        issues_in_milestone = issues_in_milestone
+        issue_titles = issue_titles
       )
     })
 
