@@ -911,13 +911,11 @@ ghqc_status_server <- function(id,
 
       show_table(FALSE)
 
-      shinyjs::delay(100, {
-        updateSelectizeInput(
-          session,
-          inputId = "selected_milestones",
-          selected = current_milestones
-        )
-      })
+      updateSelectizeInput(
+        session,
+        inputId = "selected_milestones",
+        selected = current_milestones
+      )
 
       # recompute reactiveVal variables
       current_branch_rv(gert::git_branch())
@@ -928,11 +926,9 @@ ghqc_status_server <- function(id,
       files_changed_in_unpushed_local_commits_rv(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
       files_with_uncommitted_local_changes_rv(get_files_with_uncommitted_local_changes())
 
-      shinyjs::delay(300, {
-        show_table(TRUE)
-        run_generate(current_milestones)
-      })
-    }
+      show_table(TRUE)
+      run_generate(current_milestones)
+    } # reset_app
 
     return(input)
   }) # moduleServer
