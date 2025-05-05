@@ -487,60 +487,6 @@ clean_input <- function(milestones_in) {
   unlist(milestones_list)
 }
 
-get_inputted_milestone_names <- function() {
-  # gate with interactive() to avoid hanging
-  if (interactive()) {
-
-    milestones <- list_ghqc_milestone_names()
-    print(glue::glue("Non-empty Milestones in {.le$repo}:\n"))
-    print(milestones)
-    valid_input <- FALSE
-    while (!valid_input) {
-      # read in milestones
-      user_input <- readline(prompt = glue::glue("\nInput Milestones: e.g. milestone1, milestone2: "))
-      clean_input <- clean_input(user_input)
-
-      # check they exist and are non-empty
-      result <- tryCatch({
-        check_milestones(clean_input)
-        TRUE
-      },
-      warning = function(w) {
-        warning(w$message)
-        FALSE
-      },
-      error = function(e) {
-        cat("Error:", conditionMessage(e), "\n")
-        FALSE
-      })
-
-      # Check if the conversion was successful
-      if (result) {
-        cat("You entered valid milestones:", glue::glue_collapse(clean_input, sep = ", "), "\n")
-        valid_input <- TRUE
-      }
-      else {
-        cat("Invalid input. Please try again.\n")
-      }
-    }
-    return(clean_input)
-  }
-} # get_inputted_milestone_names
-
-check_milestones <- function(milestone_names) {
-  # check that each milestone exists and is non-empty
-  lapply(milestone_names, function(milestone_name) {
-    exists <- milestone_exists(milestone_name)
-    if (!exists) {
-      stop(glue::glue("\"{milestone_name}\" is not a Milestone in {.le$repo}"))
-    }
-    milestone <- get_milestone_from_name(milestone_name)
-    non_empty <- check_that_milestone_is_non_empty(milestone)
-    if (!non_empty) {
-      stop(glue::glue("\"{milestone_name}\" in {.le$repo} is an empty Milestone (no issues)"))
-    }
-  })
-}
 
 unchecked_items_in_issue <- function(issue_body) {
   unchecked_items <- stringr::str_detect(issue_body, "- \\[ \\]")
@@ -661,19 +607,10 @@ create_milestone_df <- function(milestone_names) {
 
 
 #' @importFrom log4r warn error info debug
-ghqc_report <- function(milestone_names = NULL,
-                        input_name = NULL,
+ghqc_report <- function(milestone_names,
+                        input_name = NULL, # TODO
                         just_tables = FALSE,
                         location = ".") {
-
-  # get user input if milestone_names not inputted (check existence here)
-  if (is.null(milestone_names)) {
-    milestone_names <- get_inputted_milestone_names()
-  }
-  else {
-    # check that milestones exist and are non-empty
-    check_milestones(milestone_names)
-  }
 
   if (fs::is_file(location)) {
     error(.le$logger, glue::glue("Inputted directory {location} is a file path. Input an existing directory."))

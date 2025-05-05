@@ -7,7 +7,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_record_server <- function(id, all_milestones) {
+ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_milestone_names_in, all_closed_milestone_names_in) {
   moduleServer(id, function(input, output, session) {
     iv <- shinyvalidate::InputValidator$new()
     iv$add_rule("select_milestone", shinyvalidate::sv_required())
@@ -25,21 +25,27 @@ ghqc_record_server <- function(id, all_milestones) {
 
     ns <- session$ns
     report_trigger <- reactiveVal(FALSE)
+    all_milestones_rv <- reactiveVal(all_milestones_in)
+    closed_milestones_rv <- reactiveVal(closed_milestones_in)
+    all_milestone_names_rv <- reactiveVal(all_milestone_names_in)
+    closed_milestone_names_rv <- reactiveVal(all_closed_milestone_names_in)
 
     observe({
       waiter_hide()
     })
 
-    closed_milestones <- reactive({
+    reactive({
       w_gh <- create_waiter(ns, sprintf("Fetching Milestone data for %s in %s...", .le$repo, .le$org))
       w_gh$show()
       on.exit(w_gh$hide())
 
+      closed_milestones <- closed_milestones_rv()
+      req(closed_milestones)
+
       tryCatch(
         {
-          closed_milestones <- get_closed_milestone_names()
-          milestone_list_url <- get_milestone_list_url()
           if (length(closed_milestones) == 0) {
+            milestone_list_url <- get_milestone_list_url()
             warn_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
             showModal(
               modalDialog(
@@ -61,7 +67,6 @@ ghqc_record_server <- function(id, all_milestones) {
             )
             warn(.le$logger, glue::glue("There were no closed Milestones found in {.le$org}/{.le$repo}. Close relevant Milestones on GitHub to indicate finished QC."))
           } # length(closed_milestones) == 0
-          rev(closed_milestones)
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving closed Milestones: {conditionMessage(e)}"))
@@ -72,26 +77,30 @@ ghqc_record_server <- function(id, all_milestones) {
 
 
     observeEvent(input$closed_only, {
+      closed_milestone_names <- closed_milestone_names_rv()
+      all_milestone_names <- all_milestone_names_rv()
+      req(closed_milestone_names, all_milestone_names)
+
       # if closed
       if (input$closed_only) {
-        placeholder <- ifelse(length(closed_milestones()) == 0, "No closed Milestones", "Select closed Milestones")
+        placeholder <- ifelse(length(closed_milestone_names) == 0, "No closed Milestones", "Select closed Milestones")
 
         updateSelectizeInput(
           session,
           "select_milestone",
-          choices = closed_milestones(),
+          choices = closed_milestone_names,
           options = list(placeholder = placeholder)
         )
       }
 
       # if not closed
       else {
-        placeholder <- ifelse(length(all_milestones) == 0, "No Milestones", "Select Milestones")
+        placeholder <- ifelse(length(all_milestone_names) == 0, "No Milestones", "Select Milestones")
 
         updateSelectizeInput(
           session,
           "select_milestone",
-          choices = all_milestones,
+          choices = all_milestone_names,
           options = list(placeholder = placeholder)
         )
       }
@@ -117,7 +126,13 @@ ghqc_record_server <- function(id, all_milestones) {
       w_check_status$show()
       on.exit(w_check_status$hide())
 
-      determine_modal_message_report(input$select_milestone)
+      all_milestones <- all_milestones_rv()
+      milestone_names <- input$select_milestone
+      milestone_objects <- purrr::map(milestone_names, ~ get_milestone_object_from_milestone_name(milestone_name = .x,
+                                                                                 milestone_objects = all_milestones
+                                                                                 )
+                                      )
+      determine_modal_message_report(milestone_objects)
     })
 
     observeEvent(input$generate_report, {
@@ -204,6 +219,17 @@ ghqc_record_server <- function(id, all_milestones) {
     observeEvent(input$reset, {
       debug(.le$logger, glue::glue("App was reset through the reset button."))
       reset_triggered(TRUE)
+
+      all_milestones <- get_all_non_empty_ghqc_milestone_objects()
+      closed_milestones <- get_closed_milestone_objects_from_all_milestone_objects(all_milestones)
+      all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
+      closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestones)
+
+      all_milestones_rv(all_milestones)
+      closed_milestones_rv(closed_milestones)
+      all_milestone_names_rv(all_milestone_names)
+      closed_milestone_names_rv(all_closed_milestone_names)
+
       session$reload()
     })
 

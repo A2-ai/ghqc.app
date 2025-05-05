@@ -1,7 +1,7 @@
 #' @import dplyr purrr
 #' @importFrom log4r info debug warn error
 #' @importFrom rlang .data
-ghqc_status <- function(milestone_names,
+ghqc_status <- function(milestone_objects,
                         current_branch,
                         local_commits,
                         remote_commits,
@@ -17,9 +17,10 @@ ghqc_status <- function(milestone_names,
 
   issue_objects <- list()
 
-  status_df <- map_df(milestone_names, function(milestone_name) {
-    issues <- get_all_issues_in_milestone(milestone_name)
-
+  status_df <- map_df(c(milestone_objects), function(milestone_object) {
+    milestone_name <- milestone_object$title
+    milestone_number <- milestone_object$number
+    issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number)
 
     files <- purrr::map_chr(issues, "title")
     debug(.le$logger, glue::glue("Retrieving all git statuses..."))

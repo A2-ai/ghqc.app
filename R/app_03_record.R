@@ -11,8 +11,12 @@ ghqc_record_app <- function() {
   get_options()
 
   # error handling before starting app
-   check_github_credentials()
-  all_milestones <- get_all_milestone_list_errors()
+  check_github_credentials()
+  all_milestones <- get_all_non_empty_ghqc_milestone_objects()
+  closed_milestones <- get_closed_milestone_objects_from_all_milestone_objects(all_milestones)
+  all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
+  all_closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestones)
+
 
   if (length(all_milestones) == 0 || is.null(all_milestones)) {
     error(.le$logger, glue::glue("There were no Milestones found in {.le$org}/{.le$repo}. Create a Milestone by using the Assign app."))
@@ -26,7 +30,10 @@ ghqc_record_app <- function() {
     server = function(input, output, session) {
       ghqc_record_server(
         id = "ghqc_record_app",
-        all_milestones = all_milestones
+        all_milestones_in = all_milestones,
+        closed_milestones_in = closed_milestones,
+        all_milestone_names_in = all_milestone_names,
+        all_closed_milestone_names_in = all_closed_milestone_names
       )
     }
   )

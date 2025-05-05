@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -44,7 +44,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
 
     ns <- session$ns
 
-    if (length(milestone_list) == 0) {
+    if (length(open_milestone_names) == 0) {
       updateSelectizeInput(
         session,
         "milestone_existing",
@@ -65,12 +65,12 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
     rv_milestone <- reactiveVal(NULL)
 
     observe({
-      req(milestone_list)
+      req(open_milestone_names)
 
       updateSelectizeInput(
         session,
         "milestone_existing",
-        choices = milestone_list
+        choices = open_milestone_names
       )
     })
 

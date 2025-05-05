@@ -6,7 +6,7 @@
 #' @importFrom gert git_status
 NULL
 
-ghqc_notify_server <- function(id, milestone_list) {
+ghqc_notify_server <- function(id, open_milestone_names) {
   moduleServer(id, function(input, output, session) {
 
     # This section ensures that when an error occurs, the app stops
@@ -29,12 +29,12 @@ ghqc_notify_server <- function(id, milestone_list) {
     })
 
     observe({
-      req(milestone_list)
+      req(open_milestone_names)
 
       updateSelectInput(
         session,
         "select_milestone",
-        choices = c("All Issues", milestone_list)
+        choices = c("All Issues", open_milestone_names)
       )
     })
 

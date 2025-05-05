@@ -89,7 +89,7 @@ get_milestone_number <- function(params) {
 } # get_milestone_number
 
 
-get_milestone_description <- function(title, milestones) {
+get_milestone_description <- function(title, milestones) { # TODO
   for (milestone in milestones) {
     if (milestone$title == title) {
       return(milestone$description)

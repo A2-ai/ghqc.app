@@ -10,6 +10,7 @@ NULL
 
 ghqc_status_server <- function(id,
                                all_ghqc_milestone_names,
+                               all_milestone_objects,
                                default_milestones,
                                local_commits,
                                remote_commits,
@@ -32,18 +33,19 @@ ghqc_status_server <- function(id,
     })
 
     # make sure inputs are loaded
-    observe({
-      req(all_ghqc_milestone_names,
-          default_milestones,
-          local_commits,
-          remote_commits,
-          current_branch,
-          ahead_behind_status,
-          files_changed_in_remote_commits,
-          files_changed_in_unpushed_local_commits,
-          files_with_uncommitted_local_changes
-          )
-    })
+    # observe({
+    #   req(all_ghqc_milestone_names,
+    #       all_milestone_objects,
+    #       default_milestones,
+    #       local_commits,
+    #       remote_commits,
+    #       current_branch,
+    #       ahead_behind_status,
+    #       files_changed_in_remote_commits,
+    #       files_changed_in_unpushed_local_commits,
+    #       files_with_uncommitted_local_changes
+    #       )
+    # })
 
     w <- waiter::Waiter$new(
       id = ns("main_container"),
@@ -128,9 +130,10 @@ ghqc_status_server <- function(id,
         w$show()
         for (milestone in missing) {
           debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
+          milestone_object <- get_milestone_object_from_milestone_name(milestone, all_milestone_objects)
 
           result <- ghqc_status(
-            milestone_names = milestone,
+            milestone_objects = list(milestone_object),
             current_branch_rv(),
             local_commits_rv(),
             remote_commits_rv(),

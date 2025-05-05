@@ -150,9 +150,6 @@ get_script_contents <- function(file_path, reference, comparator) {
   reference_script <- suppressWarnings(readLines(file_at_reference))
   comparator_script <- suppressWarnings(readLines(file_at_comparator))
 
-  # hash_at_reference <- digest::digest(file = file_at_reference, algo = "md5")
-  # hash_at_comparator <- digest::digest(file = file_at_comparator, algo = "md5")
-
   list(reference_script = reference_script,
        comparator_script = comparator_script
        )
@@ -165,7 +162,6 @@ format_diff <- function(reference_script, comparator_script) {
 
   # get the line indices with the file names (either 1,2 or 2,3 depending on if the the files were the same)
   if (diff_lines[1] == "No visible differences between objects.") {
-    #2
     return("\nNo difference between file versions.\n")
   }
 

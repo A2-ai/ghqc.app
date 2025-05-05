@@ -64,12 +64,15 @@ generate_open_checklist_message <- function(issues_with_open_checklists, warning
 }
 
 #' @importFrom log4r warn error info debug
-determine_modal_message_report <- function(milestone_names) {
+determine_modal_message_report <- function(milestone_objects) {
+  # TODO make this only check for approved Issues
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
 
-  open_milestones <- check_for_open_milestones(milestone_names)
-  open_issues <- check_for_open_issues(milestone_names)
-  open_checklists <- check_for_open_checklists(milestone_names)
+  # open_milestones <- check_for_open_milestones(milestone_names)
+  # open_issues <- check_for_open_issues(milestone_names)
+  # open_checklists <- check_for_open_checklists(milestone_names)
+  #
+  bad_statuses <- check_for_bad_statuses(milestone_objects)
 
   messages <- c()
   messages <- c(messages, generate_open_milestone_message(open_milestones, warning_icon_html))
@@ -161,6 +164,34 @@ check_for_open_checklists <- function(milestone_names) {
       } else NULL
     })
   })
+}
+
+check_for_bad_statuses <- function(milestone_objects) {
+  current_branch <- gert::git_branch()
+  local_commits <- get_local_commits()
+  remote_commits <- get_remote_commits(current_branch)
+
+  ahead_behind_status <- check_ahead_behind()
+  # get files with remote changes
+  files_changed_in_remote_commits <- get_files_changed_in_remote_commits(remote_commits, ahead_behind_status)
+
+  # get files with local unpushed commits
+  files_changed_in_unpushed_local_commits <- get_files_changed_in_unpushed_local_commits(local_commits, ahead_behind_status)
+
+  # get files with local uncommitted file changes
+  files_with_uncommitted_local_changes <- get_files_with_uncommitted_local_changes()
+
+  status_res <- ghqc_status(milestone_objects = milestone_objects,
+                            current_branch = current_branch,
+                            local_commits = local_commits,
+                            remote_commits = remote_commits,
+                            ahead_behind_status = ahead_behind_status,
+                            files_changed_in_remote_commits = files_changed_in_remote_commits,
+                            files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
+                            files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
+                            )
+
+  browser()
 }
 
 

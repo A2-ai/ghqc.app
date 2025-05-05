@@ -20,15 +20,15 @@ ghqc_status_app <- function(milestones = NULL) {
   rproj_root_dir()
   creds <- check_github_credentials()
 
-  all_ghqc_milestones <- list_ghqc_milestones()
+  all_milestone_objects <- get_all_non_empty_ghqc_milestone_objects()
 
-  # error if no ghqc milestones
-  if (length(all_ghqc_milestones) == 0) {
-    error(.le$logger, glue::glue("There were no ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
+  # error if no non-empty ghqc milestones
+  if (length(all_milestone_objects) == 0) {
+    error(.le$logger, glue::glue("There were no non-empty ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
     rlang::abort("There were no open Milestones found.")
   }
 
-  all_ghqc_milestone_names <- purrr::map_chr(all_ghqc_milestones, "title")
+  all_ghqc_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
 
   all_inputted_milestones_valid <- all(inputted_milestones %in% all_ghqc_milestone_names)
   if (!(all_inputted_milestones_valid)) {
@@ -39,7 +39,7 @@ ghqc_status_app <- function(milestones = NULL) {
     if (!is.null(inputted_milestones) && all_inputted_milestones_valid) {
       inputted_milestones
     } else {
-      get_most_recent_milestone(all_ghqc_milestones)
+      get_most_recent_milestone(all_milestone_objects)
     }
   }
 
@@ -65,6 +65,7 @@ ghqc_status_app <- function(milestones = NULL) {
       ghqc_status_server(
         id = "ghqc_status_app",
         all_ghqc_milestone_names = all_ghqc_milestone_names,
+        all_milestone_objects = all_milestone_objects,
         default_milestones = default_milestones,
         local_commits,
         remote_commits,
