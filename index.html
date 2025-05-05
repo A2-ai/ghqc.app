@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ghqc.app</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.18</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +57,7 @@
 <p>The goal of the ghqc ecosystem is to simplify, standardize, and improve traceability of the QC process through the use of shiny apps which create GitHub Issues and Milestones for your project. ghqc.app is intended to be used with the <a href="https://github.com/a2-ai/ghqc" class="external-link">ghqc</a> package, which will aid in the setup and launching of the shiny apps. The ghqc.app package has 3 main applications/functions:</p>
 <ol style="list-style-type: decimal">
 <li><p><code>ghqc_assign_app</code>: This app helps the author assign a set of files, each with a corresponding checklist and QCer, to a GitHub Milestone to kick-off the QC review.</p></li>
-<li><p><code>ghqc_resolve_app</code>: Throughout the QC review, this app helps the author communicate resolution of QC findings through comparison of file differences, hashes, and commits.</p></li>
+<li><p><code>ghqc_notify_app</code>: Throughout the QC review, this app helps the author communicate resolution of QC findings through comparison of file differences, hashes, and commits.</p></li>
 <li><p><code>ghqc_record_app</code>: This app generates a record that compiles QC review that occurred on GitHub.</p></li>
 </ol>
 <div class="section level2">
@@ -99,9 +99,9 @@
 </div>
 </div>
 <div class="section level2">
-<h2 id="resolve-qc-findings">Resolve QC finding(s)<a class="anchor" aria-label="anchor" href="#resolve-qc-findings"></a>
+<h2 id="post-qc-notifications">Post QC notification(s)<a class="anchor" aria-label="anchor" href="#post-qc-notifications"></a>
 </h2>
-<p><code>ghqc_resolve_app</code> allows a user to insert a comment into a ghqc GitHub Issue that displays changes in the version control information for the Issue’s corresponding file.</p>
+<p><code>ghqc_notify_app</code> allows a user to insert a comment into a ghqc GitHub Issue that displays changes in the version control information for the Issue’s corresponding file.</p>
 <p>By default, the comment displays both the original and current commits and hashes for the file. These versions are selected by the user. The comment can optionally display the file difference (“diff”) between the current and previous versions. These changes will likely be implementations of QC feedback.</p>
 <p>To use this app, first initialize one or more Issues with <code><a href="reference/ghqc_assign_app.html">ghqc_assign_app()</a></code>.</p>
 <video controls="controls" name="ghqc assign app resolution" height="600"><source src="https://github.com/user-attachments/assets/b1583899-8afb-4e42-96f2-7ecd5a9a168b" srcset="NA"></source></video><div class="section level4">
@@ -175,10 +175,10 @@ If displaying the file difference, choose to either:</p>
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Jenna Johnson <br><small class="roles"> Author, maintainer </small>  </li>
-<li>Anne Zheng <br><small class="roles"> Author </small>  </li>
-<li>Devin Pastoor <br><small class="roles"> Author </small>  </li>
-<li>Wes Cummings <br><small class="roles"> Author </small>  </li>
+<li>Jenna Johnson <br><small class="roles"> Author, maintainer </small>   </li>
+<li>Anne Zheng <br><small class="roles"> Author </small>   </li>
+<li>Devin Pastoor <br><small class="roles"> Author </small>   </li>
+<li>Wes Cummings <br><small class="roles"> Author </small>   </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
@@ -199,7 +199,7 @@ If displaying the file difference, choose to either:</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
 </div>
 
     </footer>

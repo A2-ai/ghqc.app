@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ghqc.app</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.18</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,15 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="ghqcapp-050">ghqc.app 0.5.0<a class="anchor" aria-label="anchor" href="#ghqcapp-050"></a></h2>
+<ul><li>introduces <code><a href="../reference/ghqc_status_app.html">ghqc_status_app()</a></code>
+</li>
+<li>renames <code>ghqc_resolve_app()</code> as <code><a href="../reference/ghqc_notify_app.html">ghqc_notify_app()</a></code>
+</li>
+<li>simplifies metadata in ghqc Issue bodies and comments</li>
+<li>removes duplicate authors in collaborators list and removes emails configured automatically via git for clusters</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.18" id="ghqcapp-0418">ghqc.app 0.4.18<a class="anchor" aria-label="anchor" href="#ghqcapp-0418"></a></h2>
 <ul><li>fixes bug introduced in 0.4.17 in which assign app toggle bar didn’t collapse</li>
 </ul></div>
@@ -53,7 +62,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.14" id="ghqcapp-0414">ghqc.app 0.4.14<a class="anchor" aria-label="anchor" href="#ghqcapp-0414"></a></h2>
-<p>changes to <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code>:</p>
+<p>changes to <code>ghqc_resolve_app()</code>:</p>
 <ul><li>changes button at the bottom of app from “Post Comment” to “Preview Comment” because the button itself doesn’t post the comment</li>
 <li>fixes glue parsing bugs in which variables don’t exist in the case of errors</li>
 <li>fixes commit log to shell out instead of calling <code><a href="https://docs.ropensci.org/gert/reference/git_commit.html" class="external-link">gert::git_log</a></code> which omits commits from merges</li>
@@ -96,7 +105,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.7" id="ghqcapp-047">ghqc.app 0.4.7<a class="anchor" aria-label="anchor" href="#ghqcapp-047"></a></h2>
-<ul><li>fixes bug in <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code> in which get_commits_df failed with error “argument of length 0” in the case of diverging branches not getting the entire git log.</li>
+<ul><li>fixes bug in <code>ghqc_resolve_app()</code> in which get_commits_df failed with error “argument of length 0” in the case of diverging branches not getting the entire git log.</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.6" id="ghqcapp-046">ghqc.app 0.4.6<a class="anchor" aria-label="anchor" href="#ghqcapp-046"></a></h2>
@@ -113,7 +122,7 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.4" id="ghqcapp-044">ghqc.app 0.4.4<a class="anchor" aria-label="anchor" href="#ghqcapp-044"></a></h2>
 <ul><li>edits UI in <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> to bold selected qc file paths</li>
-<li>edits UI in <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code> in modal pop-up to clarify “Post Comment” and “Cancel” options</li>
+<li>edits UI in <code>ghqc_resolve_app()</code> in modal pop-up to clarify “Post Comment” and “Cancel” options</li>
 <li>adds <code>shinyvalidate</code> marker to <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code> to indicate required input of at least one milestone</li>
 </ul></div>
     <div class="section level2">
@@ -133,7 +142,7 @@
 <ul><li>fixes large logo bug</li>
 <li>removes assignees section in left panel and isolates to right panel</li>
 <li>changes language from “Assignee” to “QCer”</li>
-<li>removes “Preview Comment” button from <code><a href="../reference/ghqc_resolve_app.html">ghqc_resolve_app()</a></code> and instead displays comment preview in modal pop-up upon selecting “Post Comment”.</li>
+<li>removes “Preview Comment” button from <code>ghqc_resolve_app()</code> and instead displays comment preview in modal pop-up upon selecting “Post Comment”.</li>
 <li>adds “Associate Relevant Files” section modal pop-up</li>
 <li>simplifies metadata in ghqc Issues by removing file history and qc type</li>
 <li>ghqc remote ssh compatibility implemented</li>
@@ -226,7 +235,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
 </div>
 
     </footer></div>
