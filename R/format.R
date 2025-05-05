@@ -1,14 +1,12 @@
 
-format_issue_body <- function(checklist_type, file_path, relevant_files, owner, repo, remote, file_names) {
-  remote_url <- parse_remote_url(remote$url)
-
+format_issue_body <- function(checklist_type, file_path, relevant_files, file_names) {
   checklists <- get_checklists()
   file_items <- checklists[[checklist_type]]
   qc_checklist <- format_checklist_items(file_items)
 
-  metadata <- format_metadata(checklist_type, file_path, owner, repo, remote_url)
+  metadata <- format_metadata(checklist_type, file_path)
 
-  relevant_files <- format_relevant_files(relevant_files, owner, repo, remote_url, file_names)
+  relevant_files <- format_relevant_files(relevant_files, file_names)
 
   note <- get_prepended_checklist_note()
 
@@ -19,7 +17,7 @@ format_issue_body <- function(checklist_type, file_path, relevant_files, owner, 
                                             qc_checklist = qc_checklist)
 }
 
-format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_names) {
+format_relevant_files <- function(relevant_files, file_names) {
   if (is.null(relevant_files)) {
     return("")
   }
@@ -29,7 +27,7 @@ format_relevant_files <- function(relevant_files, owner, repo, remote_url, file_
 
     file_name <- ifelse(is.null(file$name) || file$name == "", file$file_path, file$name)
     branch <- gert::git_branch()
-    file_contents_url <- file.path(remote_url, owner, repo, "blob", branch, file$file_path)
+    file_contents_url <- file.path(.le$full_repo_url, "blob", branch, file$file_path)
 
     file_section <- glue::glue(
       "- **{file_name}**\n   - [`{file$file_path}`]({file_contents_url})", .trim = FALSE
@@ -106,6 +104,44 @@ get_sha <- function() {
   commits$commit[1]
 }
 
+clean_authors <- function(authors) {
+  parsed <- regmatches(authors, regexec("^(.*)<(.*)>$", authors))
+
+  valid <- vapply(parsed, function(x) length(x) == 3, logical(1))
+  parsed_clean <- parsed[valid]
+
+  df <- do.call(rbind, lapply(parsed_clean, function(x) {
+    data.frame(
+      name = trimws(x[2]),
+      email = trimws(x[3]),
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  df_orig <- df
+
+  bad_email <- (
+    nchar(df$email) > 40 |
+      grepl("ip-|compute\\.internal|pcluster|\\d+\\.\\d+\\.\\d+\\.\\d+", df$email)
+  )
+
+  df <- df[!bad_email, ]
+  df <- df[!duplicated(df$name), ]
+  df <- df[!duplicated(df$email), ]
+  df <- df[!df$name %in% "a2aigen", ]
+
+  # if accidentally filtered everything out, just return the first name
+  if (nrow(df) == 0) {
+    return(authors[1])
+  }
+
+  # Return formatted string
+  cleaned <- paste0(df$name, " <", df$email, ">")
+  return(cleaned)
+}
+
+
+
 
 get_authors <- function(file_path) {
   # https://stackoverflow.com/questions/11533199/how-to-find-the-commit-in-which-a-given-file-was-added
@@ -117,12 +153,15 @@ get_authors <- function(file_path) {
   author_lines <- unlist(stringr::str_extract_all(log, "Author:.*"))
   # remove "Author: " prefix
   authors <- stringr::str_remove(author_lines, "Author: ")
-  # get most recent author
-  latest_author <- authors[1]
+
   # get unique authors
   unique_authors <- unique(stringr::str_remove(authors, "Author: "))
+  clean_authors <- clean_authors(unique_authors)
+  # get most recent author
+  latest_author <- clean_authors[1]
   # get collaborators besides most recent author
-  other_collaborators <- unique_authors[unique_authors != latest_author]
+  other_collaborators <- clean_authors[clean_authors != latest_author]
+  # filter out duplicates and remove long emails
 
   list(latest = latest_author,
        collaborators = other_collaborators)
@@ -138,7 +177,7 @@ format_collaborators <- function(collaborators, prefix = "") {
   }
 }
 
-format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) {
+format_metadata <- function(checklist_type, file_path) {
   authors <- get_authors(file_path)
   latest_author <- authors$latest
   author_section <- glue::glue("* author: {latest_author}")
@@ -152,41 +191,37 @@ format_metadata <- function(checklist_type, file_path, owner, repo, remote_url) 
   git_sha <- get_sha()
   git_sha_section <- glue::glue("* initial qc commit: {git_sha}")
 
-  git_branch <- get_branch_url(git_sha, owner, repo, remote_url)
+  git_branch <- get_branch_url(git_sha)
   git_branch_section <- glue::glue("* git branch: {git_branch}")
 
-  file_contents_url <- get_file_contents_url(file_path, git_sha, owner, repo, remote_url)
-  file_content_url_section <- glue::glue("* file contents at initial qc commit: {file_contents_url}")
+  file_contents_url <- get_file_contents_url(file_path, git_sha)
+  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at initial qc commit</a>")
+  file_content_url_section <- glue::glue("* {file_contents_html}")
 
-  script_hash <- digest::digest(file = file_path)
-  script_hash_section <- glue::glue("* md5 checksum: {script_hash}")
-
-  metadata <- c(git_sha_section, git_branch_section, metadata, script_hash_section, file_content_url_section)
+  metadata <- c(git_sha_section, git_branch_section, metadata, file_content_url_section)
 
   glue::glue_collapse(metadata, "\n")
 }
 
-get_branch_url <- function(git_sha, owner, repo, remote_url) {
+get_branch_url <- function(git_sha) {
   branch <- gert::git_branch()
-  https_url <- file.path(remote_url, owner, repo, "tree", git_sha)
+  https_url <- file.path(.le$full_repo_url, "tree", git_sha)
 
   glue::glue("[{branch}]({https_url})")
 }
 
-get_file_history_url <- function(file_path, owner, repo, remote_url) {
+get_file_history_url <- function(file_path) {
   branch <- gert::git_branch()
   file_path <- gsub(" ", "%20", file_path)
 
   # get something like https://github.com/A2-ai/project_x/commits/main/scripts/DA.R
-  file_history_url <- file.path(remote_url, owner, repo, "commits", branch, file_path)
+  file_history_url <- file.path(.le$full_repo_url, "commits", branch, file_path)
 }
 
-get_file_contents_url <- function(file_path, git_sha, owner, repo, remote_url) {
+get_file_contents_url <- function(file_path, git_sha) {
   file_path <- gsub(" ", "%20", file_path)
 
-  # branch <- gert::git_branch()
-  # file.path(remote_url, owner, repo, "blob", branch, file_path)
-  file_contents_url <- file.path(remote_url, owner, repo, "blob", substr(git_sha, 1, 6), file_path)
+  file_contents_url <- file.path(.le$full_repo_url, "blob", substr(git_sha, 1, 6), file_path)
 }
 
 format_body_content <- function(metadata, checklist_type, note, qc_checklist, relevant_files) {

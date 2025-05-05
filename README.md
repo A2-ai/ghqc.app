@@ -19,7 +19,7 @@ The ghqc.app package has 3 main applications/functions:
     each with a corresponding checklist and QCer, to a GitHub Milestone
     to kick-off the QC review.
 
-2.  `ghqc_resolve_app`: Throughout the QC review, this app helps the
+2.  `ghqc_notify_app`: Throughout the QC review, this app helps the
     author communicate resolution of QC findings through comparison of
     file differences, hashes, and commits.
 
@@ -86,9 +86,9 @@ At any time, the user can:
 - Click the `Preview checklist` button below a selected file to view the
   items in a its selected checklist.
 
-## Resolve QC finding(s)
+## Post QC notification(s)
 
-`ghqc_resolve_app` allows a user to insert a comment into a ghqc GitHub
+`ghqc_notify_app` allows a user to insert a comment into a ghqc GitHub
 Issue that displays changes in the version control information for the
 Issue’s corresponding file.
 

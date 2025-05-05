@@ -64,12 +64,12 @@ generate_open_checklist_message <- function(issues_with_open_checklists, warning
 }
 
 #' @importFrom log4r warn error info debug
-determine_modal_message_report <- function(owner, repo, milestone_names) {
+determine_modal_message_report <- function(milestone_names) {
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
 
-  open_milestones <- check_for_open_milestones(owner, repo, milestone_names)
-  open_issues <- check_for_open_issues(owner, repo, milestone_names)
-  open_checklists <- check_for_open_checklists(owner, repo, milestone_names)
+  open_milestones <- check_for_open_milestones(milestone_names)
+  open_issues <- check_for_open_issues(milestone_names)
+  open_checklists <- check_for_open_checklists(milestone_names)
 
   messages <- c()
   messages <- c(messages, generate_open_milestone_message(open_milestones, warning_icon_html))
@@ -93,11 +93,11 @@ determine_modal_message_report <- function(owner, repo, milestone_names) {
 }
 
 #' @importFrom log4r warn error info debug
-check_for_open_milestones <- function(owner, repo, milestone_names) {
+check_for_open_milestones <- function(milestone_names) {
   milestones <- purrr::map(milestone_names, function(milestone_name) {
     tryCatch(
       {
-        get_milestone_from_name(owner, repo, milestone_name)
+        get_milestone_from_name(milestone_name)
       },
       error = function(e) {
         debug(.le$logger, glue::glue("Error retrieving Milestones: {conditionMessage(e)}"))
@@ -115,11 +115,11 @@ check_for_open_milestones <- function(owner, repo, milestone_names) {
 }
 
 #' @importFrom log4r warn error info debug
-check_for_open_issues <- function(owner, repo, milestone_names) {
+check_for_open_issues <- function(milestone_names) {
   open_issues <- purrr::map_dfr(milestone_names, function(milestone_name) {
     issues <- tryCatch(
       {
-        get_all_issues_in_milestone(owner, repo, milestone_name)
+        get_all_issues_in_milestone(milestone_name)
       },
       error = function(e) {
         debug(.le$logger, glue::glue("Error retrieving Issues from Milestone: {milestone_name}: {conditionMessage(e)}"))
@@ -140,11 +140,11 @@ check_for_open_issues <- function(owner, repo, milestone_names) {
 }
 
 #' @importFrom log4r warn error info debug
-check_for_open_checklists <- function(owner, repo, milestone_names) {
+check_for_open_checklists <- function(milestone_names) {
   issues_with_open_checklists <- purrr::map_dfr(milestone_names, function(milestone_name) {
     issues <- tryCatch(
       {
-        get_all_issues_in_milestone(owner, repo, milestone_name)
+        get_all_issues_in_milestone(milestone_name)
       },
       error = function(e) {
         debug(.le$logger, glue::glue("Error retrieving Issues from {milestone_name}: {conditionMessage(e)}"))
@@ -153,7 +153,7 @@ check_for_open_checklists <- function(owner, repo, milestone_names) {
     )
 
     purrr::map_dfr(issues, function(issue) {
-      if (unchecked_items_in_issue(issue)) {
+      if (unchecked_items_in_issue(issue$body)) {
         data.frame(title = issue$title,
                    url = issue$html_url,
                    milestone = issue$milestone$title,

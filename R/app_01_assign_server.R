@@ -8,21 +8,14 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, members, milestone_list) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
-    req(remote, root_dir)
+    req(root_dir)
       waiter_hide()
   })
 
-  observe({
-    req(root_dir)
-    if (getwd() != root_dir) {
-      setwd(root_dir)
-      info(.le$logger, glue::glue("Directory changed to project root: {root_dir}"))
-    }
-  })
 
   root_dir_reactive <- reactive({
     root_dir
@@ -141,15 +134,18 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       }
     })
 
-    observe({
-      req(org, repo, rv_milestone())
+    rv_issue_titles <- reactiveVal()
 
-      issue_titles <- tryCatch(
+    observe({
+      req(rv_milestone())
+
+      issue_titles_with_root_dir <- tryCatch(
         {
-          issues_in_milestone <- get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = rv_milestone())
+          issues_in_milestone <- get_all_issues_in_milestone(milestone_name = rv_milestone())
           issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
-          issue_titles_with_root_dir <- file.path(basename(root_dir), issue_titles)
-          issue_titles_with_root_dir
+          rv_issue_titles(issue_titles) # assign to reactiveVal
+
+          file.path(basename(root_dir), issue_titles)
         },
         error = function(e) {
           debug(.le$logger, glue::glue("There was no Milestones to query: {conditionMessage(e)}"))
@@ -157,7 +153,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         }
       )
 
-      session$sendCustomMessage("highlightPaths", issue_titles)
+      session$sendCustomMessage("highlightPaths", issue_titles_with_root_dir)
     })
 
     qc_items <- reactive({
@@ -287,15 +283,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
           git_sync_status <- check_ahead_behind()
           untracked_selected_files <- Filter(function(file) check_if_qc_file_untracked(file), file_names)
 
-          issues_in_milestone <- tryCatch(
-            {
-              get_all_issues_in_milestone(owner = org, repo = repo, milestone_name = rv_milestone())
-            },
-            error = function(e) {
-              debug(.le$logger, glue::glue("There were no Milestones to query: {conditionMessage(e)}"))
-              return(list())
-            }
-          )
+          issue_titles <- rv_issue_titles()
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {conditionMessage(e)}"))
@@ -309,7 +297,7 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
         uncommitted_git_files = uncommitted_git_files,
         untracked_selected_files = untracked_selected_files,
         git_sync_status = git_sync_status,
-        issues_in_milestone = issues_in_milestone
+        issue_titles = issue_titles
       )
     })
 
@@ -352,19 +340,16 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       req(qc_trigger())
       qc_trigger(FALSE)
 
-      w_create_qc_items <- create_waiter(ns, "Assigning file(s) for QC ...")
+      w_create_qc_items <- create_waiter(ns, "Assigning QC file(s)...")
       w_create_qc_items$show()
       tryCatch(
         {
-          create_yaml("test",
-                      org = org,
-                      repo = repo,
-                      milestone = rv_milestone(),
-                      description = input$milestone_description,
-                      files = qc_items()
-          )
+          yaml <- create_yaml(milestone = rv_milestone(),
+                              description = input$milestone_description,
+                              files = qc_items()
+                              )
 
-          create_checklists("test.yaml", remote)
+          create_checklists(yaml)
           removeClass("create_qc_items", "enabled-btn")
           addClass("create_qc_items", "disabled-btn")
         },
@@ -376,28 +361,27 @@ ghqc_assign_server <- function(id, remote, root_dir, checklists, org, repo, memb
       )
 
       w_create_qc_items$hide()
-      milestone_url <- get_milestone_url(org, repo, rv_milestone())
+      milestone_url <- get_milestone_url(rv_milestone())
 
       custom_checklist_selected <- function() {
         qc_items <- qc_items()
         any(sapply(qc_items, function(x) x$checklist_type == "Custom"))
       }
-      success_note <- {
-        if (custom_checklist_selected()) {
-          HTML(glue::glue("Issue(s) created successfully.<br><b>Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.</b>"))
-        }
-        else {
-          "Issue(s) created successfully."
-        }
-      }
+
+      custom_note <- ifelse(custom_checklist_selected(),
+                             HTML(glue::glue("Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
+                             ""
+                             )
 
       showModal(
         modalDialog(
-          title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+          title = tags$div(
+            tags$span("QC assigned", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+            modalButton("Dismiss"), style = "text-align: right;"),
           footer = NULL,
           easyClose = TRUE,
-          tags$p(success_note),
-          tags$a(href = milestone_url, "Click here to visit the Milestone on Github", target = "_blank")
+          tags$p(custom_note),
+          tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
         )
       )
     })

@@ -1,5 +1,5 @@
 # doesn't cover indexing further into directories
-# TODO: shiny tests for that
+
 test_that("list_files_and_dirs handles empty directory correctly", {
   path <- tempfile()
   dir.create(path)

@@ -7,7 +7,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
+ghqc_record_server <- function(id, all_milestones) {
   moduleServer(id, function(input, output, session) {
     iv <- shinyvalidate::InputValidator$new()
     iv$add_rule("select_milestone", shinyvalidate::sv_required())
@@ -27,20 +27,18 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
     report_trigger <- reactiveVal(FALSE)
 
     observe({
-      req(remote)
       waiter_hide()
     })
 
     closed_milestones <- reactive({
-      req(org, repo)
-      w_gh <- create_waiter(ns, sprintf("Fetching Milestone data for %s in %s...", repo, org))
+      w_gh <- create_waiter(ns, sprintf("Fetching Milestone data for %s in %s...", .le$repo, .le$org))
       w_gh$show()
       on.exit(w_gh$hide())
 
       tryCatch(
         {
-          closed_milestones <- get_closed_milestone_names(org = org, repo = repo)
-          milestone_list_url <- get_milestone_list_url(org = org, repo = repo)
+          closed_milestones <- get_closed_milestone_names()
+          milestone_list_url <- get_milestone_list_url()
           if (length(closed_milestones) == 0) {
             warn_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
             showModal(
@@ -51,7 +49,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
                   style = "#overflow: hidden; text-align: right;"
                 ),
 
-                HTML(warn_icon_html, glue::glue("There were no closed Milestones found in {org}/{repo}.<br>
+                HTML(warn_icon_html, glue::glue("There were no closed Milestones found in {.le$org}/{.le$repo}.<br>
                                              It is recommended to close relevant Milestones on GitHub to indicate finished QC.<div style=\"margin-bottom: 9px;\"></div>")),
                 tags$span(
                   tags$a(href = milestone_list_url, target = "_blank", HTML("Click here to close Milestones on GitHub.")),
@@ -61,7 +59,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
                 footer = NULL
               )
             )
-            warn(.le$logger, glue::glue("There were no closed Milestones found in {org}/{repo}. Close relevant Milestones on GitHub to indicate finished QC."))
+            warn(.le$logger, glue::glue("There were no closed Milestones found in {.le$org}/{.le$repo}. Close relevant Milestones on GitHub to indicate finished QC."))
           } # length(closed_milestones) == 0
           rev(closed_milestones)
         },
@@ -119,7 +117,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
       w_check_status$show()
       on.exit(w_check_status$hide())
 
-      determine_modal_message_report(org, repo, input$select_milestone)
+      determine_modal_message_report(input$select_milestone)
     })
 
     observeEvent(input$generate_report, {
@@ -175,10 +173,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
           milestone_names = input$select_milestone,
           input_name = input$pdf_name,
           just_tables = input$just_tables,
-          location = input$pdf_location,
-          owner = org,
-          repo = repo,
-          token = token
+          location = input$pdf_location
         )
 
         showModal(
@@ -197,7 +192,7 @@ ghqc_record_server <- function(id, remote, org, repo, all_milestones, token) {
     })
 
     observeEvent(input$return, {
-      debug(.le$logger, glue::glue("Comment button returned and modal removed."))
+      debug(.le$logger, glue::glue("Button returned and modal removed."))
       removeModal()
     })
 

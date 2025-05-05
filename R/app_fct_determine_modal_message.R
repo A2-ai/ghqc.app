@@ -77,13 +77,12 @@ determine_modal_message <- function(selected_files,
                                     untracked_selected_files,
                                     git_sync_status,
                                     commit_update_status = TRUE,
-                                    issues_in_milestone = list()) {
+                                    issue_titles = list()) {
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
   error_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#10071;</span>"
 
   uncommitted_selected_files <- selected_files[selected_files %in% uncommitted_git_files | selected_files %in% untracked_selected_files]
   uncommitted_files <- list(selected = uncommitted_selected_files, general = uncommitted_git_files)
-  issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
   existing_issues <- selected_files[selected_files %in% issue_titles]
 
   messages <- c()
@@ -101,7 +100,6 @@ determine_modal_message <- function(selected_files,
 
   # Errors and Warnings
   messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
-
 
 
   log_string <- glue::glue("Modal Check Inputs:

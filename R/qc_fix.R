@@ -1,5 +1,5 @@
-get_init_qc_commit <- function(owner, repo, issue_number) {
-  issue <- get_issue(owner, repo, issue_number)
+get_init_qc_commit <- function(issue_number) {
+  issue <- get_issue(issue_number)
   get_init_qc_commit_from_issue_body(issue$body)
 
 }
@@ -45,58 +45,50 @@ create_message_body <- function(message) {
   else glue::glue("{message}\n\n\n")
 }
 
+get_commit_comparison_url <- function(reference_commit, comparator_commit) {
+  file.path(.le$full_repo_url, "compare", glue::glue("{reference_commit}..{comparator_commit}"))
+}
 
-create_comment_metadata_body <- function(file_path,
-                                 reference_commit,
-                                 reference_hash,
-                                 comparator_commit,
-                                 comparator_hash,
-                                 owner,
-                                 repo,
-                                 remote_url) {
+get_commit_comparison_html <- function(reference_commit, comparator_commit) {
+  url <- get_commit_comparison_url(reference_commit, comparator_commit)
+  glue::glue("<a href=\"{url}\" target=\"_blank\">commit comparison</a>")
+}
 
+create_comment_metadata_body <- function(reference_commit,
+                                         comparator_commit,
+                                         commit_comparison
+                                         ) {
 
-  ref_url <- get_file_contents_url(file_path = file_path,
-                                   git_sha = reference_commit,
-                                   owner = owner,
-                                   repo = repo,
-                                   remote_url = remote_url)
-
-  comp_url <- get_file_contents_url(file_path = file_path,
-                                    git_sha = comparator_commit,
-                                    owner = owner,
-                                    repo = repo,
-                                    remote_url = remote_url)
-
-  glue::glue("## Metadata\n",
+  metadata <- glue::glue("## Metadata\n",
              "* current commit: {comparator_commit}\n",
-             "* current script md5 checksum: {comparator_hash}\n",
-             "* file contents at current commit: {comp_url}\n&nbsp;\n",
              "* previous commit: {reference_commit}\n",
-             "* previous script md5 checksum: {reference_hash}\n",
-             "* file contents at previous commit: {ref_url}\n\n\n")
+             "* {commit_comparison}\n\n\n",
+             .trim = FALSE
+             )
+
 }
 
 create_diff_body <- function(diff, reference_commit, reference_script, comparator_commit, comparator_script) {
   if (!diff) return("")
 
     diff_formatted <- format_diff(reference_script = reference_script, comparator_script = comparator_script)
+
+    if (diff_formatted >= 65450) {
+      info(.le$logger, "File difference too long to render")
+      diff_formatted <- glue::glue("File difference too long to render.")
+    }
+
     glue::glue("## File Difference\n\n",
-               "{diff_formatted}\n\n")
+               "{diff_formatted}")
 }
 
-create_comment_body <- function(owner,
-                                repo,
-                                issue_number,
+create_notify_comment_body <- function(issue,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
                                 comparator_commit = "current",
                                 remote) {
 
-  remote_url <- parse_remote_url(remote$url)
-
-  issue <- get_issue(owner, repo, issue_number)
   ## check if file exists locally
   if (!fs::file_exists(issue$title)) {
     log4r::warn(.le$logger, glue::glue("{issue$title} does not exist in local project repo. You may want to change your branch to one in which the file exists."))
@@ -108,7 +100,7 @@ create_comment_body <- function(owner,
   }
 
   # log
-  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue_number}:{issue$title} in {owner}/{repo}"))
+  debug(.le$logger, glue::glue("Creating comment body for Issue #{issue$number}:{issue$title} in {.le$org}/{.le$repo}"))
 
   debug(.le$logger, glue::glue("Creating assignees body..."))
   assignees_list <- create_assignees_list(assignees = issue$assignees,
@@ -125,12 +117,12 @@ create_comment_body <- function(owner,
   if (reference_commit == "original" && comparator_commit == "current") {
     # reference = oldest
     debug(.le$logger, glue::glue("Getting reference commit..."))
-    reference_commit <- get_init_qc_commit(owner, repo, issue_number)
+    reference_commit <- get_init_qc_commit_from_issue_body(issue$body)
     debug(.le$logger, glue::glue("Got reference commit: {reference_commit}"))
 
     # comparator = newest
     debug(.le$logger, glue::glue("Getting comparator commit..."))
-    comparator_commit <- get_commits_df(issue_number = issue_number, owner = owner, repo = repo, remote = remote)$commit[1]
+    comparator_commit <- get_commits_df(issue_number = issue$number)$commit[1]
     debug(.le$logger, glue::glue("Got comparator commit: {comparator_commit}"))
   }
 
@@ -139,9 +131,6 @@ create_comment_body <- function(owner,
   reference_script <- script_contents$reference_script
   comparator_script <- script_contents$comparator_script
   debug(.le$logger, glue::glue("Got script contents"))
-
-  reference_hash <- script_contents$hash_at_reference
-  comparator_hash <- script_contents$hash_at_comparator
 
   debug(.le$logger, glue::glue("Getting file difference body..."))
   diff_body <- create_diff_body(diff = diff,
@@ -152,72 +141,85 @@ create_comment_body <- function(owner,
   debug(.le$logger, glue::glue("Got file difference body"))
 
   debug(.le$logger, glue::glue("Getting metadata body..."))
-  metadata_body <- create_comment_metadata_body(file_path = issue$title,
-                                        reference_commit = reference_commit,
-                                        reference_hash = reference_hash,
-                                        comparator_commit = comparator_commit,
-                                        comparator_hash = comparator_hash,
-                                        owner = owner,
-                                        repo = repo,
-                                        remote_url = remote_url)
+  commit_comparison <- get_commit_comparison_html(reference_commit = reference_commit,
+                                                 comparator_commit = comparator_commit
+                                                 )
+
+  metadata_body <- create_comment_metadata_body(reference_commit = reference_commit,
+                                                comparator_commit = comparator_commit,
+                                                commit_comparison = commit_comparison
+                                                )
   debug(.le$logger, glue::glue("Got metadata body"))
 
-  comment_body <- glue::glue("{assignees_body}",
-                             "{message_body}",
-                             "{metadata_body}",
-                             "{diff_body}",
-                             .trim = FALSE)
+  comment_body_first <- as.character(glue::glue("# QC Notification\n\n",
+                                                "{assignees_body}",
+                                                "{message_body}",
+                                                .trim = FALSE))
 
-  comment_body <- as.character(comment_body)
-
-  comment_length <- nchar(comment_body)
-
-  if (comment_length >= 65530) { # in this case, give diff url instead of visual diff to avoid api error
-    info(.le$logger, "File difference is too long, providing commit comparison url instead...")
-
-    remote_url_root <- parse_remote_url(remote$url)
-    url <- glue::glue("{remote_url_root}/{owner}/{repo}/compare/{reference_commit}..{comparator_commit}")
-    url_html <- glue::glue("<a href=\"{url}\" target=\"_blank\">Click here to view commit comparison</a>")
-
-    diff_body <- glue::glue("## File Difference\n\n",
-                            "File difference too long to render.\n\n",
-               "{url_html}\n\n")
-
-    comment_body <- glue::glue("{assignees_body}",
-                               "{message_body}",
-                               "{metadata_body}",
-                               "{diff_body}",
-                               .trim = FALSE)
-
-    comment_body <- as.character(comment_body)
-
-    info(.le$logger, "Created commit comparison url")
-  }
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                   "{diff_body}",
+                                   .trim = FALSE))
 
   # log
   log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
 
-  info(.le$logger, glue::glue("Created comment body for issue #{issue_number} in {owner}/{repo} with
+  info(.le$logger, glue::glue("Created comment body for issue #{issue$number} in {.le$org}/{.le$repo} with
                               Assignee(s):     {log_assignees}
                               Previous commit: {reference_commit}
                               Original commit: {comparator_commit}"))
 
-  return(comment_body)
+  return(c(comment_body_first, comment_body_second))
 }
 
 
-post_resolve_comment <- function(owner, repo, issue_number, body) {
-  debug(.le$logger, glue::glue("Posting comment to issue #{issue_number} in {owner}/{repo}..."))
+post_comment <- function(issue_number, body) {
+  debug(.le$logger, glue::glue("Posting comment to Issue #{issue_number} in {.le$org}/{.le$repo}..."))
 
-  comment <- gh::gh("POST /repos/:owner/:repo/issues/:issue_number/comments",
+  comment <- gh::gh("POST /repos/:org/:repo/issues/:issue_number/comments",
                     .api_url = .le$github_api_url,
-                    owner = owner,
-                    repo = repo,
+                    org = .le$org,
+                    repo = .le$repo,
                     issue_number = issue_number,
                     body = body
+                    )
+
+  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
+}
+
+create_approve_comment_body <- function(file_path, initial_qc_commit, approved_qc_commit) {
+  file_contents_url <- get_file_contents_url(file_path = file_path,
+                                             git_sha = approved_qc_commit)
+
+  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at approved qc commit</a>")
+
+  init_vs_approved_commit_diff_url <- get_commit_comparison_url(reference_commit = initial_qc_commit,
+                                                                comparator_commit = approved_qc_commit
+                                                                )
+
+  init_vs_approved_commit_diff_html <- glue::glue("<a href=\"{init_vs_approved_commit_diff_url}\" target=\"_blank\">initial qc commit vs. approved qc commit</a>")
+
+  metadata_body <- glue::glue("## Metadata\n",
+                         "* approved qc commit: {approved_qc_commit}\n",
+                         "* {file_contents_html}\n",
+                         "* {init_vs_approved_commit_diff_html}\n",
+                         .trim = FALSE
   )
 
-  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {owner}/{repo}"))
+  comment_body_first <- as.character(glue::glue("# QC Approved\n\n",
+                                                .trim = FALSE))
+
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                                 .trim = FALSE))
+
+  return(c(comment_body_first, comment_body_second))
+}
+
+approve <- function(issue_number, body) {
+  # step 1: post comment
+  post_comment(issue_number, body)
+
+  # step 2: close issue
+  close_issue(issue_number)
 }
 
 

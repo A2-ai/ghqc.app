@@ -2,7 +2,7 @@
 % Please edit documentation in R/app_01_assign.R
 \name{ghqc_assign_app}
 \alias{ghqc_assign_app}
-\title{Assign file(s) for QC}
+\title{Assign QC file(s)}
 \usage{
 ghqc_assign_app()
 }

@@ -78,7 +78,7 @@ download_image <- function(url) {
   }
 
   is_ghe_redirect <- function(resp) {
-    # if the server is Github and there's a value for x-github-request-id, it's a ghe error
+    # if the server is GitHub and there's a value for x-github-request-id, it's a ghe error
     bool <- httr2::resp_header(resp, "Server") == "GitHub.com" && nzchar(httr2::resp_header(resp, "x-github-request-id", default = ""))
     bool
   }

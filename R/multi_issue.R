@@ -2,16 +2,16 @@
 # - organize issues associated with a set of files with milestones
 # - assign a different user to each issue for a given file
 
-create_issue <- function(file, issue_params, remote, file_names) {
+create_issue <- function(file, issue_params, file_names) {
+  issue_params$org <- .le$org
+  issue_params$repo <- .le$repo
+
   # issue title is the name of the file
   issue_params$title <- file$name
   # body is checklist
   issue_params$body <- format_issue_body(checklist_type = file$checklist_type,
                                          file_path = file$name,
                                          relevant_files = file$relevant_files,
-                                         owner = issue_params$owner,
-                                         repo = issue_params$repo,
-                                         remote = remote,
                                          file_names = file_names)
   # if file has assignees item, add to issue_params
   if (!is.null(file$assignees)) {
@@ -22,16 +22,16 @@ create_issue <- function(file, issue_params, remote, file_names) {
 
   # create the issue
   debug(.le$logger, glue::glue("Creating Issue... {issue_params$title}"))
-  issue <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/issues", issue_params))
+  issue <- do.call(gh::gh, c("POST /repos/:org/:repo/issues", issue_params))
   debug(.le$logger, glue::glue("Created Issue {issue_params$title}"))
 
   debug(.le$logger, glue::glue("Adding 'ghqc' label to {issue_params$title}"))
-  label_params <- list(owner = issue_params$owner,
+  label_params <- list(org = issue_params$org,
                        repo = issue_params$repo,
                        issue_number = issue$number,
                        labels = array("ghqc"),
                        .api_url = .le$github_api_url)
-  label <- do.call(gh::gh, c("POST /repos/{owner}/{repo}/issues/{issue_number}/labels", label_params))
+  label <- do.call(gh::gh, c("POST /repos/:org/:repo/issues/:issue_number/labels", label_params))
   debug(.le$logger, glue::glue("Label 'ghqc' added to {issue_params$title}"))
 
   # return the issue number
@@ -39,20 +39,20 @@ create_issue <- function(file, issue_params, remote, file_names) {
 } # create_issue
 
 #' @importFrom log4r warn error info debug
-create_issues <- function(data, remote) {
+create_issues <- function(data) {
   # create list of issue_params to input to api call -
   # will build up in pieces because some are optional
   issue_params <- list(
-    owner = data$owner,
-    repo = data$repo
+    org = .le$org,
+    repo = .le$repo
   )
 
   # if milestone is in data struct
   if (!is.null(data$milestone)) {
     # create milestone_params
     milestone_params <- list(
-      owner = data$owner,
-      repo = data$repo,
+      org = .le$org,
+      repo = .le$repo,
       title = data$milestone
     )
 
@@ -72,7 +72,7 @@ create_issues <- function(data, remote) {
 
   # create an issue for each file
   lapply(data$files, function(file) {
-    issue <- create_issue(file, issue_params, remote, file_names)
+    issue <- create_issue(file, issue_params, file_names)
     debug(.le$logger, glue::glue("Created {get_checklist_display_name_var()} for file: {file$name}"))
     if (!is.null(data$milestone)) {
       debug(.le$logger, glue::glue("Milestone: {data$milestone}"))
@@ -87,35 +87,35 @@ create_issues <- function(data, remote) {
 } # create_issues
 
 #' @importFrom gh gh
-ghqc_label_exists <- function(data) {
-  labels <- do.call(gh::gh, c("GET /repos/{owner}/{repo}/labels",
-                              list(owner = data$owner,
-                                   repo = data$repo,
+ghqc_label_exists <- function() {
+  labels <- do.call(gh::gh, c("GET /repos/:org/:repo/labels",
+                              list(org = .le$org,
+                                   repo = .le$repo,
                                    .api_url = .le$github_api_url
                                    )))
   "ghqc" %in% sapply(labels, function(x) x$name)
 }
 
 #' @importFrom gh gh
-create_ghqc_label <- function(data) {
+create_ghqc_label <- function() {
   issue_params <- list(
-    owner = data$owner,
-    repo = data$repo,
+    org = .le$org,
+    repo = .le$repo,
     name = "ghqc",
     color = "FFCB05",
     description = "Issue created by the ghqc package",
     .api_url = .le$github_api_url
   )
-  do.call(gh::gh, c("POST /repos/{owner}/{repo}/labels", issue_params))
+  do.call(gh::gh, c("POST /repos/:org/:repo/labels", issue_params))
 }
 
 
 # test with "test_yamls/checklist.yaml"
 #' @importFrom log4r warn error info debug
-create_checklists <- function(yaml_path, remote) {
-  data <- read_and_validate_yaml(yaml_path)
-  if (!ghqc_label_exists(data)) labels <- create_ghqc_label(data)
-  create_issues(data, remote)
+create_checklists <- function(yaml_path) {
+  data <- yaml::yaml.load_file(yaml_path)
+  if (!ghqc_label_exists()) labels <- create_ghqc_label()
+   create_issues(data)
 }
 
 
