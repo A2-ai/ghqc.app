@@ -276,79 +276,42 @@ get_only_ghqc_issues <- function(issues) {
   issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
 }
 
-get_all_issues_in_milestone_from_milestone_number <- function(milestone_number) {
-  res <- gh::gh("GET /repos/:org/:repo/issues",
-                .api_url = .le$github_api_url,
-                org = .le$org,
-                repo = .le$repo,
-                milestone = milestone_number,
-                .limit = Inf
-                )
+get_all_issues_in_milestone_from_milestone_number <- function(milestone_number, milestone_name) {
+  # if the Milestone dne, there are no Issues in the Milestone, return an empty vector
+  if (is.null(milestone_number)) {
+    info(.le$logger, glue::glue("Milestone: {milestone_name} doesn't exist"))
+    return(c())
+  }
+
+  issues <- list()
+  page <- 1
+
+  repeat {
+    res <- gh::gh("GET /repos/:org/:repo/issues",
+                  .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
+                  per_page = 100,
+                  page = page,
+                  state = "all",
+                  milestone = milestone_number,
+                  labels = "ghqc"
+                  )
+
+    # break if no more issues
+    if (length(res) == 0) break
+
+    # append to list
+    issues <- c(issues, res)
+
+    # next page
+    page <- page + 1
+  }
+
+  info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
+  return(issues)
 }
 
-# sort by open/closed
-#' @importFrom log4r warn error info debug
-# get_all_issues_in_milestone <- function(milestone_name) {
-#   debug(.le$logger, glue::glue("Retrieving all Issue(s) from Milestone: {milestone_name}..."))
-#   # get milestone number from name
-#   milestone_number <- look_up_existing_milestone_number(milestone_name)
-#
-#   # if the Milestone dne, there are no Issues in the Milestone, return an empty vector
-#   if (is.null(milestone_number)) {
-#     info(.le$logger, glue::glue("Milestone: {milestone_name} doesn't yet exist"))
-#     return(c())
-#   }
-#
-#   open_issues <- list()
-#   page <- 1
-#
-#   repeat {
-#     res <- gh::gh("GET /repos/:org/:repo/issues",
-#                   .api_url = .le$github_api_url,
-#                   org = .le$org,
-#                   repo = .le$repo,
-#                   milestone = milestone_number,
-#                   state = "open",
-#                   per_page = 100,
-#                   page = page)
-#
-#     # break if no more issues
-#     if (length(res) == 0) break
-#
-#     # append to list
-#     open_issues <- c(open_issues, res)
-#
-#     # next page
-#     page <- page + 1
-#   }
-#
-#   # closed issues
-#   closed_issues <- list()
-#   page <- 1
-#
-#   repeat {
-#     res <- gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
-#                   org = .le$org,
-#                   repo = .le$repo,
-#                   milestone = milestone_number,
-#                   state = "closed",
-#                   per_page = 100,
-#                   page = page)
-#
-#     # break if no more issues
-#     if (length(res) == 0) break
-#
-#     # append to list
-#     closed_issues <- c(closed_issues, res)
-#
-#     # next page
-#     page <- page + 1
-#   }
-#
-#   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
-#   info(.le$logger, glue::glue("Retrieved {length(issues)} ghqc Issue(s) from Milestone: {milestone_name}"))
-#   return(issues)
-# }
 
 #' @importFrom log4r warn error info debug
 get_milestone_url <- function(milestone_name) {

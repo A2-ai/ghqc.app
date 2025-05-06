@@ -18,9 +18,10 @@ ghqc_status <- function(milestone_objects,
   issue_objects <- list()
 
   status_df <- map_df(c(milestone_objects), function(milestone_object) {
+
     milestone_name <- milestone_object$title
     milestone_number <- milestone_object$number
-    issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number)
+    issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
 
     files <- purrr::map_chr(issues, "title")
     debug(.le$logger, glue::glue("Retrieving all git statuses..."))

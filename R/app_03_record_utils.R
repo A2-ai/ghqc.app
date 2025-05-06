@@ -4,27 +4,35 @@ generate_html_list_with_hyperlink <- function(items) {
   html
 }
 
+
 generate_tiered_html_list_with_hyperlink <- function(items) {
-  milestone_dfs <- split(items, items$milestone)
-
-  milestone_sections <- lapply(names(milestone_dfs), function(milestone_name) {
-    milestone_url <- milestone_dfs[[milestone_name]]$milestone_url[1]
-    milestone_heading <- glue::glue("<a href='{milestone_url}' target='_blank'>{milestone_name}</a>:")
-
-    milestone_list_items <- paste(
-      "<li><a href='",
-      milestone_dfs[[milestone_name]]$url,
-      "' target='_blank'>",
-      milestone_dfs[[milestone_name]]$title,
-      "</a></li>",
-      collapse = ""
-    )
-    milestone_section <- glue::glue("<li>{milestone_heading}<ul>{milestone_list_items}</ul></li>")
-    return(milestone_section)
+  # Extract milestone titles and URLs (or use fallbacks inline)
+  milestone_titles <- purrr::map_chr(items, function(x) {
+    if (!is.null(x$milestone)) x$milestone$title else "No Milestone"
   })
 
-  list <- glue::glue_collapse(milestone_sections, sep = "\n")
-  return(list)
+  milestone_urls <- purrr::map_chr(items, function(x) {
+    if (!is.null(x$milestone)) x$milestone$html_url else "#"
+  })
+
+  # Use milestone titles as split keys (names)
+  names(items) <- milestone_titles
+  milestone_groups <- split(items, names(items))
+
+  milestone_sections <- lapply(names(milestone_groups), function(milestone_name) {
+    milestone_items <- milestone_groups[[milestone_name]]
+    milestone_url <- if (!is.null(milestone_items[[1]]$milestone)) milestone_items[[1]]$milestone$html_url else "#"
+
+    milestone_heading <- glue::glue("<a href='{milestone_url}' target='_blank'>{milestone_name}</a>:")
+
+    milestone_list_items <- purrr::map_chr(milestone_items, function(item) {
+      glue::glue("<li><a href='{item$html_url}' target='_blank'>{item$title}</a></li>")
+    }) |> paste(collapse = "")
+
+    glue::glue("<li>{milestone_heading}<ul>{milestone_list_items}</ul></li>")
+  })
+
+  glue::glue_collapse(milestone_sections, sep = "\n")
 }
 
 #' @importFrom log4r warn error info debug
@@ -32,31 +40,31 @@ generate_open_milestone_message <- function(open_milestones, warning_icon_html) 
   messages <- c()
   if (length(open_milestones) > 0) {
     messages <- c(messages, sprintf(
-      "%s The following selected Milestones are open:<ul>%s</ul><br>",
+      "%s Open Milestones:<ul>%s</ul><br>",
       warning_icon_html, generate_html_list_with_hyperlink(open_milestones)
     ))
   }
   return(messages)
 }
 
-#' @importFrom log4r warn error info debug
-generate_open_issue_message <- function(open_issues, warning_icon_html) {
+generate_unapproved_statuses_message <- function(issues_with_unapproved_statuses, warning_icon_html) {
   messages <- c()
-  if (length(open_issues) > 0) {
-    messages <- c(messages, sprintf(
-      "%s The selected Milestones contain the following open Issues:<ul>%s</ul><br>",
-      warning_icon_html, generate_tiered_html_list_with_hyperlink(open_issues)
+  if (length(issues_with_unapproved_statuses) > 0) {
+    messages <- c(messages, sprintf(glue::glue(
+      "%s Unapproved Issues:<ul>%s</ul>"),
+      warning_icon_html, generate_tiered_html_list_with_hyperlink(issues_with_unapproved_statuses)
     ))
   }
   return(messages)
 }
+
 
 #' @importFrom log4r warn error info debug
 generate_open_checklist_message <- function(issues_with_open_checklists, warning_icon_html) {
   messages <- c()
   if (length(issues_with_open_checklists) > 0) {
     messages <- c(messages, sprintf(glue::glue(
-      "%s The selected Milestones contain the following Issues with open {get_checklist_display_name_var()} items:<ul>%s</ul><br>"),
+      "%s Issues with incomplete {get_checklist_display_name_var(plural = TRUE)}:<ul>%s</ul><br>"),
       warning_icon_html, generate_tiered_html_list_with_hyperlink(issues_with_open_checklists)
     ))
   }
@@ -68,24 +76,18 @@ determine_modal_message_report <- function(milestone_objects) {
   # TODO make this only check for approved Issues
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
 
-  # open_milestones <- check_for_open_milestones(milestone_names)
-  # open_issues <- check_for_open_issues(milestone_names)
-  # open_checklists <- check_for_open_checklists(milestone_names)
-  #
-  bad_statuses <- check_for_bad_statuses(milestone_objects)
+  res <- check_for_unapproved_statuses(milestone_objects)
+  issue_objects <- res$issue_objects
+  statuses <- res$statuses
+  issues_with_unapproved_statuses <- res$issues_with_unapproved_statuses
+
+  issues_with_open_checklists <- check_for_open_checklists(issue_objects)
+  open_milestones <- check_for_open_milestones(milestone_objects)
 
   messages <- c()
   messages <- c(messages, generate_open_milestone_message(open_milestones, warning_icon_html))
-  messages <- c(messages, generate_open_issue_message(open_issues, warning_icon_html))
-  messages <- c(messages, generate_open_checklist_message(open_checklists, warning_icon_html))
-
-  log_string <- glue::glue("Modal Check Inputs:
-    - Open Milestones: {glue::glue_collapse(open_milestones, sep = ', ')}
-    - Open Issues: {glue::glue_collapse(open_issues, sep = ', ')}
-    - Issues with unchecked {get_checklist_display_name_var()} items: {glue::glue_collapse(open_checklists, sep = ', ')}
-  ")
-
-  log4r::debug(.le$logger, log_string)
+  messages <- c(messages, generate_open_checklist_message(issues_with_open_checklists, warning_icon_html))
+  messages <- c(messages, generate_unapproved_statuses_message(issues_with_unapproved_statuses, warning_icon_html))
 
   if (length(messages) == 0) {
     return(list(message = NULL, state = NULL))
@@ -96,20 +98,8 @@ determine_modal_message_report <- function(milestone_objects) {
 }
 
 #' @importFrom log4r warn error info debug
-check_for_open_milestones <- function(milestone_names) {
-  milestones <- purrr::map(milestone_names, function(milestone_name) {
-    tryCatch(
-      {
-        get_milestone_from_name(milestone_name)
-      },
-      error = function(e) {
-        debug(.le$logger, glue::glue("Error retrieving Milestones: {conditionMessage(e)}"))
-        rlang::abort(conditionMessage(e))
-      }
-    )
-  })
-
-  open_milestones <- purrr::map_dfr(milestones, function(milestone) {
+check_for_open_milestones <- function(milestone_objects) {
+  open_milestones <- purrr::map_dfr(milestone_objects, function(milestone) {
     if (milestone$state == "open") {
       data.frame(title = milestone$title, url = milestone$html_url)
     }
@@ -117,56 +107,15 @@ check_for_open_milestones <- function(milestone_names) {
   })
 }
 
-#' @importFrom log4r warn error info debug
-check_for_open_issues <- function(milestone_names) {
-  open_issues <- purrr::map_dfr(milestone_names, function(milestone_name) {
-    issues <- tryCatch(
-      {
-        get_all_issues_in_milestone(milestone_name)
-      },
-      error = function(e) {
-        debug(.le$logger, glue::glue("Error retrieving Issues from Milestone: {milestone_name}: {conditionMessage(e)}"))
-        rlang::abort(conditionMessage(e))
-      }
-    )
 
-    purrr::map_dfr(issues, function(issue) {
-      if (issue$state == "open") {
-        data.frame(title = issue$title,
-                   url = issue$html_url,
-                   milestone = issue$milestone$title,
-                   milestone_url = issue$milestone$html_url)
-      }
-      else NULL
-    })
-  })
-}
 
 #' @importFrom log4r warn error info debug
-check_for_open_checklists <- function(milestone_names) {
-  issues_with_open_checklists <- purrr::map_dfr(milestone_names, function(milestone_name) {
-    issues <- tryCatch(
-      {
-        get_all_issues_in_milestone(milestone_name)
-      },
-      error = function(e) {
-        debug(.le$logger, glue::glue("Error retrieving Issues from {milestone_name}: {conditionMessage(e)}"))
-        rlang::abort(conditionMessage(e))
-      }
-    )
-
-    purrr::map_dfr(issues, function(issue) {
-      if (unchecked_items_in_issue(issue$body)) {
-        data.frame(title = issue$title,
-                   url = issue$html_url,
-                   milestone = issue$milestone$title,
-                   milestone_url = issue$milestone$html_url)
-      } else NULL
-    })
-  })
+check_for_open_checklists <- function(issue_objects) {
+  purrr::keep(issue_objects, ~ unchecked_items_in_issue(.x$body))
 }
 
-check_for_bad_statuses <- function(milestone_objects) {
+
+check_for_unapproved_statuses <- function(milestone_objects) {
   current_branch <- gert::git_branch()
   local_commits <- get_local_commits()
   remote_commits <- get_remote_commits(current_branch)
@@ -189,9 +138,22 @@ check_for_bad_statuses <- function(milestone_objects) {
                             files_changed_in_remote_commits = files_changed_in_remote_commits,
                             files_changed_in_unpushed_local_commits = files_changed_in_unpushed_local_commits,
                             files_with_uncommitted_local_changes = files_with_uncommitted_local_changes
-                            )
+  )
 
-  browser()
+  issue_objects <- status_res$issue_objects
+  statuses <- status_res$status
+
+  unapproved_statuses <- dplyr::filter(statuses, `QC Status` != "Approved")
+  issue_names <- unapproved_statuses$file_name
+  issues_with_unapproved_statuses <- unname(issue_objects[issue_names])
+
+  return(list(
+    issues_with_unapproved_statuses = issues_with_unapproved_statuses,
+    issue_objects = issue_objects,
+    statuses = statuses
+  ))
 }
+
+
 
 

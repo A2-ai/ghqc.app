@@ -130,8 +130,8 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       milestone_names <- input$select_milestone
       milestone_objects <- purrr::map(milestone_names, ~ get_milestone_object_from_milestone_name(milestone_name = .x,
                                                                                  milestone_objects = all_milestones
-                                                                                 )
-                                      )
+                                                                                 ))
+
       determine_modal_message_report(milestone_objects)
     })
 
@@ -148,12 +148,11 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
             ),
             HTML(paste(glue::glue("Upon completion of QC, It is recommended that:
             <ul>
-            <li>All selected Milestones are closed</li>
-            <li>All Issues within selected Milestones are closed</li>
-            <li>All {get_checklist_display_name_var()} items within relevant Issues are completed</li>
+            <li>Milestones are closed</li>
+            <li>{get_checklist_display_name_var(capitalized = TRUE, plural = TRUE)} are complete</li>
+            <li>Issues are approved with <code>ghqc_status_app()</code></li>
             </ul>
-            <br>
-            You may want to review the following items on GitHub for outstanding QC progress:<br><br>"),
+            You may want to review the following on GitHub for outstanding QC progress:<br><br>"),
                        modal_check()$message)),
             tags$style(HTML("
         .modal-content {
