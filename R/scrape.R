@@ -607,10 +607,12 @@ create_milestone_df <- function(milestone_names) {
 
 
 #' @importFrom log4r warn error info debug
-ghqc_report <- function(milestone_names,
-                        input_name = NULL, # TODO
-                        just_tables = FALSE,
-                        location = ".") {
+ghqc_record <- function(milestone_objects,
+                        issue_objects,
+                        statuses,
+                        input_name,
+                        just_tables,
+                        location) {
 
   if (fs::is_file(location)) {
     error(.le$logger, glue::glue("Inputted directory {location} is a file path. Input an existing directory."))
@@ -623,6 +625,7 @@ ghqc_report <- function(milestone_names,
     rlang::abort(message = glue::glue("Inputted directory {location} doesn't exist.<br>Input an existing directory."))
   }
 
+  browser()
   debug(.le$logger, "Creating QC Record introduction...")
   # intro
   intro <- create_intro(milestone_names)

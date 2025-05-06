@@ -90,10 +90,21 @@ determine_modal_message_report <- function(milestone_objects) {
   messages <- c(messages, generate_unapproved_statuses_message(issues_with_unapproved_statuses, warning_icon_html))
 
   if (length(messages) == 0) {
-    return(list(message = NULL, state = NULL))
-  } else {
+    return(list(message = NULL,
+                state = NULL,
+                issue_objects = issue_objects,
+                statuses = statuses
+                )
+           )
+  }
+  else {
     state <- if (any(grepl(warning_icon_html, messages))) "warning" else "error"
-    return(list(message = paste(messages, collapse = "\n"), state = state))
+    return(list(message = paste(messages, collapse = "\n"),
+                state = state,
+                issue_objects = issue_objects,
+                statuses = statuses
+                )
+           )
   }
 }
 

@@ -29,6 +29,9 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
     closed_milestones_rv <- reactiveVal(closed_milestones_in)
     all_milestone_names_rv <- reactiveVal(all_milestone_names_in)
     closed_milestone_names_rv <- reactiveVal(all_closed_milestone_names_in)
+    issue_objects_rv <- reactiveVal(NULL)
+    statuses_rv <- reactiveVal(NULL)
+    selected_milestones_rv <- reactiveVal(NULL)
 
     observe({
       waiter_hide()
@@ -131,8 +134,12 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       milestone_objects <- purrr::map(milestone_names, ~ get_milestone_object_from_milestone_name(milestone_name = .x,
                                                                                  milestone_objects = all_milestones
                                                                                  ))
+      selected_milestones_rv(milestone_objects)
 
-      determine_modal_message_report(milestone_objects)
+      res <- determine_modal_message_report(milestone_objects)
+      issue_objects_rv(res$issue_objects)
+      statuses_rv(res$statuses)
+      return(res)
     })
 
     observeEvent(input$generate_report, {
@@ -146,13 +153,13 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
               actionButton(ns("return"), "Return"),
               style = "text-align: right;"
             ),
-            HTML(paste(glue::glue("Upon completion of QC, It is recommended that:
+            HTML(paste(glue::glue("When QC is complete, it is recommended that:
             <ul>
             <li>Milestones are closed</li>
             <li>{get_checklist_display_name_var(capitalized = TRUE, plural = TRUE)} are complete</li>
             <li>Issues are approved with <code>ghqc_status_app()</code></li>
             </ul>
-            You may want to review the following on GitHub for outstanding QC progress:<br><br>"),
+            You may want to review the following on GitHub for outstanding QC progress:<br>"),
                        modal_check()$message)),
             tags$style(HTML("
         .modal-content {
@@ -183,8 +190,10 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       on.exit(w_generate_report$hide())
 
       tryCatch({
-        pdf_path <- ghqc_report(
-          milestone_names = input$select_milestone,
+        pdf_path <- ghqc_record(
+          milestone_objects = selected_milestones_rv(),
+          issue_objects = issue_objects_rv(),
+          statuses = statuses_rv(),
           input_name = input$pdf_name,
           just_tables = input$just_tables,
           location = input$pdf_location
