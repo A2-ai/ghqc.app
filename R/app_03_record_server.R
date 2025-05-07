@@ -201,10 +201,14 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
 
         showModal(
           modalDialog(
-            title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+            title = tags$div(
+              tags$span("QC recorded", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              modalButton("Dismiss"),
+              style = "text-align: right;"
+            ),
             footer = NULL,
             easyClose = TRUE,
-            tags$p(glue::glue("QC Record generated successfully: {pdf_path}"))
+            tags$p(glue::glue("PDF location: {pdf_path}"))
           )
         ) #showModal
       },
@@ -225,6 +229,7 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
     })
 
     observeEvent(input$reset, {
+      session$reload()
       debug(.le$logger, glue::glue("App was reset through the reset button."))
       reset_triggered(TRUE)
 
@@ -236,9 +241,9 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       all_milestones_rv(all_milestones)
       closed_milestones_rv(closed_milestones)
       all_milestone_names_rv(all_milestone_names)
-      closed_milestone_names_rv(all_closed_milestone_names)
+      closed_milestone_names_rv(closed_milestone_names)
 
-      session$reload()
+
     })
 
     observeEvent(input$proceed, {

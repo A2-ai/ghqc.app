@@ -1,41 +1,165 @@
-create_qc_data_section <- function(issue_creation_time, issue_creator, issue_title, issue_number, milestone_title, milestones) {
-  sections <- c()
-  # get qc_initializer
-  humanized_creation_time <- humanize_time(issue_creation_time)
-  qc_initializer <- glue::glue("{issue_creator} at {humanized_creation_time}")
+#' @importFrom log4r warn error info debug
+ghqc_record <- function(milestone_objects,
+                        issue_objects,
+                        statuses,
+                        input_name,
+                        just_tables,
+                        location) {
 
-  # issue number and qc_init sections
-  qc_init_section <- glue::glue("* **QC initializer:** {qc_initializer}")
+  if (fs::is_file(location)) {
+    error(.le$logger, glue::glue("Inputted directory {location} is a file path. Input an existing directory."))
+    rlang::abort(message = glue::glue("Inputted directory {location} is a file path.<br>Input an existing directory."))
+  }
+
+  # check location exists
+  if (!fs::dir_exists(location)) {
+    error(.le$logger, glue::glue("Inputted directory {location} doesn't exist. Input an existing directory."))
+    rlang::abort(message = glue::glue("Inputted directory {location} doesn't exist.<br>Input an existing directory."))
+  }
+
+  milestone_names <- get_milestone_names_from_milestone_objects(milestone_objects)
+
+  debug(.le$logger, "Creating QC Record introduction...")
+  # intro
+  intro <- create_intro(milestone_names)
+  set_up_chunk <- set_up_chunk()
+  info(.le$logger, "Created QC Record introduction")
+
+  # create milestone table
+  milestone_table <- create_milestone_table(milestone_objects, milestone_names, issue_objects, statuses)
+
+  debug(.le$logger, "Creating Milestone sections...")
+  # create milestone sections
+  issues_by_milestone <- split(issue_objects, purrr::map_chr(issue_objects, ~ .x$milestone$title))
+  statuses_by_milestone <- split(statuses, statuses$milestone_name)
+  milestone_sections <- lapply(milestone_names, function(milestone_name) {
+    issue_objects_in_milestone <- issues_by_milestone[[milestone_name]]
+    statuses <- statuses_by_milestone[[milestone_name]]
+
+    statuses <- purrr::map(issue_objects_in_milestone, function(issue) {
+      match_row <- dplyr::filter(statuses, file_name == issue$title)
+      if (nrow(match_row) == 0) return(NULL)
+      match_row
+    })
+
+    milestone_body <- create_milestone_report_section(milestone_name, issue_objects_in_milestone, statuses, just_tables)
+    create_big_section(milestone_name, milestone_body)
+  })
+  info(.le$logger, "Created Milestone sections")
+
+  # appendix
+
+  rmd_content <- glue::glue_collapse(c(intro,
+                                       set_up_chunk,
+                                       milestone_table,
+                                       milestone_sections
+  ), sep = "")
+
+  pdf_name <- get_pdf_name(input_name = input_name,
+                           milestone_names = milestone_names,
+                           just_tables = just_tables)
+
+  # create pdf from markdown
+
+  debug(.le$logger, "Converting rmd to pdf...")
+
+  suppressWarnings(
+    markdown_to_pdf(rmd_content = rmd_content,
+                    milestone_names = milestone_names,
+                    just_tables = just_tables,
+                    location = location,
+                    pdf_name = pdf_name)
+  )
+
+}
+
+
+create_qc_data_section <- function(issue, status) {
+  issue_number <- issue$number
   issue_number_section <- glue::glue("* **Issue number:** {issue_number}")
-  milestone_section <- create_milestone_section(milestone_title, milestones)
-  sections <- c(sections, qc_init_section, issue_number_section, milestone_section)
+
+  issue_creation_time <- issue$created_at
+  issue_creator <- issue$user$login
+  humanized_creation_time <- humanize_time(issue_creation_time)
+  issue_creator_str <- glue::glue("{issue_creator} at {humanized_creation_time}")
+  qc_init_section <- glue::glue("* **Issue creator:** {issue_creator_str}")
+
+  qcer <- as.character(status$QCer)
+  qcer_section <- glue::glue("* **QCer:** {qcer}")
+
+  qc_status <- as.character(status$`QC Status`)
+  qc_status_section <- glue::glue("* **QC Status:** {qc_status}")
+
+  git_status <- as.character(status$`Git Status`)
+  git_status_section <- glue::glue("* **Git Status:** {git_status}")
+
+  initial_qc_commit <- status$initial_qc_commit
+  initial_qc_commit_section <- glue::glue("* **Initial QC commit:** {initial_qc_commit}")
+
+  last_qc_commit <- status$latest_qc_commit
+  last_qc_commit_section <- glue::glue("* **Last QC commit:** {last_qc_commit}")
+
+  issue_url <- status$issue_url
+  issue_url_section <- glue::glue("* **Issue URL:** {issue_url}")
+
+  issue_state <- status$`Issue State`
+  issue_state_section <- glue::glue("* **Issue State:** {issue_state}")
+
+  sections <- c(issue_number_section,
+                qc_init_section,
+                qcer_section,
+                qc_status_section,
+                git_status_section,
+                initial_qc_commit_section,
+                last_qc_commit_section,
+                issue_url_section,
+                issue_state_section
+  )
+
+  #browser()
+  closed_by <- {
+    if (!is.null(issue$closed_by)) {
+      issue$closed_by$login
+    }
+    else {
+      NULL
+    }
+  }
+  if (!is.null(closed_by)) {
+    closed_by_section <- glue::glue("* **Closed by:** {closed_by}")
+    sections <- c(sections, closed_by_section)
+  }
+
+  closed_at <- {
+    if (!is.null(issue$closed_at)) {
+      humanize_time(issue$closed_at)
+    }
+    else {
+      NULL
+    }
+  }
+
+  if (!is.null(closed_at)) {
+    closed_at_section <- glue::glue("* **Closed at:** {closed_at}")
+    sections <- c(sections, closed_at_section)
+  }
+
+  milestone_title <- issue$milestone$title
+  milestone_title_section <- glue::glue("* **Milestone:** {milestone_title}")
+  sections <- c(sections, milestone_title_section)
+
+  milestone_description <- issue$milestone$description
+  if (!is.null(milestone_description)) {
+    milestone_description_section <- glue::glue("* **Milestone description:** {milestone_description}")
+    sections <- c(sections, milestone_description_section)
+  }
 
   # create body
   issue_body <- glue::glue_collapse(sections, sep = "\n\n")
-  issue_section <- create_small_section("QC Data", issue_body)
+  issue_section <- create_small_section("Issue Information", issue_body)
 }
 
-create_milestone_section <- function(milestone_title, milestones) {
-  if (!is.null(milestone_title)) {
-    milestone_body <- {
-      description <- get_milestone_description(milestone_title, milestones)
-      if (!is.null(description) && description != "") {
-        glue::glue("* **Milestone:** {milestone_title}
-                   * **Milestone description:** {description}")
-      }
-      else {
-        glue::glue("* **Milestone:** {milestone_title}")
-      }
-    }
-  }
-  else ""
-}
 
-create_assignees_section <- function(assignees) {
-  assignees_list <- sapply(assignees, function(assignee) glue::glue("- {assignee$login}"))
-  assignees_body <- glue::glue_collapse(assignees_list, sep = "\n\n")
-  assignees_section <- create_small_section("Assigned QCers", assignees_body)
-}
 create_comments_section <- function(issue_comments) {
   comments_list <- process_comments(issue_comments)
   comments_body <- glue::glue_collapse(comments_list, sep = "\n\n")
@@ -48,20 +172,6 @@ create_events_section <- function(events_list) {
   events_section <- create_small_section("Events", events_body)
 }
 
-create_status_section <- function(events_list, issue_state) {
-  # status
-  closures <- events_list[grep("closed", events_list)]
-
-  status <- {
-    if (length(closures) == 0) {issue_state} # should be open (in theory)
-    else {
-      # get the last time it was closed, which is the current status
-      last_closure <- closures[length(closures)]
-      gsub("- ", "", last_closure)
-    }
-  }
-  status_section <- create_small_section("Issue Status", status)
-}
 
 create_timeline_section <- function(timeline) {
   timeline_list <- get_timeline_list(timeline)
@@ -92,11 +202,9 @@ create_checklist_section <- function(issue_body) {
   checklist_section <- create_small_section("Issue Body", clean_issue_body)
 }
 
-issue_to_markdown <- function(issue_number) {
+issue_to_markdown <- function(issue, status) {
   # collect issue info
-  issue <- get_issue(issue_number)
-  milestones <- get_all_milestone_objects()
-
+  issue_number <- issue$number
   issue_comments <- get_issue_comments(issue_number)
 
   issue_events <- get_issue_events(issue_number)
@@ -105,16 +213,7 @@ issue_to_markdown <- function(issue_number) {
   timeline <- get_issue_timeline(issue_number)
 
   # create sections
-  issue_section <- create_qc_data_section(issue_creation_time = issue$created_at,
-                                          issue_creator = issue$user$login,
-                                          issue_title = issue$title,
-                                          issue_number = issue$number,
-                                          milestone_title = issue$milestone$title,
-                                          milestones = milestones)
-
-  assignees_section <- create_assignees_section(issue$assignees)
-
-  status_section <- create_status_section(events_list, issue$state)
+  issue_section <- create_qc_data_section(issue, status)
 
   checklist_section <- create_checklist_section(issue$body)
 
@@ -127,8 +226,6 @@ issue_to_markdown <- function(issue_number) {
   # put it all together
   paste0(
     issue_section,
-    assignees_section,
-    status_section,
     checklist_section,
     comments_section,
     events_section,
@@ -234,7 +331,7 @@ markdown_to_pdf <- function(rmd_content, milestone_names, just_tables, location,
 
 } # markdown_to_pdf
 
-get_summary_table_col_vals <- function(issue) {
+get_summary_table_col_vals <- function(issue, status_row) {
   metadata <- {
     tryCatch({
       get_issue_body_metadata(issue$body)
@@ -253,31 +350,28 @@ get_summary_table_col_vals <- function(issue) {
   }
 
   if(length(metadata) == 0) {
-    rlang::abort(glue::glue("Issue: \"{issue$title}\" in Milestone: \"{issue$milestone$title}\" was not created with ghqc and therefore cannot be parsed."))
+    rlang::abort(glue::glue("Issue: \"{issue$title}\" in Milestone: \"{issue$milestone$title}\" does not contain parsable metadata."))
   }
 
   close_data <- get_close_info(issue)
 
-  authors <- get_authors(issue$title)
-  latest_author <- authors$latest
-
   file_path <- issue$title
+  qc_status <- as.character(status_row$`QC Status`)
   author <- ifelse(!is.null(metadata$author), metadata$author, "NA")
   qcer <- ifelse(length(issue$assignees) > 0, issue$assignees[[1]], "NA")
   issue_closer <- ifelse(!is.null(close_data$closer), close_data$closer, "NA")
-  close_date <- ifelse(!is.null(close_data$closed_at), close_data$closed_at, "NA")
 
   c(
     file_path = file_path,
+    qc_status = qc_status,
     author = author,
     qcer = qcer,
-    issue_closer = issue_closer,
-    close_date = close_date
+    issue_closer = issue_closer
   )
 }
 
-get_summary_df <- function(issues) {
-  col_vals <- lapply(issues, get_summary_table_col_vals)
+get_summary_df <- function(issues, statuses) {
+  col_vals <- Map(get_summary_table_col_vals, issues, statuses)
   list_of_vectors <- lapply(col_vals, function(vec) {
     as.data.frame(as.list(vec))
   })
@@ -314,10 +408,10 @@ insert_breaks <- function(text, width) {
   }, USE.NAMES = FALSE)
 }
 
-create_summary_csv <- function(issues, env) {
-  summary_df <- get_summary_df(issues)
+create_summary_csv <- function(issues, statuses) {
+  summary_df <- get_summary_df(issues, statuses)
   summary_df$issue_closer[is.na(summary_df$issue_closer)] <- "NA"
-  summary_df$close_date[is.na(summary_df$close_date)] <- "NA"
+  #summary_df$close_date[is.na(summary_df$close_date)] <- "NA"
 
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
@@ -420,7 +514,7 @@ invisible(summary_df)
 table <- summary_df %>%
 
 knitr::kable(
-  col.names = c(\"File Path\", \"Author\", \"QCer\", \"Issue Closer\", \"Close Date\"),
+  col.names = c(\"File Path\", \"QC Status\", \"Author\", \"QCer\", \"Issue Closer\"),
   format = \"latex\",
   booktabs = TRUE,
   escape = TRUE,
@@ -429,7 +523,7 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"repeat_header\")) %>%
   column_spec(1, width = \"10em\") %>%
-  column_spec(2, width = \"10em\")
+  column_spec(3, width = \"10em\")
 ```
 
 ```{{r, echo=FALSE, eval=TRUE, results='asis'}}
@@ -441,9 +535,11 @@ print(table)
   )
 }
 
-create_set_of_issue_sections <- function(issues) {
+create_set_of_issue_sections <- function(issues, statuses) {
   issue_numbers <- sapply(issues, function(issue) issue$number)
-  issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue$number))
+  issue_markdown_strings <- Map(issue_to_markdown, issues, statuses)
+
+  #issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue))
   issue_titles <- sapply(issues, function(issue) issue$title)
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
@@ -454,17 +550,16 @@ create_set_of_issue_sections <- function(issues) {
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone_report_section <- function(milestone_name, env, just_tables = FALSE) {
+create_milestone_report_section <- function(milestone_name, issue_objects_in_milestone, statuses, just_tables = FALSE) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
-  issues <- get_all_issues_in_milestone(milestone_name)
 
   debug(.le$logger, glue::glue("Creating summary table for Milestone: {milestone_name}..."))
   # summary table
-  summary_csv <- create_summary_csv(issues, env)
+  summary_csv <- create_summary_csv(issue_objects_in_milestone, statuses)
   summary_table_section <- create_summary_table_section(summary_csv)
   info(.le$logger, glue::glue("Created summary table for Milestone: {milestone_name}"))
-  # issues
-  issue_sections <- create_set_of_issue_sections(issues)
+
+  issue_sections <- create_set_of_issue_sections(issue_objects_in_milestone, statuses)
 
   res <- {
     if (just_tables) {
@@ -492,8 +587,8 @@ unchecked_items_in_issue <- function(issue_body) {
   unchecked_items <- stringr::str_detect(issue_body, "- \\[ \\]")
 }
 
-create_milestone_table <- function(milestone_names) {
-  milestone_df <- create_milestone_df(milestone_names)
+create_milestone_table <- function(milestone_objects, milestone_names, issue_objects, statuses) {
+  milestone_df <- create_milestone_df(milestone_objects, milestone_names, issue_objects, statuses)
   milestone_csv <- create_milestone_csv(milestone_df)
 
   glue::glue(
@@ -519,7 +614,7 @@ knitr::kable(
   linesep = \"\\\\addlinespace\\\\addlinespace\"
 ) %>%
   kable_styling(latex_options = c(\"repeat_header\")) %>%
-  footnote(general=c(\"\\\\\\\\textcolor{{red}}{{O}} Open Issue\", \"\\\\\\\\textcolor{{red}}{{U}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
+  footnote(general=c(\"\\\\\\\\textcolor{{red}}{{U}} Unapproved Issue\", \"\\\\\\\\textcolor{{red}}{{C}} Issue with unchecked items\"), general_title = \"\", escape = FALSE) %>%
   column_spec(1, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(2, width = \"0.20\\\\\\\\textwidth\", latex_valign = \"p\") %>%
   column_spec(4, width = \"0.43\\\\\\\\textwidth\", latex_valign = \"p\")
@@ -536,39 +631,40 @@ print(table)
 
 create_milestone_csv <- function(milestone_df) {
   milestone_csv <- tempfile(fileext = ".csv")
-  #suppressMessages({withr::defer(fs::file_delete(milestone_csv))})
   utils::write.csv(milestone_df, file = milestone_csv, row.names = FALSE)
   return(milestone_csv)
 }
 
 
-create_milestone_df <- function(milestone_names) {
-  milestone_objects <- lapply(milestone_names, function(milestone_name) {
-    get_milestone_from_name(milestone_name)
-  })
+create_milestone_df <- function(milestone_objects, milestone_names, issue_objects, statuses) {
+  issues_by_milestone <- split(issue_objects, purrr::map_chr(issue_objects, ~ .x$milestone$title))
 
-  issues_in_milestones <- sapply(milestone_names, function(milestone_name) {
-    issues <- get_all_issues_in_milestone(milestone_name)
-    issue_names <- lapply(issues, function(issue) {
-      issue_name <- issue$title
-      # insert line breaks here before adding makecell and additional chars
+  unapproved_statuses <- dplyr::filter(statuses, `QC Status` != "Approved")
+  unapproved_issue_titles <- unapproved_statuses$file_name
 
-      issue_name <- insert_breaks(issue_name, 42)
+  issues_in_milestones <- purrr::map_chr(milestone_names, function(milestone_name) {
+    issues <- issues_by_milestone[[milestone_name]]
 
-      if (issue$state == "open") {
-        issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{O}}")
-      }
-      if (unchecked_items_in_issue(issue$body)) {
+    if (is.null(issues)) return("")
+
+    issue_names <- purrr::map_chr(issues, function(issue) {
+      issue_name <- insert_breaks(issue$title, 42)
+
+      if (issue$title %in% unapproved_issue_titles) {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{U}}")
+      }
+
+      if (unchecked_items_in_issue(issue$body)) {
+        issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{C}}")
       }
 
       return(issue_name)
     })
 
-
     issues_str <- glue::glue_collapse(issue_names, "\n\n")
     issues_str <- kableExtra::linebreak(issues_str)
     issues_str <- stringr::str_replace_all(issues_str, "_", "\\\\_")
+
     return(issues_str)
   })
 
@@ -606,68 +702,7 @@ create_milestone_df <- function(milestone_names) {
 }
 
 
-#' @importFrom log4r warn error info debug
-ghqc_record <- function(milestone_objects,
-                        issue_objects,
-                        statuses,
-                        input_name,
-                        just_tables,
-                        location) {
 
-  if (fs::is_file(location)) {
-    error(.le$logger, glue::glue("Inputted directory {location} is a file path. Input an existing directory."))
-    rlang::abort(message = glue::glue("Inputted directory {location} is a file path.<br>Input an existing directory."))
-  }
-
-  # check location exists
-  if (!fs::dir_exists(location)) {
-    error(.le$logger, glue::glue("Inputted directory {location} doesn't exist. Input an existing directory."))
-    rlang::abort(message = glue::glue("Inputted directory {location} doesn't exist.<br>Input an existing directory."))
-  }
-
-  browser()
-  debug(.le$logger, "Creating QC Record introduction...")
-  # intro
-  intro <- create_intro(milestone_names)
-  set_up_chunk <- set_up_chunk()
-  info(.le$logger, "Created QC Record introduction")
-
-  # create milestone table
-  milestone_table <- create_milestone_table(milestone_names)
-
-  debug(.le$logger, "Creating Milestone sections...")
-  # create milestone sections
-  milestone_sections <- lapply(milestone_names, function(milestone_name) {
-    milestone_body <- create_milestone_report_section(milestone_name, parent.frame(n = 2), just_tables)
-    create_big_section(milestone_name, milestone_body)
-  })
-  info(.le$logger, "Created Milestone sections")
-
-  # appendix
-
-  rmd_content <- glue::glue_collapse(c(intro,
-                                       set_up_chunk,
-                                       milestone_table,
-                                       milestone_sections
-                                       ), sep = "")
-
-  pdf_name <- get_pdf_name(input_name = input_name,
-                           milestone_names = milestone_names,
-                           just_tables = just_tables)
-
-  # create pdf from markdown
-
-  debug(.le$logger, "Converting rmd to pdf...")
-
-  suppressWarnings(
-    markdown_to_pdf(rmd_content = rmd_content,
-                    milestone_names = milestone_names,
-                    just_tables = just_tables,
-                    location = location,
-                    pdf_name = pdf_name)
-  )
-
-}
 
 get_simple_path <- function(working_dir = gert::git_find()) {
   home_dir <- Sys.getenv("HOME")
