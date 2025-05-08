@@ -379,7 +379,7 @@ ghqc_status_server <- function(id,
       cache <- status_cache()
       milestone <- df[row_index, ]$milestone_name
       issue_name <- df[row_index, ]$file_name
-      issue <- cache[[milestone]]$issue_objects[[issue_name]]
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
       warnings <- approve_warnings(issue = issue,
                                    row = df[row_index, ]
                                    )
@@ -543,7 +543,7 @@ ghqc_status_server <- function(id,
       cache <- status_cache()
       milestone <- df[row_index, ]$milestone_name
       issue_name <- df[row_index, ]$file_name
-      issue <- cache[[milestone]]$issue_objects[[issue_name]]
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
 
       tryCatch({
         create_notify_comment_body(
