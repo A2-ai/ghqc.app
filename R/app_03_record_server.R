@@ -32,6 +32,8 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
     issue_objects_rv <- reactiveVal(NULL)
     statuses_rv <- reactiveVal(NULL)
     selected_milestones_rv <- reactiveVal(NULL)
+    issues_with_unapproved_statuses_rv <- reactiveVal(NULL)
+    issues_with_open_checklists_rv <- reactiveVal(NULL)
 
     observe({
       waiter_hide()
@@ -139,6 +141,8 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       res <- determine_modal_message_report(milestone_objects)
       issue_objects_rv(res$issue_objects)
       statuses_rv(res$statuses)
+      issues_with_unapproved_statuses_rv(res$issues_with_unapproved_statuses)
+      issues_with_open_checklists_rv(res$issues_with_open_checklists)
       return(res)
     })
 
@@ -194,6 +198,8 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
           milestone_objects = selected_milestones_rv(),
           issue_objects = issue_objects_rv(),
           statuses = statuses_rv(),
+          issues_with_unapproved_statuses = issues_with_unapproved_statuses_rv(),
+          issues_with_open_checklists = issues_with_open_checklists_rv(),
           input_name = input$pdf_name,
           just_tables = input$just_tables,
           location = input$pdf_location

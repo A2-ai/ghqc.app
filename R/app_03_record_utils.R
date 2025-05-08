@@ -4,28 +4,15 @@ generate_html_list_with_hyperlink <- function(items) {
   html
 }
 
+generate_tiered_html_list_with_hyperlink <- function(grouped_issues) {
+  milestone_sections <- purrr::imap_chr(grouped_issues, function(issue_list, milestone_name) {
+    if (length(issue_list) == 0) return("")
 
-generate_tiered_html_list_with_hyperlink <- function(items) {
-  # Extract milestone titles and URLs (or use fallbacks inline)
-  milestone_titles <- purrr::map_chr(items, function(x) {
-    if (!is.null(x$milestone)) x$milestone$title else "No Milestone"
-  })
-
-  milestone_urls <- purrr::map_chr(items, function(x) {
-    if (!is.null(x$milestone)) x$milestone$html_url else "#"
-  })
-
-  # Use milestone titles as split keys (names)
-  names(items) <- milestone_titles
-  milestone_groups <- split(items, names(items))
-
-  milestone_sections <- lapply(names(milestone_groups), function(milestone_name) {
-    milestone_items <- milestone_groups[[milestone_name]]
-    milestone_url <- if (!is.null(milestone_items[[1]]$milestone)) milestone_items[[1]]$milestone$html_url else "#"
-
+    # Get milestone URL from the first issue (if available)
+    milestone_url <- issue_list[[1]]$milestone$html_url
     milestone_heading <- glue::glue("<a href='{milestone_url}' target='_blank'>{milestone_name}</a>:")
 
-    milestone_list_items <- purrr::map_chr(milestone_items, function(item) {
+    milestone_list_items <- purrr::map_chr(issue_list, function(item) {
       glue::glue("<li><a href='{item$html_url}' target='_blank'>{item$title}</a></li>")
     }) |> paste(collapse = "")
 
@@ -34,6 +21,36 @@ generate_tiered_html_list_with_hyperlink <- function(items) {
 
   glue::glue_collapse(milestone_sections, sep = "\n")
 }
+
+# generate_tiered_html_list_with_hyperlink <- function(items) {
+#   # Extract milestone titles and URLs (or use fallbacks inline)
+#   milestone_titles <- purrr::map_chr(items, function(x) {
+#     if (!is.null(x$milestone)) x$milestone$title else "No Milestone"
+#   })
+#
+#   milestone_urls <- purrr::map_chr(items, function(x) {
+#     if (!is.null(x$milestone)) x$milestone$html_url else "#"
+#   })
+#
+#   # Use milestone titles as split keys (names)
+#   names(items) <- milestone_titles
+#   milestone_groups <- split(items, names(items))
+#
+#   milestone_sections <- lapply(names(milestone_groups), function(milestone_name) {
+#     milestone_items <- milestone_groups[[milestone_name]]
+#     milestone_url <- if (!is.null(milestone_items[[1]]$milestone)) milestone_items[[1]]$milestone$html_url else "#"
+#
+#     milestone_heading <- glue::glue("<a href='{milestone_url}' target='_blank'>{milestone_name}</a>:")
+#
+#     milestone_list_items <- purrr::map_chr(milestone_items, function(item) {
+#       glue::glue("<li><a href='{item$html_url}' target='_blank'>{item$title}</a></li>")
+#     }) |> paste(collapse = "")
+#
+#     glue::glue("<li>{milestone_heading}<ul>{milestone_list_items}</ul></li>")
+#   })
+#
+#   glue::glue_collapse(milestone_sections, sep = "\n")
+# }
 
 #' @importFrom log4r warn error info debug
 generate_open_milestone_message <- function(open_milestones, warning_icon_html) {
@@ -93,7 +110,9 @@ determine_modal_message_report <- function(milestone_objects) {
     return(list(message = NULL,
                 state = NULL,
                 issue_objects = issue_objects,
-                statuses = statuses
+                statuses = statuses,
+                issues_with_unapproved_statuses = issues_with_unapproved_statuses,
+                issues_with_open_checklists = issues_with_open_checklists
                 )
            )
   }
@@ -102,7 +121,9 @@ determine_modal_message_report <- function(milestone_objects) {
     return(list(message = paste(messages, collapse = "\n"),
                 state = state,
                 issue_objects = issue_objects,
-                statuses = statuses
+                statuses = statuses,
+                issues_with_unapproved_statuses = issues_with_unapproved_statuses,
+                issues_with_open_checklists = issues_with_open_checklists
                 )
            )
   }
@@ -122,7 +143,9 @@ check_for_open_milestones <- function(milestone_objects) {
 
 #' @importFrom log4r warn error info debug
 check_for_open_checklists <- function(issue_objects) {
-  purrr::keep(issue_objects, ~ unchecked_items_in_issue(.x$body))
+  purrr::map(issue_objects, function(milestone_issues) {
+    purrr::keep(milestone_issues, ~ unchecked_items_in_issue(.x$body))
+  })
 }
 
 
@@ -152,11 +175,24 @@ check_for_unapproved_statuses <- function(milestone_objects) {
   )
 
   issue_objects <- status_res$issue_objects
-  statuses <- status_res$status
+  status_df <- status_res$status
 
-  unapproved_statuses <- dplyr::filter(statuses, `QC Status` != "Approved")
-  issue_names <- unapproved_statuses$file_name
-  issues_with_unapproved_statuses <- unname(issue_objects[issue_names])
+  statuses <- status_df |>
+    split(~ milestone_name) |>
+    purrr::map(~ split(.x, ~ .x$file_name))
+
+  unapproved_statuses <- dplyr::filter(status_df, `QC Status` != "Approved")
+
+  unapproved_keys <- paste(unapproved_statuses$milestone_name, unapproved_statuses$file_name, sep = "::")
+
+  filtered_issue_objects <- purrr::imap(issue_objects, function(issue_list, milestone_name) {
+    purrr::keep(issue_list, function(issue) {
+      key <- paste(issue$milestone$title, issue$title, sep = "::")
+      key %in% unapproved_keys
+    })
+  })
+
+  issues_with_unapproved_statuses <- purrr::discard(filtered_issue_objects, ~ length(.x) == 0)
 
   return(list(
     issues_with_unapproved_statuses = issues_with_unapproved_statuses,

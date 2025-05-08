@@ -2,6 +2,8 @@
 ghqc_record <- function(milestone_objects,
                         issue_objects,
                         statuses,
+                        issues_with_unapproved_statuses,
+                        issues_with_open_checklists,
                         input_name,
                         just_tables,
                         location) {
@@ -26,23 +28,20 @@ ghqc_record <- function(milestone_objects,
   info(.le$logger, "Created QC Record introduction")
 
   # create milestone table
-  milestone_table <- create_milestone_table(milestone_objects, milestone_names, issue_objects, statuses)
+  milestone_table <- create_milestone_table(milestone_objects,
+                                            milestone_names,
+                                            issue_objects,
+                                            issues_with_unapproved_statuses,
+                                            issues_with_open_checklists
+                                            )
 
   debug(.le$logger, "Creating Milestone sections...")
   # create milestone sections
-  issues_by_milestone <- split(issue_objects, purrr::map_chr(issue_objects, ~ .x$milestone$title))
-  statuses_by_milestone <- split(statuses, statuses$milestone_name)
   milestone_sections <- lapply(milestone_names, function(milestone_name) {
-    issue_objects_in_milestone <- issues_by_milestone[[milestone_name]]
-    statuses <- statuses_by_milestone[[milestone_name]]
+    issue_objects_in_milestone <- issue_objects[[milestone_name]]
+    statuses_in_milestone <- statuses[[milestone_name]]
 
-    statuses <- purrr::map(issue_objects_in_milestone, function(issue) {
-      match_row <- dplyr::filter(statuses, file_name == issue$title)
-      if (nrow(match_row) == 0) return(NULL)
-      match_row
-    })
-
-    milestone_body <- create_milestone_report_section(milestone_name, issue_objects_in_milestone, statuses, just_tables)
+    milestone_body <- create_milestone_report_section(milestone_name, issue_objects_in_milestone, statuses_in_milestone, just_tables)
     create_big_section(milestone_name, milestone_body)
   })
   info(.le$logger, "Created Milestone sections")
@@ -116,7 +115,6 @@ create_qc_data_section <- function(issue, status) {
                 issue_state_section
   )
 
-  #browser()
   closed_by <- {
     if (!is.null(issue$closed_by)) {
       issue$closed_by$login
@@ -411,7 +409,6 @@ insert_breaks <- function(text, width) {
 create_summary_csv <- function(issues, statuses) {
   summary_df <- get_summary_df(issues, statuses)
   summary_df$issue_closer[is.na(summary_df$issue_closer)] <- "NA"
-  #summary_df$close_date[is.na(summary_df$close_date)] <- "NA"
 
   # wrap file paths
   summary_df$file_path <- insert_breaks(summary_df$file_path, 18)
@@ -523,6 +520,7 @@ knitr::kable(
 ) %>%
   kable_styling(latex_options = c(\"repeat_header\")) %>%
   column_spec(1, width = \"10em\") %>%
+  column_spec(2, width = \"7em\") %>%
   column_spec(3, width = \"10em\")
 ```
 
@@ -550,16 +548,16 @@ create_set_of_issue_sections <- function(issues, statuses) {
 }
 
 #' @importFrom log4r warn error info debug
-create_milestone_report_section <- function(milestone_name, issue_objects_in_milestone, statuses, just_tables = FALSE) {
+create_milestone_report_section <- function(milestone_name, issue_objects_in_milestone, statuses_in_milestone, just_tables = FALSE) {
   debug(.le$logger, glue::glue("Creating section for Milestone: {milestone_name}..."))
 
   debug(.le$logger, glue::glue("Creating summary table for Milestone: {milestone_name}..."))
   # summary table
-  summary_csv <- create_summary_csv(issue_objects_in_milestone, statuses)
+  summary_csv <- create_summary_csv(issue_objects_in_milestone, statuses_in_milestone)
   summary_table_section <- create_summary_table_section(summary_csv)
   info(.le$logger, glue::glue("Created summary table for Milestone: {milestone_name}"))
 
-  issue_sections <- create_set_of_issue_sections(issue_objects_in_milestone, statuses)
+  issue_sections <- create_set_of_issue_sections(issue_objects_in_milestone, statuses_in_milestone)
 
   res <- {
     if (just_tables) {
@@ -587,8 +585,18 @@ unchecked_items_in_issue <- function(issue_body) {
   unchecked_items <- stringr::str_detect(issue_body, "- \\[ \\]")
 }
 
-create_milestone_table <- function(milestone_objects, milestone_names, issue_objects, statuses) {
-  milestone_df <- create_milestone_df(milestone_objects, milestone_names, issue_objects, statuses)
+create_milestone_table <- function(milestone_objects,
+                                   milestone_names,
+                                   issue_objects,
+                                   issues_with_unapproved_statuses,
+                                   issues_with_open_checklists
+                                   ) {
+  milestone_df <- create_milestone_df(milestone_objects,
+                                      milestone_names,
+                                      issue_objects,
+                                      issues_with_unapproved_statuses,
+                                      issues_with_open_checklists
+                                      )
   milestone_csv <- create_milestone_csv(milestone_df)
 
   glue::glue(
@@ -636,25 +644,28 @@ create_milestone_csv <- function(milestone_df) {
 }
 
 
-create_milestone_df <- function(milestone_objects, milestone_names, issue_objects, statuses) {
-  issues_by_milestone <- split(issue_objects, purrr::map_chr(issue_objects, ~ .x$milestone$title))
-
-  unapproved_statuses <- dplyr::filter(statuses, `QC Status` != "Approved")
-  unapproved_issue_titles <- unapproved_statuses$file_name
+create_milestone_df <- function(milestone_objects,
+                                milestone_names,
+                                issue_objects,
+                                issues_with_unapproved_statuses,
+                                issues_with_open_checklists
+                                ) {
 
   issues_in_milestones <- purrr::map_chr(milestone_names, function(milestone_name) {
-    issues <- issues_by_milestone[[milestone_name]]
+    issues <- issue_objects[[milestone_name]]
+    issue_names_with_unapproved_statuses <- names(issues_with_unapproved_statuses[[milestone_name]])
+    issue_names_with_open_checklists <- names(issues_with_open_checklists[[milestone_name]])
 
     if (is.null(issues)) return("")
 
     issue_names <- purrr::map_chr(issues, function(issue) {
       issue_name <- insert_breaks(issue$title, 42)
 
-      if (issue$title %in% unapproved_issue_titles) {
+      if (issue$title %in% issue_names_with_unapproved_statuses) {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{U}}")
       }
 
-      if (unchecked_items_in_issue(issue$body)) {
+      if (issue$title %in% issue_names_with_open_checklists) {
         issue_name <- glue::glue("{issue_name}\\textcolor{{red}}{{C}}")
       }
 
@@ -669,7 +680,8 @@ create_milestone_df <- function(milestone_objects, milestone_names, issue_object
   })
 
   milestone_statuses <- sapply(milestone_objects, function(milestone) {
-    milestone$state
+    x <- milestone$state
+    paste0(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))))
   })
 
   milestone_descriptions <-  sapply(milestone_objects, function(milestone) {
@@ -700,9 +712,6 @@ create_milestone_df <- function(milestone_objects, milestone_names, issue_object
 
   milestone_df
 }
-
-
-
 
 get_simple_path <- function(working_dir = gert::git_find()) {
   home_dir <- Sys.getenv("HOME")

@@ -42,7 +42,7 @@ ghqc_status <- function(milestone_objects,
     milestone_with_url <- glue::glue('<a href="{milestone_url}" target="_blank">{milestone_name}</a>')
 
     issues_df <- map_df(issues, function(issue) {
-      issue_objects[[issue$title]] <<- issue
+      issue_objects[[milestone_name]][[issue$title]] <<- issue
 
       # get column values for file
       file_name <- issue$title
