@@ -141,7 +141,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
 
       issue_titles_with_root_dir <- tryCatch(
         {
-          issues_in_milestone <- get_all_issues_in_milestone(milestone_name = rv_milestone())
+          milestone <- get_milestone_from_name(rv_milestone())
+          issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
+                                                                                   milestone_number = milestone$number
+                                                                                   )
           issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
           rv_issue_titles(issue_titles) # assign to reactiveVal
 

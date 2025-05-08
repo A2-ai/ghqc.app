@@ -17,7 +17,7 @@ ghqc_notify_app <- function() {
 
   # error handling before starting app
   check_github_credentials()
-  all_milestone_objects <- get_all_non_empty_milestone_objects_from_milestone_objects()
+  all_milestone_objects <- get_all_non_empty_ghqc_milestone_objects()
   open_milestone_objects <- get_open_milestone_objects_from_all_milestone_objects(all_milestone_objects)
   open_milestone_names <- get_milestone_names_from_milestone_objects(open_milestone_objects)
 

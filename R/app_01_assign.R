@@ -18,7 +18,7 @@ ghqc_assign_app <- function() {
   checklists <- get_valid_checklists()
   members <- get_members_errors()
 
-  all_milestone_objects <- get_all_non_empty_milestone_objects_from_milestone_objects()
+  all_milestone_objects <- get_all_non_empty_ghqc_milestone_objects()
   open_milestone_objects <- get_open_milestone_objects_from_all_milestone_objects(all_milestone_objects)
   open_milestone_names <- get_milestone_names_from_milestone_objects(open_milestone_objects)
 

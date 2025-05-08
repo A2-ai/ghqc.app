@@ -51,7 +51,10 @@ ghqc_notify_server <- function(id, open_milestone_names) {
             all_issues <- get_all_issues_in_repo()
             issue_choices <- convert_issue_df_format(all_issues)
           } else {
-            issues_by_milestone <- get_all_issues_in_milestone(milestone_name = input$select_milestone)
+            milestone <- get_milestone_from_name(input$select_milestone)
+            issues_by_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
+                                                                                     milestone_number = milestone$number
+                                                                                     )
             issue_choices <- convert_issue_df_format(issues_by_milestone)
           }
 
@@ -366,10 +369,13 @@ ghqc_notify_server <- function(id, open_milestone_names) {
     observe({
       # req post_comment causes modal not to show
       showModal(modalDialog(
-        title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+        title = tags$div(
+          tags$span("QC notification posted", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          modalButton("Dismiss"),
+          style = "text-align: right;"
+          ),
         footer = NULL,
         easyClose = TRUE,
-        tags$p("QC notification posted successfully."),
         tags$a(href = post_notify_comment(), "Click here to view the Issue on GitHub", target = "_blank")
       ))
     })
