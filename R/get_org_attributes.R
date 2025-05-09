@@ -216,7 +216,7 @@ get_issue_timeline <- function(issue_number) {
 }
 
 #' @importFrom log4r warn error info debug
-get_all_issues_in_repo <- function() { # TODO
+get_all_issues_in_repo <- function() {
   debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {.le$repo}..."))
   open_issues <- list()
   page <- 1

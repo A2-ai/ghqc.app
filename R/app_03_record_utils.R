@@ -90,7 +90,6 @@ generate_open_checklist_message <- function(issues_with_open_checklists, warning
 
 #' @importFrom log4r warn error info debug
 determine_modal_message_report <- function(milestone_objects) {
-  # TODO make this only check for approved Issues
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
 
   res <- check_for_unapproved_statuses(milestone_objects)
@@ -148,7 +147,7 @@ check_for_open_checklists <- function(issue_objects) {
   })
 }
 
-
+#' @importFrom rlang .data
 check_for_unapproved_statuses <- function(milestone_objects) {
   current_branch <- gert::git_branch()
   local_commits <- get_local_commits()
@@ -181,7 +180,7 @@ check_for_unapproved_statuses <- function(milestone_objects) {
     split(~ milestone_name) |>
     purrr::map(~ split(.x, ~ .x$file_name))
 
-  unapproved_statuses <- dplyr::filter(status_df, `QC Status` != "Approved")
+  unapproved_statuses <- dplyr::filter(status_df, .data$`QC Status` != "Approved")
 
   unapproved_keys <- paste(unapproved_statuses$milestone_name, unapproved_statuses$file_name, sep = "::")
 
