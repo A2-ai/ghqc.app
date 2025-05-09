@@ -87,10 +87,10 @@ create_qc_data_section <- function(issue, status) {
   qcer_section <- glue::glue("* **QCer:** {qcer}")
 
   qc_status <- as.character(status$`QC Status`)
-  qc_status_section <- glue::glue("* **QC Status:** {qc_status}")
+  qc_status_section <- glue::glue("* **QC status:** {qc_status}")
 
   git_status <- as.character(status$`Git Status`)
-  git_status_section <- glue::glue("* **Git Status:** {git_status}")
+  git_status_section <- glue::glue("* **Git status:** {git_status}")
 
   initial_qc_commit <- status$initial_qc_commit
   initial_qc_commit_section <- glue::glue("* **Initial QC commit:** {initial_qc_commit}")
@@ -102,7 +102,7 @@ create_qc_data_section <- function(issue, status) {
   issue_url_section <- glue::glue("* **Issue URL:** {issue_url}")
 
   issue_state <- status$`Issue State`
-  issue_state_section <- glue::glue("* **Issue State:** {issue_state}")
+  issue_state_section <- glue::glue("* **Issue state:** {issue_state}")
 
   sections <- c(issue_number_section,
                 qc_init_section,
