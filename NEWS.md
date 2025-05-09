@@ -1,3 +1,10 @@
+# ghqc.app 0.5.1
+
+changes to `ghqc_record_app()`:
+  - adds QC Status checks for Issues in selected Milestones
+  - summarizes QC Status checks in Milestone and Issue summary tables
+  - details more QC status information in Issue-level sections
+
 # ghqc.app 0.5.0
 
 - introduces `ghqc_status_app()`

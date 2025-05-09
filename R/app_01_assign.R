@@ -17,7 +17,10 @@ ghqc_assign_app <- function() {
   check_github_credentials()
   checklists <- get_valid_checklists()
   members <- get_members_errors()
-  milestone_list <- get_open_milestone_list_errors()
+
+  all_milestone_objects <- get_all_non_empty_ghqc_milestone_objects()
+  open_milestone_objects <- get_open_milestone_objects_from_all_milestone_objects(all_milestone_objects)
+  open_milestone_names <- get_milestone_names_from_milestone_objects(open_milestone_objects)
 
   app <- shinyApp(
     ui = ghqc_assign_ui(
@@ -29,7 +32,7 @@ ghqc_assign_app <- function() {
         root_dir = root_dir,
         checklists = checklists,
         members = members,
-        milestone_list = milestone_list
+        open_milestone_names = open_milestone_names
       )
     }
   )

@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -44,7 +44,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
 
     ns <- session$ns
 
-    if (length(milestone_list) == 0) {
+    if (length(open_milestone_names) == 0) {
       updateSelectizeInput(
         session,
         "milestone_existing",
@@ -65,12 +65,12 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
     rv_milestone <- reactiveVal(NULL)
 
     observe({
-      req(milestone_list)
+      req(open_milestone_names)
 
       updateSelectizeInput(
         session,
         "milestone_existing",
-        choices = milestone_list
+        choices = open_milestone_names
       )
     })
 
@@ -141,11 +141,25 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
 
       issue_titles_with_root_dir <- tryCatch(
         {
-          issues_in_milestone <- get_all_issues_in_milestone(milestone_name = rv_milestone())
-          issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
-          rv_issue_titles(issue_titles) # assign to reactiveVal
+          milestone <- get_milestone_from_name(rv_milestone())
 
-          file.path(basename(root_dir), issue_titles)
+          if (!is.null(milestone)) {
+            issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
+                                                                                     milestone_number = milestone$number
+            )
+            issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
+
+            rv_issue_titles(issue_titles) # assign to reactiveVal
+
+            file.path(basename(root_dir), issue_titles)
+          }
+          else {
+            info(.le$logger, glue::glue("Inputted milestone {rv_milestone()} does not yet exist"))
+            rv_issue_titles(NULL) # assign to reactiveVal
+
+            list()
+          }
+
         },
         error = function(e) {
           debug(.le$logger, glue::glue("There was no Milestones to query: {conditionMessage(e)}"))
@@ -369,7 +383,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
       }
 
       custom_note <- ifelse(custom_checklist_selected(),
-                             HTML(glue::glue("Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
+                             HTML(glue::glue("Remember to manually edit custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
                              ""
                              )
 
@@ -380,8 +394,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, milestone_list
             modalButton("Dismiss"), style = "text-align: right;"),
           footer = NULL,
           easyClose = TRUE,
-          tags$p(custom_note),
-          tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
+          tagList(
+            if (custom_note != "") tags$p(custom_note),
+            tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
+          )
         )
       )
     })

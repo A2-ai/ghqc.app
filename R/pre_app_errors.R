@@ -44,30 +44,5 @@ get_members_errors <- function() {
   )
 }
 
-get_open_milestone_list_errors <- function() {
-  tryCatch(
-    {
-      milestone_list <- get_open_milestone_names()
-      rev(milestone_list)
-    },
-    error = function(e) {
-      # it's fine to swallow error for this because milestones are not needed for creating
-      error(.le$logger, glue::glue("There was an error retrieving open Milestones: {conditionMessage(e)}"))
-      rlang::abort(conditionMessage(e))
-    }
-  )
-}
 
-get_all_milestone_list_errors <- function() {
-  tryCatch(
-    {
-      all_milestones <- list_ghqc_milestone_names()
-      rev(all_milestones)
-    },
-    error = function(e) {
-      error(.le$logger, glue::glue("There was an error retrieving all Milestones: {conditionMessage(e)}"))
-      rlang::abort(conditionMessage(e))
-    }
-  )
-}
 
