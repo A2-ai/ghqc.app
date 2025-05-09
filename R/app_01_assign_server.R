@@ -142,18 +142,22 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       issue_titles_with_root_dir <- tryCatch(
         {
           milestone <- get_milestone_from_name(rv_milestone())
+
           if (!is.null(milestone)) {
             issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
                                                                                      milestone_number = milestone$number
             )
             issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
+
             rv_issue_titles(issue_titles) # assign to reactiveVal
 
             file.path(basename(root_dir), issue_titles)
           }
           else {
             info(.le$logger, glue::glue("Inputted milestone {rv_milestone()} does not yet exist"))
-            character(0)
+            rv_issue_titles(NULL) # assign to reactiveVal
+
+            list()
           }
 
         },
@@ -379,7 +383,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       }
 
       custom_note <- ifelse(custom_checklist_selected(),
-                             HTML(glue::glue("Remember to manually edit Custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
+                             HTML(glue::glue("Remember to manually edit custom {get_checklist_display_name_var(plural = TRUE)} on GitHub.")),
                              ""
                              )
 
@@ -390,8 +394,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
             modalButton("Dismiss"), style = "text-align: right;"),
           footer = NULL,
           easyClose = TRUE,
-          tags$p(custom_note),
-          tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
+          tagList(
+            if (custom_note != "") tags$p(custom_note),
+            tags$a(href = milestone_url, "Click here to view the Milestone on GitHub", target = "_blank")
+          )
         )
       )
     })
