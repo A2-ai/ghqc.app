@@ -142,13 +142,20 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       issue_titles_with_root_dir <- tryCatch(
         {
           milestone <- get_milestone_from_name(rv_milestone())
-          issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
-                                                                                   milestone_number = milestone$number
-                                                                                   )
-          issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
-          rv_issue_titles(issue_titles) # assign to reactiveVal
+          if (!is.null(milestone)) {
+            issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
+                                                                                     milestone_number = milestone$number
+            )
+            issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
+            rv_issue_titles(issue_titles) # assign to reactiveVal
 
-          file.path(basename(root_dir), issue_titles)
+            file.path(basename(root_dir), issue_titles)
+          }
+          else {
+            info(.le$logger, glue::glue("Inputted milestone {rv_milestone()} does not yet exist"))
+            character(0)
+          }
+
         },
         error = function(e) {
           debug(.le$logger, glue::glue("There was no Milestones to query: {conditionMessage(e)}"))
