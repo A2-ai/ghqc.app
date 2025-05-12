@@ -28,22 +28,28 @@ ghqc_status_app <- function(milestones = NULL) {
     rlang::abort("There were no open Milestones found.")
   }
 
-  all_ghqc_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
+  browser()
+  all_ghqc_milestone_names <- organize_milestone_objects(all_milestone_objects)
+  #all_ghqc_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
 
   all_inputted_milestones_valid <- all(inputted_milestones %in% all_ghqc_milestone_names)
   if (!(all_inputted_milestones_valid)) {
     info(.le$logger, "Not all inputted Milestones exist. Rendering table with most recent Milestone")
   }
 
+  current_branch <- gert::git_branch()
+
   default_milestones <- {
     if (!is.null(inputted_milestones) && all_inputted_milestones_valid) {
       inputted_milestones
     } else {
+      # get all open milestones on qc_branch
+
       get_most_recent_milestone(all_milestone_objects)
     }
   }
 
-  current_branch <- gert::git_branch()
+
   local_commits <- get_local_commits()
   remote_commits <- get_remote_commits(current_branch)
 

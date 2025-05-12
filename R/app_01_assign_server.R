@@ -160,7 +160,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           else {
             info(.le$logger, glue::glue("Inputted milestone {inputted_milestone_rv()} does not yet exist"))
             issue_titles_in_existing_milestone_rv(NULL) # assign to reactiveVal
-            issues_in_existing_milestone_rv(issues_in_milestone)(NULL)
+            issues_in_existing_milestone_rv(NULL)
 
             list()
           }

@@ -78,6 +78,45 @@ get_milestone_names_from_milestone_objects <- function(milestone_objects) {
   purrr::map_chr(milestone_objects, "title")
 }
 
+organize_milestone_objects <- function(milestone_objects) {
+  grouped_milestones <- list()
+
+  for (m in milestone_objects) {
+    labels <- gh::gh(m$labels_url)
+    # Get the QC branch label, if any
+    qc_label <- Filter(
+      function(l) isTRUE(l$description == "QC branch"),
+      labels
+    )
+
+    if (length(qc_label) > 0) {
+      group_name <- qc_label[[1]]$name
+    } else {
+      group_name <- " "
+    }
+
+    # Append the milestone title under its group
+    if (!group_name %in% names(grouped_milestones)) {
+      grouped_milestones[[group_name]] <- c()
+    }
+
+    grouped_milestones[[group_name]] <- c(
+      grouped_milestones[[group_name]],
+      m$title
+    )
+  }
+
+  grouped_milestones <- lapply(grouped_milestones, function(group) {
+    if (is.null(names(group))) {
+      setNames(group, group)
+    } else {
+      group
+    }
+  })
+
+  return(grouped_milestones)
+}
+
 
 #' @importFrom log4r info debug error warn
 parse_remote_url <- function(remote_url) {

@@ -2,7 +2,7 @@
 # - organize issues associated with a set of files with milestones
 # - assign a different user to each issue for a given file
 
-create_issue <- function(file, issue_params, file_names) {
+create_issue <- function(file, issue_params, file_names, qc_branch) {
   issue_params$org <- .le$org
   issue_params$repo <- .le$repo
 
@@ -25,21 +25,22 @@ create_issue <- function(file, issue_params, file_names) {
   issue <- do.call(gh::gh, c("POST /repos/:org/:repo/issues", issue_params))
   debug(.le$logger, glue::glue("Created Issue {issue_params$title}"))
 
-  debug(.le$logger, glue::glue("Adding 'ghqc' label to {issue_params$title}"))
+  # add ghqc and qc_branch labels
+  debug(.le$logger, glue::glue("Adding 'ghqc' and '{qc_branch}' (QC branch) labels to {issue_params$title}"))
   label_params <- list(org = issue_params$org,
                        repo = issue_params$repo,
                        issue_number = issue$number,
-                       labels = array("ghqc"),
+                       labels = c("ghqc", qc_branch),
                        .api_url = .le$github_api_url)
   label <- do.call(gh::gh, c("POST /repos/:org/:repo/issues/:issue_number/labels", label_params))
-  debug(.le$logger, glue::glue("Label 'ghqc' added to {issue_params$title}"))
+  debug(.le$logger, glue::glue("Labels 'ghqc' and '{qc_branch}' (QC branch) added to {issue_params$title}"))
 
   # return the issue number
   list(number = issue$number, assignees = issue_params$assignees)
 } # create_issue
 
 #' @importFrom log4r warn error info debug
-create_issues <- function(data) {
+create_issues <- function(data, qc_branch) {
   # create list of issue_params to input to api call -
   # will build up in pieces because some are optional
   issue_params <- list(
@@ -72,7 +73,7 @@ create_issues <- function(data) {
 
   # create an issue for each file
   lapply(data$files, function(file) {
-    issue <- create_issue(file, issue_params, file_names)
+    issue <- create_issue(file, issue_params, file_names, qc_branch)
     debug(.le$logger, glue::glue("Created {get_checklist_display_name_var()} for file: {file$name}"))
     if (!is.null(data$milestone)) {
       debug(.le$logger, glue::glue("Milestone: {data$milestone}"))
@@ -96,6 +97,15 @@ ghqc_label_exists <- function() {
   "ghqc" %in% sapply(labels, function(x) x$name)
 }
 
+qc_branch_label_exists <- function(qc_branch) {
+  labels <- do.call(gh::gh, c("GET /repos/:org/:repo/labels",
+                              list(org = .le$org,
+                                   repo = .le$repo,
+                                   .api_url = .le$github_api_url
+                              )))
+  qc_branch %in% sapply(labels, function(x) x$name)
+}
+
 #' @importFrom gh gh
 create_ghqc_label <- function() {
   issue_params <- list(
@@ -109,13 +119,27 @@ create_ghqc_label <- function() {
   do.call(gh::gh, c("POST /repos/:org/:repo/labels", issue_params))
 }
 
+create_qc_branch_label <- function(qc_branch) {
+  issue_params <- list(
+    org = .le$org,
+    repo = .le$repo,
+    name = qc_branch,
+    color = "00274C",
+    description = "QC branch",
+    .api_url = .le$github_api_url
+  )
+  do.call(gh::gh, c("POST /repos/:org/:repo/labels", issue_params))
+}
+
 
 # test with "test_yamls/checklist.yaml"
 #' @importFrom log4r warn error info debug
 create_checklists <- function(yaml_path) {
   data <- yaml::yaml.load_file(yaml_path)
-  if (!ghqc_label_exists()) labels <- create_ghqc_label()
-   create_issues(data)
+  qc_branch <- gert::git_branch()
+  if (!ghqc_label_exists()) create_ghqc_label()
+  if (!qc_branch_label_exists(qc_branch)) create_qc_branch_label(qc_branch)
+   create_issues(data, qc_branch)
 }
 
 
