@@ -45,6 +45,22 @@ generate_existing_issue_message <- function(existing_issues, error_icon_html) {
   return(messages)
 }
 
+generate_existing_qc_branch_message <- function(issues_in_existing_milestone, error_icon_html) {
+  messages <- c()
+  # get the qc branch from the first issue
+  first_issue <- rev(issues_in_existing_milestone)[[1]]
+  qc_branch <- get_branch_from_issue_body(first_issue$body)
+  current_branch <- gert::git_branch()
+
+  if (current_branch != qc_branch) {
+    messages <- c(messages, sprintf(
+      "%s The existing Milestone is already associated with QC branch <em>%s</em>. The current branch is <em>%s</em>. Switch to QC branch or create a new Milestone.<br>",
+      error_icon_html, qc_branch, current_branch
+    ))
+  }
+  return(messages)
+}
+
 #' @importFrom log4r warn error info debug
 generate_commit_update_message <- function(commit_update_status, error_icon_html) {
   messages <- c()
@@ -77,7 +93,9 @@ determine_modal_message <- function(selected_files,
                                     untracked_selected_files,
                                     git_sync_status,
                                     commit_update_status = TRUE,
-                                    issue_titles = list()) {
+                                    issue_titles = list(),
+                                    issues_in_existing_milestone = NULL
+                                    ) {
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
   error_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#10071;</span>"
 
@@ -97,6 +115,11 @@ determine_modal_message <- function(selected_files,
     messages <- c(messages, generate_commit_update_message(commit_update_status, error_icon_html))
   }
   messages <- c(messages, generate_existing_issue_message(existing_issues, error_icon_html))
+
+  if (!is.null(issues_in_existing_milestone)) {
+    messages <- generate_existing_qc_branch_message(issues_in_existing_milestone, error_icon_html)
+  }
+
 
   # Errors and Warnings
   messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
