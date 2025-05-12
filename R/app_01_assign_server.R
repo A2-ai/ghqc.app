@@ -59,7 +59,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
     qc_trigger <- reactiveVal(FALSE)
 
     w_load_items <- Waiter$new(
-      id = ns("content"),
+      id = ns("main_panel_dynamic"),
       html = tagList(
         spin_2(),
       ),
