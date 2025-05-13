@@ -12,7 +12,7 @@ ghqc_record_app <- function() {
 
   # error handling before starting app
   check_github_credentials()
-  all_milestones <- get_all_non_empty_ghqc_milestone_objects()
+  all_milestones <- get_all_non_empty_milestone_objects()
   closed_milestones <- get_closed_milestone_objects_from_all_milestone_objects(all_milestones)
   all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
   all_closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestones)

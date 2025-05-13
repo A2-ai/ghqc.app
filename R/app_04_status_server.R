@@ -9,8 +9,8 @@
 NULL
 
 ghqc_status_server <- function(id,
-                               all_ghqc_milestone_names,
-                               all_milestone_objects,
+                               open_milestone_names,
+                               open_milestone_objects,
                                default_milestones,
                                local_commits,
                                remote_commits,
@@ -31,21 +31,6 @@ ghqc_status_server <- function(id,
         stopApp()
       }
     })
-
-    # make sure inputs are loaded
-    # observe({
-    #   req(all_ghqc_milestone_names,
-    #       all_milestone_objects,
-    #       default_milestones,
-    #       local_commits,
-    #       remote_commits,
-    #       current_branch,
-    #       ahead_behind_status,
-    #       files_changed_in_remote_commits,
-    #       files_changed_in_unpushed_local_commits,
-    #       files_with_uncommitted_local_changes
-    #       )
-    # })
 
     w <- waiter::Waiter$new(
       id = ns("main_container"),
@@ -130,7 +115,7 @@ ghqc_status_server <- function(id,
         w$show()
         for (milestone in missing) {
           debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
-          milestone_object <- get_milestone_object_from_milestone_name(milestone, all_milestone_objects)
+          milestone_object <- get_milestone_object_from_milestone_name(milestone, open_milestone_objects)
 
           result <- ghqc_status(
             milestone_objects = list(milestone_object),
@@ -348,6 +333,49 @@ ghqc_status_server <- function(id,
         })
       }
     }) # file_directory_filter
+
+
+    closed_milestone_objects <- reactiveVal(NULL)
+    closed_milestone_names <- reactiveVal(NULL)
+    all_milestone_objects <- reactiveVal(NULL)
+    all_milestone_names <- reactiveVal(NULL)
+
+    observeEvent(input$show_closed, {
+      browser()
+
+      # closed_milestone_names <- closed_milestone_names_rv()
+      # all_milestone_names <- all_milestone_names_rv()
+      # req(closed_milestone_names, all_milestone_names)
+
+      # if show closed
+      if (input$show_closed) {
+        closed_milestone_objects <- get_closed_non_empty_milestone_objects()
+        all_milestone_objects <- append(open_milestone_objects, closed_milestone_objects)
+        all_milestones_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
+        all_milestone_names <- get_grouped_milestone_names(all_milestones_by_branch)
+
+        #placeholder <- ifelse(length(closed_milestone_names) == 0, "No closed Milestones", "Select closed Milestones")
+
+        updateSelectizeInput(
+          session,
+          "selected_milestones",
+          choices = all_milestone_names#,
+          #options = list(placeholder = placeholder)
+        )
+      }
+
+      # if not closed
+      else {
+        #placeholder <- ifelse(length(all_milestone_names) == 0, "No Milestones", "Select Milestones")
+
+        updateSelectizeInput(
+          session,
+          "selected_milestones",
+          choices = open_milestone_names#,
+          #options = list(placeholder = placeholder)
+        )
+      }
+    }, ignoreInit = TRUE)
 
 
 
@@ -618,10 +646,25 @@ ghqc_status_server <- function(id,
 
     output$sidebar <- renderUI({
       tagList(
+        # Show closed Milestones
+        div(
+          style = "margin-top: 4px; margin-bottom: 5px",
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            "Show closed Milestones",
+            tags$input(
+              id = ns("show_closed"),
+              type = "checkbox",
+              class = "form-check-input",
+              style = "transform: scale(1.2)"
+            )
+          )
+        ), # Show Closed Milestones
         # Milestones
         selectizeInput(ns("selected_milestones"),
                        "Milestones",
-                       choices = all_ghqc_milestone_names,
+                       choices = open_milestone_names,
                        selected = c(default_milestones),
                        multiple = TRUE,
                        width = "100%",
