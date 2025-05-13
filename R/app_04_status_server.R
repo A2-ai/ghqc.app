@@ -779,8 +779,11 @@ ghqc_status_server <- function(id,
           lengthChange = FALSE,
           paging = FALSE,
           searching = TRUE,
-          info = TRUE,
-          dom = 'fit',
+          #info = TRUE,
+          dom = 'it',
+          language = list(
+            info = "_TOTAL_ file(s)"
+          ),
           scrollCollapse = TRUE,
           drawCallback = DT::JS(glue::glue("
   function(settings) {{

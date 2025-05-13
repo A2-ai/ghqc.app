@@ -82,6 +82,22 @@ div[id$='-sidebar'] {
     max-height: none !important;
     min-height: 20px !important;
   }
+")),
+      tags$style(HTML("
+  .gadget-absfill {
+    top: 0 !important;
+    bottom: 0 !important;
+  }
+")),
+      tags$style(HTML("
+  .dataTables_wrapper .dataTables_info {
+    text-align: left !important;
+    float: left !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 "))
     ), # tags$head
     waiter_show_on_load(
@@ -97,7 +113,7 @@ div[id$='-sidebar'] {
         style = "display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%;",
         div(
           style = "position: relative; flex-shrink: 0; width: 50px; height: 50px;",
-          tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important to ensure style priority so logo is the correct size
+          tags$img(src = "ghqc.app/ghqc_hex.png", class = "logo-img", style = "height: 46px; !important;") # this is important for style priority so logo is the correct size
         ),
         div("Status QC file(s)", style = "white-space: nowrap;")
       ),

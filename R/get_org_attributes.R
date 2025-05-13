@@ -78,43 +78,38 @@ get_milestone_names_from_milestone_objects <- function(milestone_objects) {
   purrr::map_chr(milestone_objects, "title")
 }
 
-organize_milestone_objects <- function(milestone_objects) {
+group_milestone_objects_by_branch <- function(milestone_objects) {
   grouped_milestones <- list()
 
   for (m in milestone_objects) {
     labels <- gh::gh(m$labels_url)
-    # Get the QC branch label, if any
+
+    # Get the QC branch label
     qc_label <- Filter(
       function(l) isTRUE(l$description == "QC branch"),
       labels
     )
 
-    if (length(qc_label) > 0) {
-      group_name <- qc_label[[1]]$name
-    } else {
-      group_name <- " "
-    }
+    group_name <- if (length(qc_label) > 0) qc_label[[1]]$name else " "
 
-    # Append the milestone title under its group
+    # Initialize group if needed
     if (!group_name %in% names(grouped_milestones)) {
-      grouped_milestones[[group_name]] <- c()
+      grouped_milestones[[group_name]] <- list()
     }
 
-    grouped_milestones[[group_name]] <- c(
-      grouped_milestones[[group_name]],
-      m$title
-    )
+    # Name the milestone in the group by its title
+    grouped_milestones[[group_name]][[m$title]] <- m
   }
 
-  grouped_milestones <- lapply(grouped_milestones, function(group) {
-    if (is.null(names(group))) {
-      setNames(group, group)
-    } else {
-      group
-    }
-  })
-
   return(grouped_milestones)
+}
+
+get_grouped_milestone_names <- function(grouped_milestones) {
+  #lapply(grouped_milestones, names)
+  lapply(grouped_milestones, function(group) {
+    milestone_titles <- names(group)
+    setNames(milestone_titles, milestone_titles)
+  })
 }
 
 

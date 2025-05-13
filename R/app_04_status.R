@@ -28,11 +28,10 @@ ghqc_status_app <- function(milestones = NULL) {
     rlang::abort("There were no open Milestones found.")
   }
 
-  browser()
-  all_ghqc_milestone_names <- organize_milestone_objects(all_milestone_objects)
-  #all_ghqc_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
+  all_ghqc_milestones_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
+  all_ghqc_milestone_names <- get_grouped_milestone_names(all_ghqc_milestones_by_branch)
 
-  all_inputted_milestones_valid <- all(inputted_milestones %in% all_ghqc_milestone_names)
+  all_inputted_milestones_valid <- all(inputted_milestones %in% all_ghqc_milestones_by_branch)
   if (!(all_inputted_milestones_valid)) {
     info(.le$logger, "Not all inputted Milestones exist. Rendering table with most recent Milestone")
   }
@@ -42,10 +41,20 @@ ghqc_status_app <- function(milestones = NULL) {
   default_milestones <- {
     if (!is.null(inputted_milestones) && all_inputted_milestones_valid) {
       inputted_milestones
-    } else {
+    }
+    else {
       # get all open milestones on qc_branch
+      # TODO: test case for 1 milestone on the branch versus a few
+      milestones_on_current_branch <- all_ghqc_milestones_by_branch[[current_branch]]
+      open_milestones_on_current_branch <- purrr::keep(milestones_on_current_branch, ~ .x$state == "open")
+      open_milestone_names_on_current_branch <- get_milestone_names_from_milestone_objects(open_milestones_on_current_branch)
+      if (length(open_milestone_names_on_current_branch) > 0) {
+        open_milestone_names_on_current_branch
+      }
+      else {
+        get_most_recent_milestone(all_milestone_objects)
+      }
 
-      get_most_recent_milestone(all_milestone_objects)
     }
   }
 
@@ -70,7 +79,7 @@ ghqc_status_app <- function(milestones = NULL) {
     server = function(input, output, session) {
       ghqc_status_server(
         id = "ghqc_status_app",
-        all_ghqc_milestone_names = all_ghqc_milestone_names,
+        all_ghqc_milestone_names = all_ghqc_milestone_names, # TODO
         all_milestone_objects = all_milestone_objects,
         default_milestones = default_milestones,
         local_commits,

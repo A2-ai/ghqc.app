@@ -48,7 +48,6 @@ generate_existing_issue_message <- function(existing_issues, error_icon_html) {
 generate_existing_qc_branch_message <- function(issues_in_existing_milestone, error_icon_html) {
   messages <- c()
   # get the qc branch from the first issue
-  browser()
   first_issue <- rev(issues_in_existing_milestone)[[1]]
   qc_branch <- get_branch_from_issue_body(first_issue$body)
   current_branch <- gert::git_branch()
