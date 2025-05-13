@@ -14,7 +14,7 @@ ghqc_status_app <- function(milestones = NULL) {
 
   if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
   get_options()
-  git_fetch(prune = TRUE)
+  gert::git_fetch(prune = TRUE)
 
   # error handling before starting app
   rproj_root_dir()

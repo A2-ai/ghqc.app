@@ -163,7 +163,7 @@ initial_qc_commit_posted <- function(local_commits, remote_commits, file, repo_u
 
 file_changes_to_post <- function(git_status, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit, latest_qc_commit_short) {
   # don't check for remote file changes off-the-bat in if-then logic, because would rather say "notification posted" if one was posted
-  qc_status <- ifelse(git_status == "Remote file changes", "File changes to pull", "File changes to post")
+  qc_status <- ifelse(!is.na(git_status) && git_status == "Remote file changes", "File changes to pull", "File changes to post")
 
   last_commit_that_changed_file_short <- get_hyperlinked_commit(last_remote_file_change_after_qc_commit, file, repo_url)
   commit_diff_url <- get_hyperlinked_commit_diff(repo_url,
@@ -271,7 +271,6 @@ get_file_qc_status_non_local_qc_branch <- function(file,
                                                    qc_approved) {
   # QC status for files on different branches are less precise
   # because we can't know the local git status
-
   latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file, repo_url)
   last_remote_file_change_after_qc_commit <- last_commit_that_changed_file_after_latest_qc_commit(file,
                                                                                                   latest_qc_commit,
