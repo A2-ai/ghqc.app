@@ -37,9 +37,9 @@ ghqc_status_ui <- function(id) {
 "))),
       tags$style(HTML("
 div[id$='-sidebar'] {
-    width: 175px;
-    min-width: 175px;
-    max-width: 175px;
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
     flex: 0 0 0;
     overflow-y: auto;
     transition: all 0.3s ease;
