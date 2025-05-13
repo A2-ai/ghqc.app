@@ -782,7 +782,7 @@ ghqc_status_server <- function(id,
           #info = TRUE,
           dom = 'it',
           language = list(
-            info = "_TOTAL_ file(s)"
+            info = ""
           ),
           scrollCollapse = TRUE,
           drawCallback = DT::JS(glue::glue("
@@ -807,6 +807,12 @@ ghqc_status_server <- function(id,
         setTimeout(fixHeaderAlignment, 300);
       }}).observe(sidebar);
     }}
+
+    var info = table.page.info();
+      var recordText = info.recordsDisplay === 1 ? 'file' : 'files';
+      $('div.dataTables_info').text(
+        `${{info.recordsDisplay}} ` + recordText
+      );
   }}
 "))
         )
