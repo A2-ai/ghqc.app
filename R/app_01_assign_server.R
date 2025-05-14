@@ -52,7 +52,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       updateSelectizeInput(
         session,
         "milestone_existing",
-        options = list(placeholder = "No Open Milestones")
+        options = list(placeholder = "No open Milestones")
       )
     }
 

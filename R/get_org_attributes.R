@@ -64,10 +64,10 @@ get_all_non_empty_milestone_objects <- function() {
   debug(.le$logger, glue::glue("Retrieving Milestone(s) in organization {.le$org}, repo {.le$repo}..."))
   all_milestone_objects <- get_all_milestone_objects()
 
-  info(.le$logger, glue::glue("Retrieved {length(all_milestone_objects)} ghqc Milestone(s) in repo {.le$repo}"))
+  info(.le$logger, glue::glue("Retrieved {length(all_milestone_objects)} Milestone(s) in repo {.le$repo}"))
   all_non_empty_milestone_objects <- get_non_empty_milestone_objects_from_milestone_objects(all_milestone_objects)
 
-  info(.le$logger, glue::glue("Retrieved {length(all_non_empty_milestone_objects)} non-empty ghqc Milestone(s) in repo {.le$repo}"))
+  info(.le$logger, glue::glue("Retrieved {length(all_non_empty_milestone_objects)} non-empty Milestone(s) in repo {.le$repo}"))
   return(rev(all_non_empty_milestone_objects))
 }
 
