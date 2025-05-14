@@ -96,7 +96,7 @@ div[id$='-sidebar'] {
     float: left !important;
     padding-left: 0 !important;
     margin-left: 0 !important;
-    padding: 1px !important;
+    padding: 3px !important;
     margin: 0 !important;
   }
 "))

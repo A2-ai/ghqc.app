@@ -56,7 +56,7 @@ ghqc_status_app <- function(milestones = NULL) {
         get_most_recent_milestone(open_milestone_objects)
       }
       else {
-        open_milestone_names <- NULL #c("No milestones available" = "")
+        open_milestone_names <- NULL
         open_milestone_objects <- NULL
         NULL
       }

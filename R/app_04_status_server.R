@@ -401,10 +401,12 @@ ghqc_status_server <- function(id,
         selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
         placeholder <- ifelse(length(open_milestone_names) == 0, "No open Milestones", "Select open Milestone(s)")
 
+        choices <- ifelse(!is.null(open_milestone_names), open_milestone_names, "")
+
         updateSelectizeInput(
           session,
           "selected_milestones",
-          choices = open_milestone_names,
+          choices = choices,
           selected = selected,
           options = list(
             placeholder = placeholder
@@ -785,7 +787,9 @@ ghqc_status_server <- function(id,
       }
       else {
         waiter_hide()
-        output$main_panel_dynamic <- renderUI({ NULL })
+        output$main_panel_dynamic <- renderUI({
+          HTML("<div style='padding-top: 5px; font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No Milestones selected</div>")
+          })
       }
     })
 

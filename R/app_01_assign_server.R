@@ -108,7 +108,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
                          choices = "",
                          multiple = FALSE,
                          width = "100%",
-                         options = list(placeholder = "(required)")
+                         options = list(placeholder = "(Required)")
           ),
         ),
         conditionalPanel(
