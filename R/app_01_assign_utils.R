@@ -174,7 +174,7 @@ isolate_rendered_list <- function(input, session, items, members) {
       choices = members,
       selected = isolate(input[[assignee_input_id]]),
       options = list(
-        placeholder = "QCer (optional)",
+        placeholder = "QCer (Optional)",
         valueField = "username",
         labelField = "username",
         searchField = c("username", paste0("name")),
@@ -557,14 +557,14 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
                 ns(paste0("name_", file)),
                 label = "Name",
                 value = meta$name,
-                placeholder = "(optional)"
+                placeholder = "(Optional)"
               ),
               textAreaInput(
                 ns(paste0("note_", file)),
                 label = "Note",
                 value = meta$note,
                 rows = 2,
-                placeholder = "(optional)"
+                placeholder = "(Optional)"
                 )
             )
           }) # ui_elements

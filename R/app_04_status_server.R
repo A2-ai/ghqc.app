@@ -110,6 +110,8 @@ ghqc_status_server <- function(id,
     # ghqc_status
     run_generate <- function(milestones = selected_milestones()) {
       req(milestones)
+      if (length(milestones) == 0 || is.null(milestones)) return(NULL)
+
       current_milestones <- milestones
       cache <- status_cache()
 
@@ -217,13 +219,15 @@ ghqc_status_server <- function(id,
 
     # generate table with default milestones when app is first loaded
     observeEvent(selected_milestones(), {
-      if (is.null(cached_status())) {
+      if (is.null(cached_status()) && length(selected_milestones()) > 0) {
         run_generate()
       }
     }, once = TRUE)
 
     observeEvent(selected_milestones(), {
-      run_generate()
+      if (length(selected_milestones()) > 0) {
+        run_generate()
+      }
     })
 
     # filter data based on filters in sidebar
@@ -370,6 +374,7 @@ ghqc_status_server <- function(id,
         }
 
         selected <- intersect(input$selected_milestones, unlist(all_milestone_names))
+        placeholder <- ifelse(length(all_milestone_names) == 0, "No Milestones", "Select Milestone(s)")
 
         updateSelectizeInput(
           session,
@@ -386,19 +391,24 @@ ghqc_status_server <- function(id,
       return '<div class=\"option\">' + item.label + '</div>';
     }
   }
-")
+"),
+            placeholder = placeholder
           )
         )
       }
       else {
         # show open-only
         selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
+        placeholder <- ifelse(length(open_milestone_names) == 0, "No open Milestones", "Select open Milestone(s)")
 
         updateSelectizeInput(
           session,
           "selected_milestones",
           choices = open_milestone_names,
-          selected = selected
+          selected = selected,
+          options = list(
+            placeholder = placeholder
+          )
         )
       }
     }, ignoreInit = TRUE)
@@ -691,11 +701,10 @@ ghqc_status_server <- function(id,
         selectizeInput(ns("selected_milestones"),
                        "Milestones",
                        choices = open_milestone_names,
-                       selected = c(default_milestones),
+                       selected = default_milestones,
                        multiple = TRUE,
-                       width = "100%",
-                       options = list(placeholder = "(Required)")
-        ),
+                       width = "100%"
+                       ),
         # QC Status Filter
         selectInput(
           ns("qc_status_filter"),
@@ -766,7 +775,7 @@ ghqc_status_server <- function(id,
 
 
     observeEvent(show_table(), {
-      if (show_table()) {
+      if (isTRUE(show_table()) && length(selected_milestones()) > 0) {
         output$main_panel_dynamic <- renderUI({
           div(
             id = ns("main_panel_wrapper"),
@@ -775,6 +784,7 @@ ghqc_status_server <- function(id,
         })
       }
       else {
+        waiter_hide()
         output$main_panel_dynamic <- renderUI({ NULL })
       }
     })
@@ -848,7 +858,6 @@ ghqc_status_server <- function(id,
           lengthChange = FALSE,
           paging = FALSE,
           searching = TRUE,
-          #info = TRUE,
           dom = 'it',
           language = list(
             info = ""

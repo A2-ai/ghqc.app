@@ -116,7 +116,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           textAreaInput(
             ns("milestone_description"),
             "Milestone Description",
-            placeholder = "(optional)",
+            placeholder = "(Optional)",
             width = "100%"
           )
         ),

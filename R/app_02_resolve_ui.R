@@ -38,7 +38,7 @@ ghqc_notify_ui <- function(id) {
           id = ns("center_content"),
           selectInput(ns("select_milestone"), "Filter Issues by Milestone", choices = "", multiple = FALSE),
           selectInput(ns("select_issue"), "Select Issue", choices = "", multiple = FALSE),
-          textAreaInput(ns("message"), "Message", "", placeholder = "(optional)"),
+          textAreaInput(ns("message"), "Message", "", placeholder = "(Optional)"),
           div(
             id = ns("show_diff_wrap"),
             checkboxInput(ns("show_diff"), "Show file difference", TRUE)

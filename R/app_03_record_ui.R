@@ -38,7 +38,7 @@ ghqc_record_ui <- function(id) {
           id = ns("center_content"),
           checkboxInput(ns("closed_only"), "Closed Milestones only", TRUE),
           selectizeInput(ns("select_milestone"), "Select Milestones", choices = "", multiple = TRUE),
-          textAreaInput(ns("pdf_name"), "PDF Name", placeholder = "(optional)"),
+          textAreaInput(ns("pdf_name"), "PDF Name", placeholder = "(Optional)"),
           textAreaInput(ns("pdf_location"), "PDF Location", value = get_simple_path()),
           checkboxInput(ns("just_tables"), "Just tables", FALSE)
         )
