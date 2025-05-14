@@ -121,13 +121,35 @@ group_milestone_objects_by_branch <- function(milestone_objects) {
   return(grouped_milestones)
 }
 
-get_grouped_milestone_names <- function(grouped_milestones) {
+get_grouped_milestone_names <- function(grouped_milestones, closed_titles = character()) {
   #lapply(grouped_milestones, names)
   lapply(grouped_milestones, function(group) {
     milestone_titles <- names(group)
-    setNames(milestone_titles, milestone_titles)
+
+    display_titles <- ifelse(
+      milestone_titles %in% closed_titles,
+      sprintf("<span style='color: gray;'>%s</span>", milestone_titles),
+      milestone_titles
+    )
+
+    setNames(milestone_titles, display_titles)
   })
 }
+# get_grouped_milestone_names <- function(grouped_milestones, closed_titles = character()) {
+#   lapply(grouped_milestones, function(group) {
+#     titles <- names(group)
+#     ids <- vapply(group, function(m) m$number, character(1))
+#
+#     # Apply gray color to closed milestone titles
+#     display_titles <- ifelse(
+#       titles %in% closed_titles,
+#       sprintf("<span style='color: gray;'>%s</span>", titles),
+#       titles
+#     )
+#
+#     setNames(as.character(ids), display_titles)
+#   })
+# }
 
 
 #' @importFrom log4r info debug error warn

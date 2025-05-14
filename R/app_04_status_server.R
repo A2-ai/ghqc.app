@@ -357,11 +357,13 @@ ghqc_status_server <- function(id,
           closed_milestone_objects <- get_closed_non_empty_milestone_objects()
           closed_milestone_objects_rv(closed_milestone_objects)
 
+          closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestone_objects)
+
           all_milestone_objects <- c(open_milestone_objects, closed_milestone_objects)
           all_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
           all_milestone_objects_rv(all_by_branch)
 
-          all_milestone_names <- get_grouped_milestone_names(all_by_branch)
+          all_milestone_names <- get_grouped_milestone_names(all_by_branch, closed_milestone_names)
           all_milestone_names_rv(all_milestone_names)
 
           w_closed$hide()
@@ -373,7 +375,19 @@ ghqc_status_server <- function(id,
           session,
           "selected_milestones",
           choices = all_milestone_names,
-          selected = selected
+          selected = selected,
+          options = list(
+            render = I("
+  {
+    item: function(item, escape) {
+      return '<div class=\"item\">' + item.label + '</div>';
+    },
+    option: function(item, escape) {
+      return '<div class=\"option\">' + item.label + '</div>';
+    }
+  }
+")
+          )
         )
       }
       else {
