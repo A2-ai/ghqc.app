@@ -28,7 +28,9 @@ ghqc_status_app <- function(milestones = NULL) {
   #   rlang::abort("There were no open Milestones found.")
   # }
 
+  browser()
   open_milestones_by_branch <- group_milestone_objects_by_branch(open_milestone_objects)
+
   open_milestone_names <- get_grouped_milestone_names(open_milestones_by_branch)
 
   #all_open_ghqc_milestones

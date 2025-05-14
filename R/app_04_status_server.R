@@ -398,10 +398,16 @@ ghqc_status_server <- function(id,
       }
       else {
         # show open-only
+        browser()
         selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
         placeholder <- ifelse(length(open_milestone_names) == 0, "No open Milestones", "Select open Milestone(s)")
 
-        choices <- ifelse(!is.null(open_milestone_names), open_milestone_names, "")
+        choices <- if (!is.null(open_milestone_names)) {
+          open_milestone_names
+        }
+        else {
+          ""
+        }
 
         updateSelectizeInput(
           session,
@@ -413,7 +419,7 @@ ghqc_status_server <- function(id,
           )
         )
       }
-    }, ignoreInit = TRUE)
+    })
 
 
 
