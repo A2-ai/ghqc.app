@@ -780,8 +780,18 @@ ghqc_status_server <- function(id,
     }) # output$sidebar
 
 
+    milestones_initialized <- reactiveVal(FALSE)
+
+    observeEvent(selected_milestones(), {
+      if (!milestones_initialized() && length(selected_milestones()) >= 0) {
+        milestones_initialized(TRUE)
+      }
+    }, ignoreInit = FALSE, once = TRUE)
+
 
     observeEvent(show_table(), {
+      if (!milestones_initialized()) return(NULL)
+
       if (isTRUE(show_table()) && length(selected_milestones()) > 0) {
         output$main_panel_dynamic <- renderUI({
           div(
@@ -1025,7 +1035,7 @@ ghqc_status_server <- function(id,
       files_changed_in_unpushed_local_commits_rv(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
       files_with_uncommitted_local_changes_rv(get_files_with_uncommitted_local_changes())
 
-      show_table(TRUE)
+      show_table(FALSE)
       run_generate(current_milestones)
     } # reset_app
 

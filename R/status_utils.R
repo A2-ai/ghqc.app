@@ -165,15 +165,15 @@ get_comment_metadata <- function(body) {
   return(metadata)
 }
 
-get_hyperlinked_commit <- function(long_commit, file, repo_url) {
+get_hyperlinked_commit <- function(long_commit, file) {
   short_commit <- substr(long_commit, 1, 7)
-  sha_url <- file.path(repo_url, "blob", long_commit, file)
+  sha_url <- file.path(.le$full_repo_url, "blob", long_commit, file)
   hyperlinked_commit <- glue::glue('<a href="{sha_url}" target="_blank">{short_commit}</a>')
   return(hyperlinked_commit)
 }
 
-get_hyperlinked_commit_diff <- function(repo_url, old_commit, new_commit) {
-  commit_diff_url <- file.path(repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
+get_hyperlinked_commit_diff <- function(old_commit, new_commit) {
+  commit_diff_url <- file.path(.le$full_repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
   hyperlinked_commit_diff <- glue::glue('<a href="{commit_diff_url}" target="_blank">Commit difference</a>')
   return(hyperlinked_commit_diff)
 }
