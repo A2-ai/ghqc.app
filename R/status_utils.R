@@ -77,7 +77,7 @@ get_approve_column <- function(qc_status, git_status) {
 
 
   # else, git_status is NA or "Up to date"
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Requires approval")
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Closed without approval")
   if (valid_qc_status) {
     return("approve")
   }
@@ -129,8 +129,8 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   # the issue - maybe a relevant file changed or something like that
   soft_notify_qc_statuses <- c("Awaiting approval")
 
-  changes_after_closure <- qc_status == "Requires approval" && stringr::str_detect(diagnostics, "Commit difference")
-  no_changes_after_closure <- qc_status == "Requires approval" && !stringr::str_detect(diagnostics, "Commit difference")
+  changes_after_closure <- qc_status == "Closed without approval" && stringr::str_detect(diagnostics, "Commit difference")
+  no_changes_after_closure <- qc_status == "Closed without approval" && !stringr::str_detect(diagnostics, "Commit difference")
 
   has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || changes_after_closure
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure

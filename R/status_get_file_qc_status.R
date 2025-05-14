@@ -240,7 +240,7 @@ pushed_file_changes_after_approved_qc_commit <- function(last_remote_file_change
 } # pushed_file_changes_after_approved_qc_commit
 
 requires_approval <- function(latest_qc_commit_short, last_remote_file_change_after_qc_commit, file, repo_url, latest_qc_commit) {
-  qc_status <- "Requires approval"
+  qc_status <- "Closed without approval"
   diagnostics_items <- list(glue::glue("Last posted commit: {latest_qc_commit_short}"))
 
   # if file changes since last notification
