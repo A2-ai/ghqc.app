@@ -22,13 +22,6 @@ ghqc_status_app <- function(milestones = NULL) {
 
   open_milestone_objects <- get_open_non_empty_milestone_objects()
 
-  # error if no non-empty ghqc milestones
-  # if (length(open_milestone_objects) == 0) { # TODO: handle/test this case
-  #   error(.le$logger, glue::glue("There were no non-empty ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
-  #   rlang::abort("There were no open Milestones found.")
-  # }
-
-  browser()
   open_milestones_by_branch <- group_milestone_objects_by_branch(open_milestone_objects)
 
   open_milestone_names <- get_grouped_milestone_names(open_milestones_by_branch)

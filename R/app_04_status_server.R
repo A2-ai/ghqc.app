@@ -398,7 +398,6 @@ ghqc_status_server <- function(id,
       }
       else {
         # show open-only
-        browser()
         selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
         placeholder <- ifelse(length(open_milestone_names) == 0, "No open Milestones", "Select open Milestone(s)")
 
