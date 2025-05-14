@@ -56,6 +56,11 @@ ghqc_status_server <- function(id,
     files_changed_in_unpushed_local_commits_rv <- reactiveVal(files_changed_in_unpushed_local_commits)
     files_with_uncommitted_local_changes_rv <- reactiveVal(files_with_uncommitted_local_changes)
 
+    # if "Show closed milestones" is selected, calulate these
+    closed_milestone_objects_rv <- reactiveVal(NULL)
+    all_milestone_objects_rv <- reactiveVal(NULL)
+    all_milestone_names_rv <- reactiveVal(NULL)
+
     # comment reactives
     post_notification_trigger <- reactiveVal(FALSE)
     post_approve_trigger <- reactiveVal(FALSE)
@@ -74,7 +79,7 @@ ghqc_status_server <- function(id,
       )
     }
 
-    # if there's no cache, wait 2 seconds to make sure user if actually done selecting multiple milestones
+    # if there's no cache, wait 1.5 seconds to make sure user if actually done selecting multiple milestones
     selected_milestones <- reactive({
       current <- selected_raw()
       key <- milestone_key(current)
@@ -90,7 +95,7 @@ ghqc_status_server <- function(id,
       input$selected_milestones
     })
 
-    selected_debounced <- selected_raw %>% debounce(2000)
+    selected_debounced <- selected_raw %>% debounce(1500)
 
 
 
@@ -110,12 +115,12 @@ ghqc_status_server <- function(id,
 
       missing <- setdiff(current_milestones, names(cache))
 
-      # if milestones cnot in cache, re-run ghqc_status
+      # if any milestones not in cache, re-run ghqc_status
       if (length(missing) > 0) {
         w$show()
-        for (milestone in missing) {
-          debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
-          milestone_object <- get_milestone_object_from_milestone_name(milestone, open_milestone_objects)
+        for (milestone_name in missing) {
+          debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone_name}"))
+          milestone_object <- get_milestone_object_from_milestone_name(milestone_name, append(open_milestone_objects, closed_milestone_objects_rv()))
 
           result <- ghqc_status(
             milestone_objects = list(milestone_object),
@@ -138,14 +143,14 @@ ghqc_status_server <- function(id,
             files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
           )
 
-          cache[[milestone]] <- list(
+          cache[[milestone_name]] <- list(
             status = result$status,
             relevant_files = result$relevant_files,
             relevant_files_df = relevant_df,
             issue_objects = result$issue_objects,
             repo_files = NULL
           )
-        }
+        } # for
 
         status_cache(cache)
         w$hide()
@@ -335,44 +340,51 @@ ghqc_status_server <- function(id,
     }) # file_directory_filter
 
 
-    closed_milestone_objects <- reactiveVal(NULL)
-    closed_milestone_names <- reactiveVal(NULL)
-    all_milestone_objects <- reactiveVal(NULL)
-    all_milestone_names <- reactiveVal(NULL)
+
 
     observeEvent(input$show_closed, {
-      browser()
+      if (isTRUE(input$show_closed)) {
+        all_milestone_names <- all_milestone_names_rv()
 
-      # closed_milestone_names <- closed_milestone_names_rv()
-      # all_milestone_names <- all_milestone_names_rv()
-      # req(closed_milestone_names, all_milestone_names)
+        if (is.null(all_milestone_names)) {
+          w_closed <- waiter::Waiter$new(
+            id = ns("main_container"),
+            html = tagList(waiter::spin_1(), h4("Retrieving closed Milestones...")),
+            color = "rgba(0,0,0,0.5)"
+          )
+          w_closed$show()
 
-      # if show closed
-      if (input$show_closed) {
-        closed_milestone_objects <- get_closed_non_empty_milestone_objects()
-        all_milestone_objects <- append(open_milestone_objects, closed_milestone_objects)
-        all_milestones_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
-        all_milestone_names <- get_grouped_milestone_names(all_milestones_by_branch)
+          closed_milestone_objects <- get_closed_non_empty_milestone_objects()
+          closed_milestone_objects_rv(closed_milestone_objects)
 
-        #placeholder <- ifelse(length(closed_milestone_names) == 0, "No closed Milestones", "Select closed Milestones")
+          all_milestone_objects <- c(open_milestone_objects, closed_milestone_objects)
+          all_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
+          all_milestone_objects_rv(all_by_branch)
+
+          all_milestone_names <- get_grouped_milestone_names(all_by_branch)
+          all_milestone_names_rv(all_milestone_names)
+
+          w_closed$hide()
+        }
+
+        selected <- intersect(input$selected_milestones, unlist(all_milestone_names))
 
         updateSelectizeInput(
           session,
           "selected_milestones",
-          choices = all_milestone_names#,
-          #options = list(placeholder = placeholder)
+          choices = all_milestone_names,
+          selected = selected
         )
       }
-
-      # if not closed
       else {
-        #placeholder <- ifelse(length(all_milestone_names) == 0, "No Milestones", "Select Milestones")
+        # show open-only
+        selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
 
         updateSelectizeInput(
           session,
           "selected_milestones",
-          choices = open_milestone_names#,
-          #options = list(placeholder = placeholder)
+          choices = open_milestone_names,
+          selected = selected
         )
       }
     }, ignoreInit = TRUE)
@@ -668,7 +680,7 @@ ghqc_status_server <- function(id,
                        selected = c(default_milestones),
                        multiple = TRUE,
                        width = "100%",
-                       options = list(placeholder = "(required)")
+                       options = list(placeholder = "(Required)")
         ),
         # QC Status Filter
         selectInput(

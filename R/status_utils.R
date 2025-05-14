@@ -273,3 +273,26 @@ get_relevant_files <- function(issue, milestone_name) {
 vspace <- function() {
   "<div style=\"margin-top: 3px;\"></div>"
 }
+
+empty_tibble <- function() {
+  return(
+    dplyr::tibble(
+      milestone_name = character(),
+      milestone_with_url = character(),
+      file_name = character(),
+      file_with_url = character(),
+      issue_state = character(),
+      qc_status = character(),
+      git_status = character(),
+      diagnostics = character(),
+      issue_number = integer(),
+      initial_qc_commit = character(),
+      latest_qc_commit = character(),
+      comparator_commit = character(),
+      issue_url = character(),
+      notify = character(),
+      approve = character(),
+      qcer = character()
+    )
+  )
+}

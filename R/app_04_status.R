@@ -48,7 +48,6 @@ ghqc_status_app <- function(milestones = NULL) {
       # get all open milestones on qc_branch
       # TODO: test case for 1 milestone on the branch versus a few
       open_milestones_on_current_branch <- open_milestones_by_branch[[current_branch]]
-      #open_milestones_on_current_branch <- purrr::keep(milestones_on_current_branch, ~ .x$state == "open")
       open_milestone_names_on_current_branch <- get_milestone_names_from_milestone_objects(open_milestones_on_current_branch)
       if (length(open_milestone_names_on_current_branch) > 0) {
         open_milestone_names_on_current_branch
