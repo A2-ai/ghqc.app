@@ -84,7 +84,6 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
     observeEvent(input$closed_only, {
       closed_milestone_names <- closed_milestone_names_rv()
       all_milestone_names <- all_milestone_names_rv()
-      req(closed_milestone_names, all_milestone_names)
 
       # if closed
       if (input$closed_only) {
