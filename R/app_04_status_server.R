@@ -790,7 +790,12 @@ ghqc_status_server <- function(id,
 
 
     observeEvent(show_table(), {
-      if (!milestones_initialized()) return(NULL)
+      if (!milestones_initialized()) {
+        waiter_hide()
+        output$main_panel_dynamic <- renderUI({
+          HTML("<div style='padding-top: 5px; font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No Milestones selected</div>")
+        })
+      }
 
       if (isTRUE(show_table()) && length(selected_milestones()) > 0) {
         output$main_panel_dynamic <- renderUI({
