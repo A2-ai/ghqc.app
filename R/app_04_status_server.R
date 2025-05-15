@@ -33,7 +33,7 @@ ghqc_status_server <- function(id,
     })
 
     w <- waiter::Waiter$new(
-      id = ns("main_container"),
+      id = ns("main_panel_dynamic"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
       color = "rgba(0,0,0,0.5)"
     )
@@ -95,7 +95,7 @@ ghqc_status_server <- function(id,
       input$selected_milestones
     })
 
-    selected_debounced <- selected_raw %>% debounce(1500)
+    selected_debounced <- selected_raw %>% debounce(300)
 
 
 
@@ -790,11 +790,8 @@ ghqc_status_server <- function(id,
 
 
     observeEvent(show_table(), {
-      if (!milestones_initialized()) {
-        waiter_hide()
-        output$main_panel_dynamic <- renderUI({
-          HTML("<div style='padding-top: 5px; font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No Milestones selected</div>")
-        })
+      if (!isTRUE(milestones_initialized()) && length(open_milestone_objects) > 0) {
+        return(NULL)
       }
 
       if (isTRUE(show_table()) && length(selected_milestones()) > 0) {
