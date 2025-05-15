@@ -41,6 +41,8 @@ editor_options:
 
 -   sidebar width minimized slightly
 
+-   rename QC status "Requires approval" to "Closed without approval"
+
 # ghqc.app 0.5.1
 
 changes to `ghqc_record_app()`: - adds QC Status checks for Issues in
