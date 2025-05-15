@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ghqc.app</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,28 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.2" id="ghqcapp-052">ghqc.app 0.5.2<a class="anchor" aria-label="anchor" href="#ghqcapp-052"></a></h2>
+<p><code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code>:</p>
+<ul><li>creates a label for created Issues including the QC branch</li>
+<li>enforces restriction that Issues in a Milestone cannot span multiple QC branches</li>
+<li>waiter when selecting files no longer takes up the entire screen, just the main panel</li>
+</ul><p><code><a href="../reference/ghqc_status_app.html">ghqc_status_app()</a></code>:</p>
+<ul><li><p>retrieves open Milestones in Milestone drop-down by default</p></li>
+<li><p>Milestone drop-down organizes Milestones by branch (applies to those created with <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> in 0.5.2; legacy Issues won’t be organized by branch, just in an unnamed group)</p></li>
+<li><p>option to include closed Milestones in drop-down with a toggle</p></li>
+<li><p>closed Milestones render in gray</p></li>
+<li>
+<p>default selected Milestones are now:</p>
+<ul><li><p>the open Milestones on the user’s branch (applies to those created with <code><a href="../reference/ghqc_assign_app.html">ghqc_assign_app()</a></code> in 0.5.2)</p></li>
+<li><p>if no open Milestones on the user’s branch, selects the most recently created open Milestone</p></li>
+<li><p>if no open Milestones, none are selected by default</p></li>
+</ul></li>
+<li><p>global search removed</p></li>
+<li><p>DT grammar bug for records info manually fixed (“1 records”)</p></li>
+<li><p>sidebar width minimized slightly</p></li>
+<li><p>rename QC status “Requires approval” to “Closed without approval”</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.1" id="ghqcapp-051">ghqc.app 0.5.1<a class="anchor" aria-label="anchor" href="#ghqcapp-051"></a></h2>
 <p>changes to <code><a href="../reference/ghqc_record_app.html">ghqc_record_app()</a></code>: - adds QC Status checks for Issues in selected Milestones - summarizes QC Status checks in Milestone and Issue summary tables - details more QC status information in Issue-level sections</p>
