@@ -30,6 +30,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
   )
 
   moduleServer(id, function(input, output, session) {
+    inputted_milestone_rv <- reactiveVal(NULL)
+    relevant_files <- reactiveVal(list())
+    issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
+    issues_in_existing_milestone_rv <- reactiveVal(NULL)
 
     # This section ensures that when an error occurs, the app stops
     # When an error occurs, the session ends. The other instance of this is when
@@ -48,21 +52,21 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       updateSelectizeInput(
         session,
         "milestone_existing",
-        options = list(placeholder = "No Open Milestones")
+        options = list(placeholder = "No open Milestones")
       )
     }
 
     qc_trigger <- reactiveVal(FALSE)
 
     w_load_items <- Waiter$new(
-      id = ns("content"),
+      id = ns("main_panel_dynamic"),
       html = tagList(
         spin_2(),
       ),
       color = "white"
     )
 
-    rv_milestone <- reactiveVal(NULL)
+
 
     observe({
       req(open_milestone_names)
@@ -79,10 +83,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       milestone_toggle <- input$milestone_toggle
       if (milestone_toggle == "New") {
         req(input$milestone)
-        rv_milestone(input$milestone)
+        inputted_milestone_rv(input$milestone)
       } else if (milestone_toggle == "Existing") {
         req(input$milestone_existing)
-        rv_milestone(input$milestone_existing)
+        inputted_milestone_rv(input$milestone_existing)
       }
     })
 
@@ -104,7 +108,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
                          choices = "",
                          multiple = FALSE,
                          width = "100%",
-                         options = list(placeholder = "(required)")
+                         options = list(placeholder = "(Required)")
           ),
         ),
         conditionalPanel(
@@ -112,7 +116,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           textAreaInput(
             ns("milestone_description"),
             "Milestone Description",
-            placeholder = "(optional)",
+            placeholder = "(Optional)",
             width = "100%"
           )
         ),
@@ -134,28 +138,29 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       }
     })
 
-    rv_issue_titles <- reactiveVal()
+
 
     observe({
-      req(rv_milestone())
+      req(inputted_milestone_rv())
 
       issue_titles_with_root_dir <- tryCatch(
         {
-          milestone <- get_milestone_from_name(rv_milestone())
+          milestone <- get_milestone_from_name(inputted_milestone_rv())
 
           if (!is.null(milestone)) {
             issues_in_milestone <- get_all_issues_in_milestone_from_milestone_number(milestone_name = milestone$title,
-                                                                                     milestone_number = milestone$number
-            )
+                                                                                     milestone_number = milestone$number)
             issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
 
-            rv_issue_titles(issue_titles) # assign to reactiveVal
+            issue_titles_in_existing_milestone_rv(issue_titles) # assign to reactiveVal
+            issues_in_existing_milestone_rv(issues_in_milestone)
 
             file.path(basename(root_dir), issue_titles)
           }
           else {
-            info(.le$logger, glue::glue("Inputted milestone {rv_milestone()} does not yet exist"))
-            rv_issue_titles(NULL) # assign to reactiveVal
+            info(.le$logger, glue::glue("Inputted milestone {inputted_milestone_rv()} does not yet exist"))
+            issue_titles_in_existing_milestone_rv(NULL) # assign to reactiveVal
+            issues_in_existing_milestone_rv(NULL)
 
             list()
           }
@@ -201,7 +206,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
 
     })
 
-    relevant_files <- reactiveVal(list())
+
 
     output$validation_message <- renderUI({
       validate(
@@ -297,7 +302,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           git_sync_status <- check_ahead_behind()
           untracked_selected_files <- Filter(function(file) check_if_qc_file_untracked(file), file_names)
 
-          issue_titles <- rv_issue_titles()
+          issue_titles <- issue_titles_in_existing_milestone_rv()
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error retrieving one of the status_checks items: {conditionMessage(e)}"))
@@ -311,7 +316,8 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
         uncommitted_git_files = uncommitted_git_files,
         untracked_selected_files = untracked_selected_files,
         git_sync_status = git_sync_status,
-        issue_titles = issue_titles
+        issue_titles = issue_titles,
+        issues_in_existing_milestone = issues_in_existing_milestone_rv()
       )
     })
 
@@ -358,7 +364,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       w_create_qc_items$show()
       tryCatch(
         {
-          yaml <- create_yaml(milestone = rv_milestone(),
+          yaml <- create_yaml(milestone = inputted_milestone_rv(),
                               description = input$milestone_description,
                               files = qc_items()
                               )
@@ -375,7 +381,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       )
 
       w_create_qc_items$hide()
-      milestone_url <- get_milestone_url(rv_milestone())
+      milestone_url <- get_milestone_url(inputted_milestone_rv())
 
       custom_checklist_selected <- function() {
         qc_items <- qc_items()
@@ -464,7 +470,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       removeClass("create_qc_items", "enabled-btn")
       addClass("create_qc_items", "disabled-btn")
 
-      if (length(selected_items()) > 0 && isTruthy(rv_milestone())) {
+      if (length(selected_items()) > 0 && isTruthy(inputted_milestone_rv())) {
         relevant_files_list <- tryCatch({
           relevant_files()
         }, error = function(e){
@@ -473,7 +479,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
 
         file_data <- extract_file_data(input, selected_items(), relevant_files_list)
         if (!is.null(file_data)) {
-          debug(.le$logger, glue::glue("create_qc_items buttons are activated because there are {length(selected_items())} selected items and milestone is named {rv_milestone()}"))
+          debug(.le$logger, glue::glue("create_qc_items buttons are activated because there are {length(selected_items())} selected items and milestone is named {inputted_milestone_rv()}"))
           removeClass("create_qc_items", "disabled-btn")
           addClass("create_qc_items", "enabled-btn")
         }

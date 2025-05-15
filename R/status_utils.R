@@ -77,7 +77,7 @@ get_approve_column <- function(qc_status, git_status) {
 
 
   # else, git_status is NA or "Up to date"
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Requires approval")
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Closed without approval")
   if (valid_qc_status) {
     return("approve")
   }
@@ -129,8 +129,8 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   # the issue - maybe a relevant file changed or something like that
   soft_notify_qc_statuses <- c("Awaiting approval")
 
-  changes_after_closure <- qc_status == "Requires approval" && stringr::str_detect(diagnostics, "Commit difference")
-  no_changes_after_closure <- qc_status == "Requires approval" && !stringr::str_detect(diagnostics, "Commit difference")
+  changes_after_closure <- qc_status == "Closed without approval" && stringr::str_detect(diagnostics, "Commit difference")
+  no_changes_after_closure <- qc_status == "Closed without approval" && !stringr::str_detect(diagnostics, "Commit difference")
 
   has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || changes_after_closure
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
@@ -165,15 +165,15 @@ get_comment_metadata <- function(body) {
   return(metadata)
 }
 
-get_hyperlinked_commit <- function(long_commit, file, repo_url) {
+get_hyperlinked_commit <- function(long_commit, file) {
   short_commit <- substr(long_commit, 1, 7)
-  sha_url <- file.path(repo_url, "blob", long_commit, file)
+  sha_url <- file.path(.le$full_repo_url, "blob", long_commit, file)
   hyperlinked_commit <- glue::glue('<a href="{sha_url}" target="_blank">{short_commit}</a>')
   return(hyperlinked_commit)
 }
 
-get_hyperlinked_commit_diff <- function(repo_url, old_commit, new_commit) {
-  commit_diff_url <- file.path(repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
+get_hyperlinked_commit_diff <- function(old_commit, new_commit) {
+  commit_diff_url <- file.path(.le$full_repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
   hyperlinked_commit_diff <- glue::glue('<a href="{commit_diff_url}" target="_blank">Commit difference</a>')
   return(hyperlinked_commit_diff)
 }
@@ -272,4 +272,27 @@ get_relevant_files <- function(issue, milestone_name) {
 
 vspace <- function() {
   "<div style=\"margin-top: 3px;\"></div>"
+}
+
+empty_tibble <- function() {
+  return(
+    dplyr::tibble(
+      milestone_name = character(),
+      milestone_with_url = character(),
+      file_name = character(),
+      file_with_url = character(),
+      issue_state = character(),
+      qc_status = character(),
+      git_status = character(),
+      diagnostics = character(),
+      issue_number = integer(),
+      initial_qc_commit = character(),
+      latest_qc_commit = character(),
+      comparator_commit = character(),
+      issue_url = character(),
+      notify = character(),
+      approve = character(),
+      qcer = character()
+    )
+  )
 }

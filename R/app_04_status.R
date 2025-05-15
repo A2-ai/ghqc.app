@@ -14,36 +14,49 @@ ghqc_status_app <- function(milestones = NULL) {
 
   if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
   get_options()
-  git_fetch(prune = TRUE)
+  gert::git_fetch(prune = TRUE)
 
   # error handling before starting app
   rproj_root_dir()
   creds <- check_github_credentials()
 
-  all_milestone_objects <- get_all_non_empty_ghqc_milestone_objects()
+  open_milestone_objects <- get_open_non_empty_milestone_objects()
 
-  # error if no non-empty ghqc milestones
-  if (length(all_milestone_objects) == 0) {
-    error(.le$logger, glue::glue("There were no non-empty ghqc Milestones found in {.le$org}/{.le$repo}. Create ghqc Milestones using `ghqc_assign_app()`"))
-    rlang::abort("There were no open Milestones found.")
-  }
+  open_milestones_by_branch <- group_milestone_objects_by_branch(open_milestone_objects)
 
-  all_ghqc_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
+  open_milestone_names <- get_grouped_milestone_names(open_milestones_by_branch)
 
-  all_inputted_milestones_valid <- all(inputted_milestones %in% all_ghqc_milestone_names)
+  all_inputted_milestones_valid <- all(inputted_milestones %in% open_milestones_by_branch)
   if (!(all_inputted_milestones_valid)) {
     info(.le$logger, "Not all inputted Milestones exist. Rendering table with most recent Milestone")
   }
 
+  current_branch <- gert::git_branch()
+
   default_milestones <- {
     if (!is.null(inputted_milestones) && all_inputted_milestones_valid) {
       inputted_milestones
-    } else {
-      get_most_recent_milestone(all_milestone_objects)
+    }
+    else {
+      # get all open milestones on branch
+      open_milestones_on_current_branch <- open_milestones_by_branch[[current_branch]]
+      open_milestone_names_on_current_branch <- get_milestone_names_from_milestone_objects(open_milestones_on_current_branch)
+      if (length(open_milestone_names_on_current_branch) > 0) {
+        open_milestone_names_on_current_branch
+      }
+      # if no open milestones on branch, get most recently created open milestone
+      else if (length(open_milestone_objects) > 0) {
+        get_most_recent_milestone(open_milestone_objects)
+      }
+      # if no open milestones, don't get any by default
+      else {
+        open_milestone_names <- NULL
+        open_milestone_objects <- NULL
+        NULL
+      }
     }
   }
 
-  current_branch <- gert::git_branch()
   local_commits <- get_local_commits()
   remote_commits <- get_remote_commits(current_branch)
 
@@ -64,8 +77,8 @@ ghqc_status_app <- function(milestones = NULL) {
     server = function(input, output, session) {
       ghqc_status_server(
         id = "ghqc_status_app",
-        all_ghqc_milestone_names = all_ghqc_milestone_names,
-        all_milestone_objects = all_milestone_objects,
+        open_milestone_names = open_milestone_names,
+        open_milestone_objects = open_milestone_objects,
         default_milestones = default_milestones,
         local_commits,
         remote_commits,

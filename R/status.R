@@ -10,7 +10,6 @@ ghqc_status <- function(milestone_objects,
                         files_changed_in_unpushed_local_commits,
                         files_with_uncommitted_local_changes
                         ) {
-
   total_start_time <- Sys.time()
 
   all_relevant_files <- list()
@@ -22,6 +21,9 @@ ghqc_status <- function(milestone_objects,
     milestone_name <- milestone_object$title
     milestone_number <- milestone_object$number
     issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
+    if (length(issues) == 0) {
+      return(empty_tibble())
+    }
 
     files <- purrr::map_chr(issues, "title")
     debug(.le$logger, glue::glue("Retrieving all git statuses..."))
@@ -51,7 +53,6 @@ ghqc_status <- function(milestone_objects,
       qcer <- ifelse(!is.null(issue$assignee$login), issue$assignee$login, "No QCer")
       file_url <- issue$html_url
       file_with_url <- glue::glue('<a href="{file_url}" target="_blank">{file_name}</a>')
-      repo_url <- stringr::str_extract(file_url, ".*(?=/issues)")
       issue_body <- issue$body
 
       # latest_qc_commit is the most recent commented commit in file's issue
@@ -81,7 +82,6 @@ ghqc_status <- function(milestone_objects,
                                                                    issue_state,
                                                                    remote_commits_on_qc_branch,
                                                                    latest_qc_commit,
-                                                                   repo_url,
                                                                    qc_approved)
 
           qc_status <- qc_status_info$qc_status
@@ -99,7 +99,7 @@ ghqc_status <- function(milestone_objects,
             git_status <- glue::glue("Deleted QC branch: <em>{qc_branch}</em>")
           }
 
-          latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name, repo_url)
+          latest_qc_commit_short <- get_hyperlinked_commit(latest_qc_commit, file_name)
 
           if (qc_approved) {
             qc_status <- "Approved"
@@ -160,7 +160,6 @@ ghqc_status <- function(milestone_objects,
                                   remote_commits = remote_commits,
                                   latest_qc_commit = latest_qc_commit,
                                   initial_qc_commit = initial_qc_commit,
-                                  repo_url = repo_url,
                                   qc_approved = qc_approved
                                   )
 

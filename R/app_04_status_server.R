@@ -9,8 +9,8 @@
 NULL
 
 ghqc_status_server <- function(id,
-                               all_ghqc_milestone_names,
-                               all_milestone_objects,
+                               open_milestone_names,
+                               open_milestone_objects,
                                default_milestones,
                                local_commits,
                                remote_commits,
@@ -32,23 +32,8 @@ ghqc_status_server <- function(id,
       }
     })
 
-    # make sure inputs are loaded
-    # observe({
-    #   req(all_ghqc_milestone_names,
-    #       all_milestone_objects,
-    #       default_milestones,
-    #       local_commits,
-    #       remote_commits,
-    #       current_branch,
-    #       ahead_behind_status,
-    #       files_changed_in_remote_commits,
-    #       files_changed_in_unpushed_local_commits,
-    #       files_with_uncommitted_local_changes
-    #       )
-    # })
-
     w <- waiter::Waiter$new(
-      id = ns("main_container"),
+      id = ns("main_panel_dynamic"),
       html = tagList(waiter::spin_1(), h4("Generating table...")),
       color = "rgba(0,0,0,0.5)"
     )
@@ -71,6 +56,11 @@ ghqc_status_server <- function(id,
     files_changed_in_unpushed_local_commits_rv <- reactiveVal(files_changed_in_unpushed_local_commits)
     files_with_uncommitted_local_changes_rv <- reactiveVal(files_with_uncommitted_local_changes)
 
+    # if "Show closed milestones" is selected, calulate these
+    closed_milestone_objects_rv <- reactiveVal(NULL)
+    all_milestone_objects_rv <- reactiveVal(NULL)
+    all_milestone_names_rv <- reactiveVal(NULL)
+
     # comment reactives
     post_notification_trigger <- reactiveVal(FALSE)
     post_approve_trigger <- reactiveVal(FALSE)
@@ -89,7 +79,7 @@ ghqc_status_server <- function(id,
       )
     }
 
-    # if there's no cache, wait 2 seconds to make sure user if actually done selecting multiple milestones
+    # if there's no cache, wait 1.5 seconds to make sure user if actually done selecting multiple milestones
     selected_milestones <- reactive({
       current <- selected_raw()
       key <- milestone_key(current)
@@ -105,7 +95,7 @@ ghqc_status_server <- function(id,
       input$selected_milestones
     })
 
-    selected_debounced <- selected_raw %>% debounce(2000)
+    selected_debounced <- selected_raw %>% debounce(300)
 
 
 
@@ -120,17 +110,19 @@ ghqc_status_server <- function(id,
     # ghqc_status
     run_generate <- function(milestones = selected_milestones()) {
       req(milestones)
+      if (length(milestones) == 0 || is.null(milestones)) return(NULL)
+
       current_milestones <- milestones
       cache <- status_cache()
 
       missing <- setdiff(current_milestones, names(cache))
 
-      # if milestones cnot in cache, re-run ghqc_status
+      # if any milestones not in cache, re-run ghqc_status
       if (length(missing) > 0) {
         w$show()
-        for (milestone in missing) {
-          debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone}"))
-          milestone_object <- get_milestone_object_from_milestone_name(milestone, all_milestone_objects)
+        for (milestone_name in missing) {
+          debug(.le$logger, glue("Fetching statuses for uncached Milestone: {milestone_name}"))
+          milestone_object <- get_milestone_object_from_milestone_name(milestone_name, append(open_milestone_objects, closed_milestone_objects_rv()))
 
           result <- ghqc_status(
             milestone_objects = list(milestone_object),
@@ -153,14 +145,14 @@ ghqc_status_server <- function(id,
             files_with_uncommitted_local_changes = files_with_uncommitted_local_changes_rv()
           )
 
-          cache[[milestone]] <- list(
+          cache[[milestone_name]] <- list(
             status = result$status,
             relevant_files = result$relevant_files,
             relevant_files_df = relevant_df,
             issue_objects = result$issue_objects,
             repo_files = NULL
           )
-        }
+        } # for
 
         status_cache(cache)
         w$hide()
@@ -227,13 +219,15 @@ ghqc_status_server <- function(id,
 
     # generate table with default milestones when app is first loaded
     observeEvent(selected_milestones(), {
-      if (is.null(cached_status())) {
+      if (is.null(cached_status()) && length(selected_milestones()) > 0) {
         run_generate()
       }
     }, once = TRUE)
 
     observeEvent(selected_milestones(), {
-      run_generate()
+      if (length(selected_milestones()) > 0) {
+        run_generate()
+      }
     })
 
     # filter data based on filters in sidebar
@@ -261,7 +255,7 @@ ghqc_status_server <- function(id,
           "File changes to pull",
           "Initial QC commit posted",
           "Issue re-opened after approval",
-          "Requires approval",
+          "Closed without approval",
           "Error",
           "QC branch deleted before approval"
           )
@@ -348,6 +342,83 @@ ghqc_status_server <- function(id,
         })
       }
     }) # file_directory_filter
+
+
+
+
+    observeEvent(input$show_closed, {
+      if (isTRUE(input$show_closed)) {
+        all_milestone_names <- all_milestone_names_rv()
+
+        if (is.null(all_milestone_names)) {
+          w_closed <- waiter::Waiter$new(
+            id = ns("main_container"),
+            html = tagList(waiter::spin_1(), h4("Retrieving closed Milestones...")),
+            color = "rgba(0,0,0,0.5)"
+          )
+          w_closed$show()
+
+          closed_milestone_objects <- get_closed_non_empty_milestone_objects()
+          closed_milestone_objects_rv(closed_milestone_objects)
+
+          closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestone_objects)
+
+          all_milestone_objects <- c(open_milestone_objects, closed_milestone_objects)
+          all_by_branch <- group_milestone_objects_by_branch(all_milestone_objects)
+          all_milestone_objects_rv(all_by_branch)
+
+          all_milestone_names <- get_grouped_milestone_names(all_by_branch, closed_milestone_names)
+          all_milestone_names_rv(all_milestone_names)
+
+          w_closed$hide()
+        }
+
+        selected <- intersect(input$selected_milestones, unlist(all_milestone_names))
+        placeholder <- ifelse(length(all_milestone_names) == 0, "No Milestones", "Select Milestone(s)")
+
+        updateSelectizeInput(
+          session,
+          "selected_milestones",
+          choices = all_milestone_names,
+          selected = selected,
+          options = list(
+            render = I("
+  {
+    item: function(item, escape) {
+      return '<div class=\"item\">' + item.label + '</div>';
+    },
+    option: function(item, escape) {
+      return '<div class=\"option\">' + item.label + '</div>';
+    }
+  }
+"),
+            placeholder = placeholder
+          )
+        )
+      }
+      else {
+        # show open-only
+        selected <- intersect(input$selected_milestones, unlist(open_milestone_names))
+        placeholder <- ifelse(length(open_milestone_names) == 0, "No open Milestones", "Select open Milestone(s)")
+
+        choices <- if (!is.null(open_milestone_names)) {
+          open_milestone_names
+        }
+        else {
+          ""
+        }
+
+        updateSelectizeInput(
+          session,
+          "selected_milestones",
+          choices = choices,
+          selected = selected,
+          options = list(
+            placeholder = placeholder
+          )
+        )
+      }
+    })
 
 
 
@@ -618,15 +689,29 @@ ghqc_status_server <- function(id,
 
     output$sidebar <- renderUI({
       tagList(
+        # Show closed Milestones
+        div(
+          style = "margin-top: 4px; margin-bottom: 5px",
+          class = "form-group shiny-input-container",
+          tags$label(
+            style = "display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-weight: 600; font-size: 13px; color: #333;",
+            "Show closed Milestones",
+            tags$input(
+              id = ns("show_closed"),
+              type = "checkbox",
+              class = "form-check-input",
+              style = "transform: scale(1.2)"
+            )
+          )
+        ), # Show Closed Milestones
         # Milestones
         selectizeInput(ns("selected_milestones"),
                        "Milestones",
-                       choices = all_ghqc_milestone_names,
-                       selected = c(default_milestones),
+                       choices = open_milestone_names,
+                       selected = default_milestones,
                        multiple = TRUE,
-                       width = "100%",
-                       options = list(placeholder = "(required)")
-        ),
+                       width = "100%"
+                       ),
         # QC Status Filter
         selectInput(
           ns("qc_status_filter"),
@@ -695,9 +780,21 @@ ghqc_status_server <- function(id,
     }) # output$sidebar
 
 
+    milestones_initialized <- reactiveVal(FALSE)
+
+    observeEvent(selected_milestones(), {
+      if (!milestones_initialized() && length(selected_milestones()) >= 0) {
+        milestones_initialized(TRUE)
+      }
+    }, ignoreInit = FALSE, once = TRUE)
+
 
     observeEvent(show_table(), {
-      if (show_table()) {
+      if (!isTRUE(milestones_initialized()) && length(open_milestone_objects) > 0) {
+        return(NULL)
+      }
+
+      if (isTRUE(show_table()) && length(selected_milestones()) > 0) {
         output$main_panel_dynamic <- renderUI({
           div(
             id = ns("main_panel_wrapper"),
@@ -706,7 +803,10 @@ ghqc_status_server <- function(id,
         })
       }
       else {
-        output$main_panel_dynamic <- renderUI({ NULL })
+        waiter_hide()
+        output$main_panel_dynamic <- renderUI({
+          HTML("<div style='padding-top: 5px; font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No Milestones selected</div>")
+          })
       }
     })
 
@@ -779,8 +879,10 @@ ghqc_status_server <- function(id,
           lengthChange = FALSE,
           paging = FALSE,
           searching = TRUE,
-          info = TRUE,
-          dom = 'fit',
+          dom = 'it',
+          language = list(
+            info = ""
+          ),
           scrollCollapse = TRUE,
           drawCallback = DT::JS(glue::glue("
   function(settings) {{
@@ -804,6 +906,12 @@ ghqc_status_server <- function(id,
         setTimeout(fixHeaderAlignment, 300);
       }}).observe(sidebar);
     }}
+
+    var info = table.page.info();
+      var recordText = info.recordsDisplay === 1 ? 'file' : 'files';
+      $('div.dataTables_info').text(
+        `${{info.recordsDisplay}} ` + recordText
+      );
   }}
 "))
         )
@@ -828,7 +936,7 @@ ghqc_status_server <- function(id,
               "Initial QC commit posted",
               "Issue re-opened after approval",
               "Approved; subsequent file changes",
-              "Requires approval",
+              "Closed without approval",
               "Error",
               "QC branch deleted before approval"
               ),
@@ -929,7 +1037,7 @@ ghqc_status_server <- function(id,
       files_changed_in_unpushed_local_commits_rv(get_files_changed_in_unpushed_local_commits(local_commits_rv(), ahead_behind_status_rv()))
       files_with_uncommitted_local_changes_rv(get_files_with_uncommitted_local_changes())
 
-      show_table(TRUE)
+      show_table(FALSE)
       run_generate(current_milestones)
     } # reset_app
 

@@ -84,7 +84,6 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
     observeEvent(input$closed_only, {
       closed_milestone_names <- closed_milestone_names_rv()
       all_milestone_names <- all_milestone_names_rv()
-      req(closed_milestone_names, all_milestone_names)
 
       # if closed
       if (input$closed_only) {
@@ -239,7 +238,7 @@ ghqc_record_server <- function(id, all_milestones_in, closed_milestones_in, all_
       debug(.le$logger, glue::glue("App was reset through the reset button."))
       reset_triggered(TRUE)
 
-      all_milestones <- get_all_non_empty_ghqc_milestone_objects()
+      all_milestones <- get_all_non_empty_milestone_objects()
       closed_milestones <- get_closed_milestone_objects_from_all_milestone_objects(all_milestones)
       all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
       closed_milestone_names <- get_milestone_names_from_milestone_objects(closed_milestones)
