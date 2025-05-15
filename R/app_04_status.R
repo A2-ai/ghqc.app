@@ -26,8 +26,6 @@ ghqc_status_app <- function(milestones = NULL) {
 
   open_milestone_names <- get_grouped_milestone_names(open_milestones_by_branch)
 
-  #all_open_ghqc_milestones
-
   all_inputted_milestones_valid <- all(inputted_milestones %in% open_milestones_by_branch)
   if (!(all_inputted_milestones_valid)) {
     info(.le$logger, "Not all inputted Milestones exist. Rendering table with most recent Milestone")
@@ -40,25 +38,24 @@ ghqc_status_app <- function(milestones = NULL) {
       inputted_milestones
     }
     else {
-      # get all open milestones on qc_branch
-      # TODO: test case for 1 milestone on the branch versus a few
+      # get all open milestones on branch
       open_milestones_on_current_branch <- open_milestones_by_branch[[current_branch]]
       open_milestone_names_on_current_branch <- get_milestone_names_from_milestone_objects(open_milestones_on_current_branch)
       if (length(open_milestone_names_on_current_branch) > 0) {
         open_milestone_names_on_current_branch
       }
+      # if no open milestones on branch, get most recently created open milestone
       else if (length(open_milestone_objects) > 0) {
         get_most_recent_milestone(open_milestone_objects)
       }
+      # if no open milestones, don't get any by default
       else {
         open_milestone_names <- NULL
         open_milestone_objects <- NULL
         NULL
       }
-
     }
   }
-
 
   local_commits <- get_local_commits()
   remote_commits <- get_remote_commits(current_branch)
