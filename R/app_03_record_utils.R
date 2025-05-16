@@ -142,9 +142,13 @@ check_for_open_milestones <- function(milestone_objects) {
 
 #' @importFrom log4r warn error info debug
 check_for_open_checklists <- function(issue_objects) {
-  purrr::map(issue_objects, function(milestone_issues) {
+  res <- purrr::map(issue_objects, function(milestone_issues) {
     purrr::keep(milestone_issues, ~ unchecked_items_in_issue(.x$body))
   })
+
+  res <- purrr::keep(res, ~ length(.x) > 0)
+
+  return(res)
 }
 
 #' @importFrom rlang .data
