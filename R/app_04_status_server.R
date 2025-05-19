@@ -440,6 +440,8 @@ ghqc_status_server <- function(id,
       }
     }
 
+
+
     # when the green approve button is clicked
     observeEvent(input$show_approve_modal_row, {
       row_index <- input$show_approve_modal_row$row
@@ -575,6 +577,8 @@ ghqc_status_server <- function(id,
         )
       }
     }
+
+
 
     observeEvent(input$show_notify_modal_row, {
       row_index <- input$show_notify_modal_row$row
