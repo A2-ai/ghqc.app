@@ -1,3 +1,15 @@
+# ghqc.app 0.5.4
+
+`ghqc_status_app()`:
+
+- table buttons are now in an action drop-down menu
+- action buttons exist to perform the actions:
+    
+    - Approve
+    - Notify file changes
+    - Notify new commit
+    - Unapprove
+
 # ghqc.app 0.5.3
 
 - fixes bug in `ghqc_record_app()` in which in warning modal still notifies when there are no issues with unchecked checklist items
