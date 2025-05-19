@@ -38,67 +38,84 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
 
 
 get_approve_column <- function(qc_status, git_status) {
+  action <- list(
+    options = character(0),
+    message = NULL
+  )
+
   if (qc_status == "Approved") {
-    return("none")
+    return(action)
   }
 
   if (qc_status == "Approved; subsequent file changes") { # want this before git_status logic
-    return("Delete \"QC Approved\" comment to resume QC") # (probably don't want to do a hard reset)
+    action$options <- "Unapprove"
+    return(action)
   }
 
   if (qc_status == "Initial QC commit posted") { # git_status can be anything
-    return("Pull to begin QC")
+    action$message <- "Pull to begin QC"
+    return(action)
   }
 
   if (stringr::str_detect(git_status, "View on QC branch:")) {
-    return("Switch to QC branch")
+    action$message <- "Switch to QC branch"
+    return(action)
   }
 
   if (stringr::str_detect(git_status, "Deleted QC branch:")) {
-    return("Restore QC branch")
+    action$message <- "Restore QC branch"
+    return(action)
   }
 
   valid_git_status <- !is.na(git_status) && git_status == "Up to date"
   if (!valid_git_status) {
     if (git_status == "Remote file changes") {
-      return("Pull to resume QC")
+      action$message <- "Pull to resume QC"
+      return(action)
     }
 
     if (git_status == "Local uncommitted file changes") {
-      return("Commit and push to resume QC")
+      action$message <- "Commit and push to resume QC"
+      return(action)
     }
 
     if (git_status == "Local unpushed commits with file changes") {
-      return("Push to resume QC")
+      action$message <- "Push to resume QC"
+      return(action)
     }
 
-    return("Synchronize repository")
+    action$message <- "Synchronize repository"
+    return(action)
   } # invalid git status
 
 
   # else, git_status is NA or "Up to date"
   valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Closed without approval")
   if (valid_qc_status) {
-    return("approve")
+    action$options <- "Approve"
+    return(action)
   }
 
   # Needs further explanation
 
   # "Notification posted" is possible when git status is "Up to date". In this case, force sync because the post was intentional
   if (qc_status == "Notification posted") {
-    return("Pull to resume QC")
+    action$message <- "Pull to resume QC"
+    return(action)
   }
 
   if (qc_status == "Issue re-opened after approval") {
-    return("Close Issue or delete \"QC Approved\" comment to resume QC")
+    action$options <- "Unapprove"
+    return(action)
   }
 
   if (qc_status == "QC branch deleted before approval") {
-    return("Restore and switch to QC branch")
+    action$message <- "Restore and switch to QC branch"
+    return(action)
   }
 
   else {
-    return("none")
+    return(action)
   }
 
 }
@@ -107,14 +124,14 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   has_valid_git_status <- is.na(git_status) || git_status == "Up to date" # allowing git status to be NA in case when QC branch deleted and merged
 
   if (!has_valid_git_status) { # don't give option to notify if git status not up to date
-    return("none")
+    return(character(0))
   }
 
   # don't give option to notify if comparator commit same as qc commit, it would be redundant to comment the same commit twice
   possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
 
   if (!possible_updates) {
-    return("none")
+    return(character(0))
   }
 
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
@@ -136,15 +153,15 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
 
   if (has_hard_notify_qc_status) {
-    return("hard")
+    return("Notify file changes")
   }
 
   else if (has_soft_notify_qc_status) {
-    return("soft")
+    return("Notify latest commit")
   }
 
   else {
-    return("none")
+    return(character(0))
   }
 }
 

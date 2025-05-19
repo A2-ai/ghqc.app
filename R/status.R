@@ -114,8 +114,16 @@ ghqc_status <- function(milestone_objects,
 
         # must be on the QC branch to perform operations
         comparator_commit <- NA_character_
-        notify <- "none"
+
+        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
         approve <- get_approve_column(qc_status, git_status)
+        options <- c(notify, approve$options)
+        action <- if (length(options) > 0) {
+          list(options = options)
+        }
+        else {
+          list(message = approve$message)
+        }
 
         return(
           dplyr::tibble(
@@ -132,8 +140,7 @@ ghqc_status <- function(milestone_objects,
             latest_qc_commit = latest_qc_commit,
             comparator_commit = comparator_commit,
             issue_url = file_url,
-            notify = notify,
-            approve = approve,
+            action = action,
             qcer = qcer,
           )
         )
@@ -187,8 +194,16 @@ ghqc_status <- function(milestone_objects,
       # this is safer than just giving the last commit in which the file changed -
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
+
       notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
       approve <- get_approve_column(qc_status, git_status)
+      options <- c(notify, approve$options)
+      action <- if (length(options) > 0) {
+        list(options = options)
+      }
+      else {
+        list(message = approve$message)
+      }
 
       # return res
       res <- dplyr::tibble(
@@ -205,8 +220,7 @@ ghqc_status <- function(milestone_objects,
         latest_qc_commit = latest_qc_commit,
         comparator_commit = comparator_commit,
         issue_url = file_url,
-        notify = notify,
-        approve = approve,
+        action = action,
         qcer = qcer,
       ) # tibble
 
@@ -230,8 +244,7 @@ ghqc_status <- function(milestone_objects,
                            "latest_qc_commit",
                            "comparator_commit",
                            "issue_url",
-                           "Notify",
-                           "Approve",
+                           "Action",
                            "QCer")
   # make factors
   status_df <- status_df %>%
@@ -297,8 +310,7 @@ create_relevant_files_df <- function(all_relevant_files,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      Notify = "none",
-      Approve = "none",
+      Action = list(options = character(0)),
       QCer = NA_character_
     )
   })
@@ -350,8 +362,7 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       latest_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      Notify = "none",
-      Approve = "none",
+      Action = list(options = c("Notify file changes", "Approve")),
       QCer = NA_character_
     )
   })
