@@ -815,50 +815,18 @@ ghqc_status_server <- function(id,
       req(show_table())
       df <- filtered_data()
 
-      # add notify button
       if (nrow(df) > 0) {
         # Add action column
-
         df$Action <- sapply(1:nrow(df), function(i) {
           row_data <- df[i, ]$Action
           opts <- row_data$options %||% character(0)
           msg  <- row_data$message
           generate_action_ui(i, opts, msg)
         })
-
-
-        # df$Notify <- sapply(1:nrow(df), function(i) {
-        #   row <- df[i, ]
-        #
-        #   if (row$Notify == "hard") {
-        #     notify_button(ns)(i, hard = TRUE)
-        #   }
-        #   else if (row$Notify == "soft") {
-        #     notify_button(ns)(i, hard = FALSE)
-        #   }
-        #   else {
-        #     NA_character_
-        #   }
-        # })
-        #
-        #
-        # df$`Approve` <- sapply(1:nrow(df), function(i) {
-        #   row <- df[i, ]
-        #
-        #   if (row$`Approve` == "approve") {
-        #     approve_button(ns)(i)
-        #   }
-        #   else if (row$`Approve` == "none") {
-        #     NA_character_
-        #   }
-        #   else {
-        #     row$`Approve`
-        #   }
-        # })
       } # if rows
 
 
-      # remove info columns
+      # remove info columns in display
       df <- df[, !colnames(df) %in% c("milestone_name",
                                       "file_name",
                                       "issue_number",

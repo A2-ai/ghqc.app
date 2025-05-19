@@ -115,9 +115,9 @@ ghqc_status <- function(milestone_objects,
         # must be on the QC branch to perform operations
         comparator_commit <- NA_character_
 
-        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
         approve <- get_approve_column(qc_status, git_status)
-        options <- c(notify, approve$options)
+        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
+        options <- c(approve$options, notify)
         action <- if (length(options) > 0) {
           list(options = options)
         }
@@ -195,9 +195,9 @@ ghqc_status <- function(milestone_objects,
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
 
-      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
       approve <- get_approve_column(qc_status, git_status)
-      options <- c(notify, approve$options)
+      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
+      options <- c(approve$options, notify)
       action <- if (length(options) > 0) {
         list(options = options)
       }

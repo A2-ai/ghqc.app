@@ -15,7 +15,7 @@ dropdown_split_button_html <- function(id, default, options) {
     btn_class <- switch(option,
                         "Approve" = "btn-success",
                         "Notify file changes" = "btn-info",
-                        "Notify new commit" = "btn-plum",
+                        "Notify latest commit" = "btn-plum",
                         "Repost last QC Notification" = "btn-plum",
                         "Unapprove" = "btn-danger"
     )
@@ -30,7 +30,7 @@ dropdown_split_button_html <- function(id, default, options) {
   default_class <- switch(default,
                           "Approve" = "btn-success",
                           "Notify file changes" = "btn-info",
-                          "Notify new commit" = "btn-plum",
+                          "Notify latest commit" = "btn-plum",
                           "Repost last QC Notification" = "btn-plum",
                           "Unapprove" = "btn-danger"
   )
@@ -61,7 +61,7 @@ generate_action_ui <- function(id, options, message = NULL) {
     btn_class <- switch(label,
                         "Approve" = "btn-success",
                         "Notify file changes" = "btn-info",
-                        "Notify new commit" = "btn-plum",
+                        "Notify latest commit" = "btn-plum",
                         "Repost last QC Notification" = "btn-plum",
                         "Unapprove" = "btn-danger",
                         "btn-default"

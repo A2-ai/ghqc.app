@@ -308,6 +308,12 @@ table.dataTable td, table.dataTable th {
   filter: brightness(0.9);
 }
 
+/* this line prevents caret from wrapping to next line */
+.btn-group {
+  white-space: nowrap;
+  display: inline-flex;
+}
+
 
 
 
