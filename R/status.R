@@ -65,6 +65,7 @@ ghqc_status <- function(milestone_objects,
                                                )
 
       latest_qc_commit <- latest_qc_commit_info$latest_qc_commit
+      previous_qc_commit <- latest_qc_commit_info$previous_qc_commit
       qc_approved <- latest_qc_commit_info$qc_approved
       debug(.le$logger, glue::glue("Retrieved last QC commit for {file_name}: {latest_qc_commit}"))
 
@@ -116,8 +117,8 @@ ghqc_status <- function(milestone_objects,
         comparator_commit <- NA_character_
 
         approve <- get_approve_column(qc_status, git_status)
-        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
-        options <- c(approve$options, notify)
+        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
+        options <- c(notify$hard_options, approve$options, notify$soft_options)
         action <- if (length(options) > 0) {
           list(options = options)
         }
@@ -138,6 +139,7 @@ ghqc_status <- function(milestone_objects,
             issue_number = issue_number,
             initial_qc_commit = initial_qc_commit,
             latest_qc_commit = latest_qc_commit,
+            previous_qc_commit = previous_qc_commit,
             comparator_commit = comparator_commit,
             issue_url = file_url,
             action = action,
@@ -196,8 +198,8 @@ ghqc_status <- function(milestone_objects,
       comparator_commit <- remote_commits[1]
 
       approve <- get_approve_column(qc_status, git_status)
-      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit)
-      options <- c(approve$options, notify)
+      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
+      options <- c(notify$hard_options, approve$options, notify$soft_options)
       action <- if (length(options) > 0) {
         list(options = options)
       }
@@ -218,6 +220,7 @@ ghqc_status <- function(milestone_objects,
         issue_number = issue_number,
         initial_qc_commit = initial_qc_commit,
         latest_qc_commit = latest_qc_commit,
+        previous_qc_commit = previous_qc_commit,
         comparator_commit = comparator_commit,
         issue_url = file_url,
         action = action,
@@ -242,6 +245,7 @@ ghqc_status <- function(milestone_objects,
                            "issue_number",
                            "initial_qc_commit",
                            "latest_qc_commit",
+                           "previous_qc_commit",
                            "comparator_commit",
                            "issue_url",
                            "Action",
@@ -308,6 +312,7 @@ create_relevant_files_df <- function(all_relevant_files,
       issue_number = NA_character_,
       initial_qc_commit = NA_character_,
       latest_qc_commit = NA_character_,
+      previous_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
       Action = list(options = character(0)),
@@ -360,9 +365,10 @@ create_non_issue_repo_files_df <- function(files_with_issues,
       issue_number = NA_character_,
       initial_qc_commit = NA_character_,
       latest_qc_commit = NA_character_,
+      previous_qc_commit = NA_character_,
       comparator_commit = NA_character_,
       issue_url = NA_character_,
-      Action = list(options = c("Notify file changes", "Approve")),
+      Action = list(options = character(0)),
       QCer = NA_character_
     )
   })

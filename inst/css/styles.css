@@ -308,11 +308,27 @@ table.dataTable td, table.dataTable th {
   filter: brightness(0.9);
 }
 
+.dropdown-btn {
+  white-space: normal !important;
+  word-wrap: break-word;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.btn-group .btn {
+  white-space: normal !important;
+  word-wrap: break-word;
+  text-align: left;
+  vertical-align: middle;
+}
+
 /* this line prevents caret from wrapping to next line */
 .btn-group {
   white-space: nowrap;
   display: inline-flex;
 }
+
+
 
 
 

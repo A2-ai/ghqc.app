@@ -19,7 +19,7 @@ function triggerDefaultAction(id, action) {
   let labelMap = {
     'Notify file changes': 'btn-info',
     'Approve': 'btn-success',
-    'Repost last QC Notification': 'btn-plum',
+    'Repost last QC notification': 'btn-plum',
     'Notify latest commit': 'btn-plum',
     'Unapprove': 'btn-danger'
   };
@@ -40,8 +40,10 @@ function triggerDefaultAction(id, action) {
   if (action === 'Approve') {
     console.log("Setting input value:", ns_prefix + 'show_approve_modal_row');
     Shiny.setInputValue(ns_prefix + 'show_approve_modal_row', { row: parseInt(id), nonce: Math.random() });
-  } else if (action === 'Notify file changes' || action === 'Notify latest commit') {
-    Shiny.setInputValue(ns_prefix + 'show_notify_modal_row', { row: parseInt(id), nonce: Math.random() });
+  } else if (action === 'Notify file changes' || action === 'Notify latest commit' || action === 'Repost last QC notification') {
+    Shiny.setInputValue(ns_prefix + 'show_notify_modal_row', { row: parseInt(id), action: action, nonce: Math.random() });
+  } else if (action === 'Unapprove') {
+    Shiny.setInputValue(ns_prefix + 'show_unapprove_modal_row', { row: parseInt(id), nonce: Math.random() });
   } else {
     Shiny.setInputValue(ns_prefix + 'action_' + id, action, {priority: 'event'});
   }

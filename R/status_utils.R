@@ -120,25 +120,34 @@ get_approve_column <- function(qc_status, git_status) {
 
 }
 
-get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit) {
+get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit) {
+  notify <- list(
+    hard_options = character(0), # higher priority: if there's a file change
+    soft_options = character(0) # lower priority: new commit or if a QC notification re-post is possible
+  )
+
+  if (latest_qc_commit != initial_qc_commit) {
+    notify$soft_options <- c(notify$soft_options, "Repost last QC notification") #
+  }
+
   has_valid_git_status <- is.na(git_status) || git_status == "Up to date" # allowing git status to be NA in case when QC branch deleted and merged
 
   if (!has_valid_git_status) { # don't give option to notify if git status not up to date
-    return(character(0))
+    return(notify)
   }
 
   # don't give option to notify if comparator commit same as qc commit, it would be redundant to comment the same commit twice
   possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
 
   if (!possible_updates) {
-    return(character(0))
+    return(notify)
   }
 
   # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
 
   # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("File changes to post",
-                               "Approved; subsequent file changes" # git status if up-to-date so this is fine
+  hard_notify_qc_statuses <- c("File changes to post"#,
+                               #"Approved; subsequent file changes" # git status is up-to-date so this is fine # will change this to unapprove
                                )
 
   # soft notify statuses are statuses where there's no changes in the qc file to notify,
@@ -153,15 +162,17 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
 
   if (has_hard_notify_qc_status) {
-    return("Notify file changes")
+    notify$hard_options <- "Notify file changes"
+    return(notify)
   }
 
   else if (has_soft_notify_qc_status) {
-    return("Notify latest commit")
+    notify$soft_options <- "Notify latest commit"
+    return(notify)
   }
 
   else {
-    return(character(0))
+    return(notify)
   }
 }
 
@@ -201,10 +212,15 @@ get_imageless_comments <- function(comments_url) {
 }
 
 get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
+  res <- list(
+    previous_qc_commit = NULL,
+    latest_qc_commit = NULL,
+    qc_approved = FALSE
+  )
+
   if (num_comments == 0) {
-    return(list(latest_qc_commit = initial_qc_commit,
-                qc_approved = FALSE
-                ))
+    res$latest_qc_commit <- initial_qc_commit # latest commit is just the initial
+    return(res)
   }
 
   comments <- get_imageless_comments(comments_url)$body
@@ -216,26 +232,23 @@ get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_u
     if (length(comment_metadata) > 0) {
       approved_qc_commit <-  comment_metadata$`approved qc commit`
       if (!is.null(approved_qc_commit)) {
-        return(list(
-          latest_qc_commit = approved_qc_commit,
-          qc_approved = TRUE
-        ))
+        res$latest_qc_commit <- approved_qc_commit
+        res$qc_approved <- TRUE
+        return(res)
       }
       current_qc_commit <- comment_metadata$`current commit`
+      previous_qc_commit <- comment_metadata$`previous commit`
       if (!is.null(current_qc_commit)) {
-        return(list(
-          latest_qc_commit = current_qc_commit,
-          qc_approved = FALSE
-        ))
+        res$latest_qc_commit <- current_qc_commit
+        res$previous_qc_commit <- previous_qc_commit
+        return(res)
       }
     } # if any metadata
   } # for comments
 
-
-  return(list(
-    latest_qc_commit = initial_qc_commit,
-    qc_approved = FALSE
-  ))
+  # else, no comments were Notification or Approval comments
+  res$latest_qc_commit <- initial_qc_commit
+  return(res)
 }
 
 format_diagnostics_list <- function(items) {

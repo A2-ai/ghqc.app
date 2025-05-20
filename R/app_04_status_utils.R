@@ -16,7 +16,7 @@ dropdown_split_button_html <- function(id, default, options) {
                         "Approve" = "btn-success",
                         "Notify file changes" = "btn-info",
                         "Notify latest commit" = "btn-plum",
-                        "Repost last QC Notification" = "btn-plum",
+                        "Repost last QC notification" = "btn-plum",
                         "Unapprove" = "btn-danger"
     )
     glue::glue(
@@ -31,7 +31,7 @@ dropdown_split_button_html <- function(id, default, options) {
                           "Approve" = "btn-success",
                           "Notify file changes" = "btn-info",
                           "Notify latest commit" = "btn-plum",
-                          "Repost last QC Notification" = "btn-plum",
+                          "Repost last QC notification" = "btn-plum",
                           "Unapprove" = "btn-danger"
   )
 
@@ -62,7 +62,7 @@ generate_action_ui <- function(id, options, message = NULL) {
                         "Approve" = "btn-success",
                         "Notify file changes" = "btn-info",
                         "Notify latest commit" = "btn-plum",
-                        "Repost last QC Notification" = "btn-plum",
+                        "Repost last QC notification" = "btn-plum",
                         "Unapprove" = "btn-danger",
                         "btn-default"
     )

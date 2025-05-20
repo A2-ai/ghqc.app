@@ -440,8 +440,6 @@ ghqc_status_server <- function(id,
       }
     }
 
-
-
     # when the green approve button is clicked
     observeEvent(input$show_approve_modal_row, {
       row_index <- input$show_approve_modal_row$row
@@ -620,13 +618,22 @@ ghqc_status_server <- function(id,
       issue_name <- df[row_index, ]$file_name
       issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
 
+      if (input$show_notify_modal_row$action == "Repost last QC notification") {
+        comparator_commit <- df[row_index, ]$latest_qc_commit
+        reference_commit <- df[row_index, ]$previous_qc_commit
+      }
+      else {
+        comparator_commit <- df[row_index, ]$comparator_commit
+        reference_commit <- df[row_index, ]$latest_qc_commit
+      }
+
       tryCatch({
         create_notify_comment_body(
           issue = issue,
           message = NULL,
           diff = TRUE,
-          comparator_commit = df[row_index, ]$comparator_commit,
-          reference_commit = df[row_index, ]$latest_qc_commit
+          comparator_commit = comparator_commit,
+          reference_commit = reference_commit
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
@@ -836,6 +843,7 @@ ghqc_status_server <- function(id,
                                       "issue_number",
                                       "initial_qc_commit",
                                       "latest_qc_commit",
+                                      "previous_qc_commit",
                                       "comparator_commit",
                                       "issue_url")]
 
