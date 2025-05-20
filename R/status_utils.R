@@ -318,6 +318,7 @@ empty_tibble <- function() {
       issue_number = integer(),
       initial_qc_commit = character(),
       latest_qc_commit = character(),
+      previous_qc_commit = character(),
       comparator_commit = character(),
       issue_url = character(),
       notify = character(),
