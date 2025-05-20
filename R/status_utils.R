@@ -35,19 +35,90 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
   ))
 }
 
+get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit) {
+  # The order in which buttons are added is important to influence user behavior
+  # e.g. Notifying file changes is more important than reposting the last qc commit
 
-
-get_approve_column <- function(qc_status, git_status) {
   action <- list(
-    options = character(0),
+    buttons = character(0),
     message = NULL
   )
 
-  if (qc_status == "Approved") {
+  # Priority #1: "Unapprove"
+  if (qc_status %in% c("Approved", "Approved; subsequent file changes")) { # want this before git_status logic
+    action$buttons <- "Unapprove"
     return(action)
   }
 
-  if (qc_status == "Approved; subsequent file changes") { # want this before git_status logic
+  # Priority #2: Any messages about fixing out-of-sync git statuses
+
+  if (qc_status == "Initial QC commit posted") { # git_status can be anything
+    action$message <- "Pull to begin QC"
+    return(action)
+  }
+
+  if (stringr::str_detect(git_status, "View on QC branch:")) {
+    action$message <- "Switch to QC branch"
+    return(action)
+  }
+
+  if (stringr::str_detect(git_status, "Deleted QC branch:")) {
+    action$message <- "Restore QC branch"
+    return(action)
+  }
+
+  valid_git_status <- !is.na(git_status) && git_status == "Up to date"
+  if (!valid_git_status) {
+    if (git_status == "Remote file changes") {
+      action$message <- "Pull to resume QC"
+      return(action)
+    }
+
+    if (git_status == "Local uncommitted file changes") {
+      action$message <- "Commit and push to resume QC"
+      return(action)
+    }
+
+    if (git_status == "Local unpushed commits with file changes") {
+      action$message <- "Push to resume QC"
+      return(action)
+    }
+
+    action$message <- "Synchronize repository"
+    return(action)
+  } # invalid git status
+
+  # Priority #3: "Notify file changes" button
+  hard_notify_qc_statuses <- c("File changes to post"#,
+                              #"Approved; subsequent file changes" # git status is up-to-date so this is fine # will change this to unapprove
+  )
+
+  changes_after_closure <- qc_status == "Closed without approval" && stringr::str_detect(diagnostics, "Commit difference")
+  if (qc_status == "File changes to post" || changes_after_closure) {
+    action$buttons <- c("Notify file changes", action$buttons)
+  }
+
+
+
+  # Priority #2: "Approve" button
+
+  # Priority #3: "Notify latest commit" button
+
+  # Priority #4: "Repost last QC notification" button
+  if (latest_qc_commit != initial_qc_commit) {
+    action$buttons <- c(action$buttons, "Repost last QC notification") #
+  }
+
+
+}
+
+get_approve_column <- function(qc_status, git_status) {
+  action <- list(
+    buttons = character(0),
+    message = NULL
+  )
+
+  if (qc_status %in% c("Approved", "Approved; subsequent file changes")) { # want this before git_status logic
     action$options <- "Unapprove"
     return(action)
   }
@@ -120,6 +191,8 @@ get_approve_column <- function(qc_status, git_status) {
 
 }
 
+
+
 get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit) {
   notify <- list(
     hard_options = character(0), # higher priority: if there's a file change
@@ -162,12 +235,12 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
 
   if (has_hard_notify_qc_status) {
-    notify$hard_options <- "Notify file changes"
+    notify$hard_options <- c("Notify file changes", notify$hard_options)
     return(notify)
   }
 
   else if (has_soft_notify_qc_status) {
-    notify$soft_options <- "Notify latest commit"
+    notify$soft_options <- c("Notify latest commit", notify$soft_options)
     return(notify)
   }
 
