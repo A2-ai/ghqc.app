@@ -424,22 +424,6 @@ ghqc_status_server <- function(id,
 
     # QC APPROVED
 
-    approve_button <- function(ns) {
-      function(i) {
-        row_id <- sprintf("row_%d", i)
-        sprintf(
-          '<button id="%s" type="button" class="btn btn-sm"
-        style="background-color: #56a230; color: white; border-color: #56a230;"
-        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Approve
-       </button>',
-          ns(paste0("approve_button_", row_id)),
-          ns("show_approve_modal_row"),
-          i
-        )
-      }
-    }
-
     # when the green approve button is clicked
     observeEvent(input$show_approve_modal_row, {
       row_index <- input$show_approve_modal_row$row
@@ -504,11 +488,17 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(df)
 
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
+
       tryCatch({
         create_approve_comment_body(
-          file_path = df[row_index, ]$file_name,
+          file_path = issue_name,
           initial_qc_commit = df[row_index, ]$initial_qc_commit,
-          approved_qc_commit = df[row_index, ]$comparator_commit
+          approved_qc_commit = df[row_index, ]$comparator_commit,
+          issue = issue
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
@@ -557,26 +547,6 @@ ghqc_status_server <- function(id,
 
 
     # QC NOTIFICATIONS
-
-    notify_button <- function(ns) {
-      function(i, hard = TRUE) {
-        row_id <- sprintf("row_%d", i)
-        btn_class <- if (hard) "btn btn-sm btn-info" else "btn btn-sm btn-light"
-
-        sprintf(
-          '<button id="%s" type="button" class="%s"
-        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Notify
-       </button>',
-          ns(paste0("notify_button_", row_id)),
-          btn_class,
-          ns("show_notify_modal_row"),
-          i
-        )
-      }
-    }
-
-
 
     observeEvent(input$show_notify_modal_row, {
       row_index <- input$show_notify_modal_row$row
@@ -678,6 +648,8 @@ ghqc_status_server <- function(id,
       )
     }) # post_notify_comment
 
+
+    ### UNAPPROVE
 
 
 

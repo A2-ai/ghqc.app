@@ -112,143 +112,6 @@ get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   return(res)
 } # get_action_column
 
-get_approve_column <- function(qc_status, git_status) {
-  action <- list(
-    buttons = character(0),
-    message = NULL
-  )
-
-  if (qc_status %in% c("Approved", "Approved; subsequent file changes")) { # want this before git_status logic
-    action$options <- "Unapprove"
-    return(action)
-  }
-
-  if (qc_status == "Initial QC commit posted") { # git_status can be anything
-    action$message <- "Pull to begin QC"
-    return(action)
-  }
-
-  if (stringr::str_detect(git_status, "View on QC branch:")) {
-    action$message <- "Switch to QC branch"
-    return(action)
-  }
-
-  if (stringr::str_detect(git_status, "Deleted QC branch:")) {
-    action$message <- "Restore QC branch"
-    return(action)
-  }
-
-  valid_git_status <- !is.na(git_status) && git_status == "Up to date"
-  if (!valid_git_status) {
-    if (git_status == "Remote file changes") {
-      action$message <- "Pull to resume QC"
-      return(action)
-    }
-
-    if (git_status == "Local uncommitted file changes") {
-      action$message <- "Commit and push to resume QC"
-      return(action)
-    }
-
-    if (git_status == "Local unpushed commits with file changes") {
-      action$message <- "Push to resume QC"
-      return(action)
-    }
-
-    action$message <- "Synchronize repository"
-    return(action)
-  } # invalid git status
-
-
-  # else, git_status is NA or "Up to date"
-  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Closed without approval")
-  if (valid_qc_status) {
-    action$options <- "Approve"
-    return(action)
-  }
-
-  # Needs further explanation
-
-  # "Notification posted" is possible when git status is "Up to date". In this case, force sync because the post was intentional
-  if (qc_status == "Notification posted") {
-    action$message <- "Pull to resume QC"
-    return(action)
-  }
-
-  if (qc_status == "Issue re-opened after approval") {
-    action$options <- "Unapprove"
-    return(action)
-  }
-
-  if (qc_status == "QC branch deleted before approval") {
-    action$message <- "Restore and switch to QC branch"
-    return(action)
-  }
-
-  else {
-    return(action)
-  }
-
-}
-
-
-
-get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit) {
-  notify <- list(
-    hard_options = character(0), # higher priority: if there's a file change
-    soft_options = character(0) # lower priority: new commit or if a QC notification re-post is possible
-  )
-
-  if (latest_qc_commit != initial_qc_commit) {
-    notify$soft_options <- c(notify$soft_options, "Repost last QC notification") #
-  }
-
-  has_valid_git_status <- is.na(git_status) || git_status == "Up to date" # allowing git status to be NA in case when QC branch deleted and merged
-
-  if (!has_valid_git_status) { # don't give option to notify if git status not up to date
-    return(notify)
-  }
-
-  # don't give option to notify if comparator commit same as qc commit, it would be redundant to comment the same commit twice
-  possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
-
-
-  if (!possible_updates) {
-    return(notify)
-  }
-
-  # see how pertinent a QC notification is (i.e. hard == pretty pertinent, soft == probably not pertinent)
-
-  # hard notify statuses are qc statuses for which there are file changes and there's a good reason to notify
-  hard_notify_qc_statuses <- c("File changes to post"#,
-                               #"Approved; subsequent file changes" # git status is up-to-date so this is fine # will change this to unapprove
-                               )
-
-  # soft notify statuses are statuses where there's no changes in the qc file to notify,
-  # but the user may still want to update
-  # the issue - maybe a relevant file changed or something like that
-  soft_notify_qc_statuses <- c("Awaiting approval")
-
-  changes_after_closure <- qc_status == "Closed without approval" && stringr::str_detect(diagnostics, "Commit difference")
-  no_changes_after_closure <- qc_status == "Closed without approval" && !stringr::str_detect(diagnostics, "Commit difference")
-
-  has_hard_notify_qc_status <- qc_status %in% hard_notify_qc_statuses || changes_after_closure
-  has_soft_notify_qc_status <- qc_status %in% soft_notify_qc_statuses || no_changes_after_closure
-
-  if (has_hard_notify_qc_status) {
-    notify$hard_options <- c("Notify file changes", notify$hard_options)
-    return(notify)
-  }
-
-  else if (has_soft_notify_qc_status) {
-    notify$soft_options <- c("Notify latest commit", notify$soft_options)
-    return(notify)
-  }
-
-  else {
-    return(notify)
-  }
-}
 
 get_comment_metadata <- function(body) {
   metadata_section <- stringr::str_match(body, "(?s)## Metadata(.*)")[2]
@@ -288,12 +151,11 @@ get_imageless_comments <- function(comments_url) {
 get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
   res <- list(
     previous_qc_commit = NA_character_,
-    latest_qc_commit = NULL,
+    latest_qc_commit = initial_qc_commit, # initialize as initial qc commit, update if needed
     qc_approved = FALSE
   )
 
   if (num_comments == 0) {
-    res$latest_qc_commit <- initial_qc_commit # latest commit is just the initial
     return(res)
   }
 
@@ -321,7 +183,6 @@ get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_u
   } # for comments
 
   # else, no comments were Notification or Approval comments
-  res$latest_qc_commit <- initial_qc_commit
   return(res)
 }
 
