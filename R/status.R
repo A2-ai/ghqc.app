@@ -116,15 +116,7 @@ ghqc_status <- function(milestone_objects,
         # must be on the QC branch to perform operations
         comparator_commit <- NA_character_
 
-        approve <- get_approve_column(qc_status, git_status)
-        notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
-        options <- c(notify$hard_options, approve$options, notify$soft_options)
-        action <- if (length(options) > 0) {
-          list(options = options)
-        }
-        else {
-          list(message = approve$message)
-        }
+        action <- get_action_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
 
         return(
           dplyr::tibble(
@@ -197,15 +189,7 @@ ghqc_status <- function(milestone_objects,
       # why not just get the whole repo at its present state?
       comparator_commit <- remote_commits[1]
 
-      approve <- get_approve_column(qc_status, git_status)
-      notify <- get_notify_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
-      options <- c(notify$hard_options, approve$options, notify$soft_options)
-      action <- if (length(options) > 0) {
-        list(options = options)
-      }
-      else {
-        list(message = approve$message)
-      }
+      action <- get_action_column(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit)
 
       # return res
       res <- dplyr::tibble(

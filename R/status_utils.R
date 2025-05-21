@@ -39,78 +39,78 @@ get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   # The order in which buttons are added is important to influence user behavior
   # e.g. Notifying file changes is more important than reposting the last qc commit
 
-  action <- list(
-    buttons = character(0),
-    message = NULL
-  )
+  message <- function(msg) list(message = msg)
 
   # Priority #1: "Unapprove"
-  if (qc_status %in% c("Approved", "Approved; subsequent file changes")) { # want this before git_status logic
-    action$buttons <- "Unapprove"
-    return(action)
+  if (qc_status %in% c("Approved", "Approved; subsequent file changes", "Issue re-opened after approval")) { # want this before git_status logic
+    return(list(options = "Unapprove"))
   }
 
-  # Priority #2: Any messages about fixing out-of-sync git statuses
-
-  if (qc_status == "Initial QC commit posted") { # git_status can be anything
-    action$message <- "Pull to begin QC"
-    return(action)
-  }
-
+  # Priority #2: Any messages about fixing out-of-sync git
   if (stringr::str_detect(git_status, "View on QC branch:")) {
-    action$message <- "Switch to QC branch"
-    return(action)
+    return(message("Switch to QC branch"))
   }
 
   if (stringr::str_detect(git_status, "Deleted QC branch:")) {
-    action$message <- "Restore QC branch"
-    return(action)
+    return(message("Restore QC branch"))
   }
+
+  qc_msg <- switch(
+    qc_status,
+    "Initial QC commit posted" = "Pull to begin QC",
+    "Notification posted" = "Pull to resume QC",
+    "QC branch deleted before approval" = "Restore and switch to QC branch",
+    NULL
+  )
+  if (!is.null(qc_msg)) return(message(qc_msg))
+
 
   valid_git_status <- !is.na(git_status) && git_status == "Up to date"
   if (!valid_git_status) {
-    if (git_status == "Remote file changes") {
-      action$message <- "Pull to resume QC"
-      return(action)
-    }
-
-    if (git_status == "Local uncommitted file changes") {
-      action$message <- "Commit and push to resume QC"
-      return(action)
-    }
-
-    if (git_status == "Local unpushed commits with file changes") {
-      action$message <- "Push to resume QC"
-      return(action)
-    }
-
-    action$message <- "Synchronize repository"
-    return(action)
+    git_msg <- switch(
+      git_status,
+      "Remote file changes" = "Pull to resume QC",
+      "Local uncommitted file changes" = "Commit and push to resume QC",
+      "Local unpushed commits with file changes" = "Push to resume QC",
+      "Synchronize repository to resume QC" # default message
+    )
+    return(message(git_msg))
   } # invalid git status
 
-  # Priority #3: "Notify file changes" button
-  hard_notify_qc_statuses <- c("File changes to post"#,
-                              #"Approved; subsequent file changes" # git status is up-to-date so this is fine # will change this to unapprove
-  )
+  opts <- character(0)
 
+  # Priority #3: "Notify file changes" button
   changes_after_closure <- qc_status == "Closed without approval" && stringr::str_detect(diagnostics, "Commit difference")
   if (qc_status == "File changes to post" || changes_after_closure) {
-    action$buttons <- c("Notify file changes", action$buttons)
+    opts <- c(opts, "Notify file changes")
   }
 
-
-
   # Priority #2: "Approve" button
+  valid_qc_status <- qc_status %in% c("Awaiting approval", "File changes to post", "Closed without approval")
+  if (valid_qc_status) {
+    opts <- c(opts, "Approve")
+  }
 
   # Priority #3: "Notify latest commit" button
+  possible_updates <- latest_qc_commit != comparator_commit
+  if (qc_status == "Awaiting approval" && possible_updates) {
+    opts <- c(opts, "Notify latest commit")
+  }
 
   # Priority #4: "Repost last QC notification" button
   if (latest_qc_commit != initial_qc_commit) {
-    action$buttons <- c(action$buttons, "Repost last QC notification") #
+    opts <- c(opts, "Repost last QC notification")
   }
 
+  res <- if (length(opts) > 0) {
+    list(options = opts)
+  }
+  else {
+    message(NULL)
+  }
 
-}
+  return(res)
+} # get_action_column
 
 get_approve_column <- function(qc_status, git_status) {
   action <- list(
@@ -212,6 +212,7 @@ get_notify_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   # don't give option to notify if comparator commit same as qc commit, it would be redundant to comment the same commit twice
   possible_updates <- ifelse(latest_qc_commit != comparator_commit, TRUE, FALSE)
 
+
   if (!possible_updates) {
     return(notify)
   }
@@ -286,7 +287,7 @@ get_imageless_comments <- function(comments_url) {
 
 get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
   res <- list(
-    previous_qc_commit = NULL,
+    previous_qc_commit = NA_character_,
     latest_qc_commit = NULL,
     qc_approved = FALSE
   )
