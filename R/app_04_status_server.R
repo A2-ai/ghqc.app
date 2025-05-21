@@ -64,6 +64,7 @@ ghqc_status_server <- function(id,
     # comment reactives
     post_notification_trigger <- reactiveVal(FALSE)
     post_approve_trigger <- reactiveVal(FALSE)
+    post_unapprove_trigger <- reactiveVal(FALSE)
 
 
     # cache previously rendered sets of milestones
@@ -650,8 +651,99 @@ ghqc_status_server <- function(id,
 
 
     ### UNAPPROVE
+    # when the red button is clicked
+    observeEvent(input$show_unapprove_modal_row, {
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(nrow(df) >= row_index)
 
+      show_unapprove_preview_modal(df, row_index)
+    })
 
+    show_unapprove_preview_modal <- function(df, row_index) {
+      unapprove_comment_parts <- unapprove_comment_body()
+      display_comment_body <- glue::glue_collapse(unapprove_comment_parts)
+      path <- create_gfm_file(display_comment_body)
+      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
+      file_name <- df[row_index, ]$file_name
+
+      showModal(modalDialog(
+        title = tags$div(
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("proceed_unapprove_post"), "Unapprove"),
+          style = "text-align: right;"
+        ),
+        footer = NULL,
+        easyClose = TRUE,
+        tagList(
+          HTML(glue::glue("Post this comment to unapprove QC for <b>{file_name}</b>.<br><br>")),
+          textInput(ns("unapprove_message"), "Message", placeholder = "Explain why QC is unapproved..."),
+          HTML(html)
+        )
+      ))
+    }
+
+    unapprove_comment_body <- reactive({
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
+      approve_comment <- df[row_index, ]$approve_comment
+
+      tryCatch({
+        create_unapprove_comment_body(
+          approve_comment = approve_comment,
+          issue = issue
+        )
+      }, error = function(e) {
+        rlang::abort(conditionMessage(e))
+      })
+    })
+
+    post_unapprove_comment <- observeEvent(post_unapprove_trigger(), {
+      req(isTruthy(post_unapprove_trigger()))
+      unapprove_comment_parts <- unapprove_comment_body()
+      req(unapprove_comment_parts)
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      display_comment_body <- glue::glue_collapse(c(unapprove_comment_parts[1], input$unapprove_message, "\n\n", unapprove_comment_parts[2]))
+
+      post_unapprove_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Unapproving QC...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      tryCatch(
+        {
+          unapprove(issue_number = df[row_index, ]$issue_number,
+                    unapprove_comment_body = display_comment_body,
+                    approve_comment = df[row_index, ]$approve_comment
+                    )
+
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("QC Unapproved", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("dismiss_modal"), "Dismiss"),
+              style = "text-align: right;"
+            ),
+            footer = NULL,
+            easyClose = TRUE,
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on GitHub", target = "_blank")
+          ))
+        },
+        error = function(e) {
+          rlang::abort(conditionMessage(e))
+        }
+      )
+    }) # post_unapprove_comment
 
 
 
@@ -816,6 +908,7 @@ ghqc_status_server <- function(id,
                                       "initial_qc_commit",
                                       "latest_qc_commit",
                                       "previous_qc_commit",
+                                      "approve_comment",
                                       "comparator_commit",
                                       "issue_url")]
 
@@ -950,9 +1043,22 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$proceed_approve_post, {
-      debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
+      debug(.le$logger, glue::glue("post approve comment button proceeded and modal removed."))
       removeModal()
       post_approve_trigger(TRUE)
+    })
+
+    observeEvent(input$proceed_unapprove_preview, {
+      removeModal()
+      df <- filtered_data()
+      row_index <- input$show_unapprove_modal_row$row
+      show_unapprove_preview_modal(df, row_index)
+    })
+
+    observeEvent(input$proceed_unapprove_post, {
+      debug(.le$logger, glue::glue("post unapprove comment button proceeded and modal removed."))
+      removeModal()
+      post_unapprove_trigger(TRUE)
     })
 
     observeEvent(input$return, {

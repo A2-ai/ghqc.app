@@ -442,6 +442,17 @@ close_issue <- function(issue_number) {
   )
 }
 
+open_issue <- function(issue_number) {
+  gh::gh(
+    "PATCH /repos/:org/:repo/issues/:issue_number",
+    org = .le$org,
+    repo = .le$repo,
+    issue_number = issue_number,
+    .api_url = .le$github_api_url,
+    state = "open"
+  )
+}
+
 get_remote_ref_for_branch <- function(branch_name) {
   branches <- gert::git_branch_list(local = FALSE)
 

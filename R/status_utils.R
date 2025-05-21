@@ -145,13 +145,15 @@ get_hyperlinked_commit_diff <- function(old_commit, new_commit) {
 
 get_imageless_comments <- function(comments_url) {
   comments <- gh::gh(comments_url, .api_url = .le$github_api_url)
+  comments <- rev(comments)
   comments_df <- do.call(rbind, lapply(comments, function(x) as.data.frame(t(unlist(x)), stringsAsFactors = FALSE)))
 }
 
-get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
+get_qc_commit_info <- function(file_name, issue_body, num_comments, comments_url, initial_qc_commit) {
   res <- list(
     previous_qc_commit = NA_character_,
     latest_qc_commit = initial_qc_commit, # initialize as initial qc commit, update if needed
+    approve_comment = NA_character_,
     qc_approved = FALSE
   )
 
@@ -159,21 +161,28 @@ get_latest_qc_commit <- function(file_name, issue_body, num_comments, comments_u
     return(res)
   }
 
-  comments <- get_imageless_comments(comments_url)$body
+  comments <- get_imageless_comments(comments_url)
 
-  # start from latest comment, check if a notify or approve comment (i.e. if it has metadata)
+  # start from latest comment (rev), check if a notify or approve comment (i.e. if it has metadata)
   # if it is, get the current/approved qc commit, then break
-  for (comment in rev(comments)) {
-    comment_metadata <- get_comment_metadata(comment)
+  for (i in seq_along(comments)) {
+    comment_row <- comments[i, ]
+    comment_body <- comment_row$body
+    comment_metadata <- get_comment_metadata(comment_body)
+
     if (length(comment_metadata) > 0) {
       approved_qc_commit <-  comment_metadata$`approved qc commit`
+
       if (!is.null(approved_qc_commit)) {
+        res$approve_comment <- comment_row
         res$latest_qc_commit <- approved_qc_commit
         res$qc_approved <- TRUE
         return(res)
       }
+
       current_qc_commit <- comment_metadata$`current commit`
       previous_qc_commit <- comment_metadata$`previous commit`
+
       if (!is.null(current_qc_commit)) {
         res$latest_qc_commit <- current_qc_commit
         res$previous_qc_commit <- previous_qc_commit
@@ -255,6 +264,7 @@ empty_tibble <- function() {
       latest_qc_commit = character(),
       previous_qc_commit = character(),
       comparator_commit = character(),
+      aapprove_comment = character(),
       issue_url = character(),
       notify = character(),
       approve = character(),
