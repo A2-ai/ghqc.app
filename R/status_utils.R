@@ -153,7 +153,7 @@ get_qc_commit_info <- function(file_name, issue_body, num_comments, comments_url
   res <- list(
     previous_qc_commit = NA_character_,
     latest_qc_commit = initial_qc_commit, # initialize as initial qc commit, update if needed
-    approve_comment = NA_character_,
+    approve_comment = data.frame(),
     qc_approved = FALSE
   )
 
