@@ -11,6 +11,7 @@ ghqc_status_ui <- function(id) {
     useShinyjs(),
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/styles.css"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/status_sidebar.css"),
       tags$script(HTML(glue::glue("var ns_prefix = '{ns(\"\")}';"))),
       tags$script(src = "ghqc.app/js/status.js"),
       tags$script(type = "module", src = "ghqc.app/js/toggle_sidebar.js"),
