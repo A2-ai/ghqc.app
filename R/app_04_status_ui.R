@@ -13,7 +13,13 @@ ghqc_status_ui <- function(id) {
       tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/styles.css"),
       tags$script(HTML(glue::glue("var ns_prefix = '{ns(\"\")}';"))),
       tags$script(src = "ghqc.app/js/status.js"),
-      tags$script(type = "module", src = "ghqc.app/js/toggle_sidebar.js")
+      tags$script(type = "module", src = "ghqc.app/js/toggle_sidebar.js"),
+      tags$style(HTML((
+        ".gadget-absfill {
+          top: 0 !important;
+          bottom: 0 !important;
+        }"
+      )))
     ), # tags$head
     waiter_show_on_load(
       html = tagList(

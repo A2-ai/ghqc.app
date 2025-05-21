@@ -254,10 +254,6 @@ table.dataTable td, table.dataTable th {
   min-height: 20px !important;
 }
 
-.gadget-absfill {
-  top: 0 !important;
-  bottom: 0 !important;
-}
 
 .dataTables_wrapper .dataTables_info {
   text-align: left !important;

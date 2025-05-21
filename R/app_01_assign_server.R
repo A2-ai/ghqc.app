@@ -198,7 +198,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       div(
         style = "display: flex; justify-content: flex-end; padding-bottom: 20px;",
         actionButton(ns("file_info"),
-                     label = HTML(glue::glue("<span style='font-size:2.0em;'>Preview all available {get_checklist_display_name_var(plural = TRUE)}</span>")),
+                     label = HTML(glue::glue("<span style='font-size:2.0em;'>Preview {get_checklist_display_name_var()} options</span>")),
                      class = "preview-button",
                      style = "min-width: auto; display: inline-block; text-align: right; line-height: 2em; height: 2em;"
         ) #actionButton
