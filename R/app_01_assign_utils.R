@@ -382,7 +382,10 @@ create_checklist_preview_event <- function(input, name, checklists) {
         if (selected_checklist == "") {
           showModal(
             modalDialog(
-              title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                               modalButton("Dismiss"),
+                               style = "text-align: right;"
+              ),
               footer = NULL,
               easyClose = TRUE,
               renderUI({
@@ -395,7 +398,10 @@ create_checklist_preview_event <- function(input, name, checklists) {
           info <- checklists[[selected_checklist]]
           showModal(
             modalDialog(
-              title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                               modalButton("Dismiss"),
+                               style = "text-align: right;"
+              ),
               footer = NULL,
               easyClose = TRUE,
               renderUI({

@@ -415,39 +415,18 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
 
       showModal(
         modalDialog(
-          title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+          title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                           modalButton("Dismiss"),
+                           style = "text-align: right;"
+                           ),
           footer = NULL,
           easyClose = TRUE,
-          glue::glue("Each selected file will require a {get_checklist_display_name_var()} type. Each {get_checklist_display_name_var()} type will have its own items associated with it."),
-          "See below for a reference of all types and their items.",
-          br(),
-          br(),
           selectInput(ns("checklist_info"), NULL, choices = names(checklists), width = "100%"),
           uiOutput(ns("file_info_panel"))
         )
       )
     })
 
-
-    observeEvent(input$checklist_input_id, {
-      selected_checklist <- input$checklist_input_id
-
-      observeEvent(input$preview_input_id, {
-        showModal(
-          modalDialog(
-            title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
-            footer = NULL,
-            easyClose = TRUE,
-            glue::glue("Each selected file will require a {get_checklist_display_name_var()} type. Each {get_checklist_display_name_var()} type will have its own items associated with it."),
-            "See below for a reference of all types and their items.",
-            br(),
-            br(),
-            selectInput(ns("checklist_info"), NULL, choices = names(checklists), width = "100%"),
-            uiOutput(ns("file_info_panel"))
-          )
-        )
-      })
-    })
 
     output$file_info_panel <- renderUI({
       req(checklists)
