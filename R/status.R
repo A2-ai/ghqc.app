@@ -21,6 +21,7 @@ ghqc_status <- function(milestone_objects,
     milestone_name <- milestone_object$title
     milestone_number <- milestone_object$number
     issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
+
     if (length(issues) == 0) {
       return(empty_tibble())
     }

@@ -266,9 +266,9 @@ empty_tibble <- function() {
       comparator_commit = character(),
       aapprove_comment = character(),
       issue_url = character(),
-      notify = character(),
-      approve = character(),
+      action = character(),
       qcer = character()
     )
   )
+
 }
