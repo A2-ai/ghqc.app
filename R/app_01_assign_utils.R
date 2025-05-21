@@ -335,7 +335,7 @@ create_button_preview_event <- function(input, name) {
       file_preview_id <- generate_input_id("button", name)
       clean_name <- generate_input_id(name = name)
       if (stringr::str_detect(clean_name, exclude_patterns())) {
-        print <- "File display not available for binary files"
+        print <- "File preview not available for binary files."
 
       }
       else {
@@ -346,7 +346,10 @@ create_button_preview_event <- function(input, name) {
         {
           showModal(
             modalDialog(
-              title = tags$div(modalButton("Dismiss"), style = "text-align: right;"),
+              title = tags$div(tags$span(glue::glue("File Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                               modalButton("Dismiss"),
+                               style = "text-align: right;"
+              ),
               footer = NULL,
               easyClose = TRUE,
               renderUI({
