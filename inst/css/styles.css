@@ -258,6 +258,13 @@ table.dataTable td, table.dataTable th {
   filter: brightness(0.9);
 }
 
+.custom-dropdown {
+  position: absolute !important;
+  z-index: 9999; /* Ensure it appears on top */
+  will-change: transform;
+  margin-top: 2px;
+}
+
 .dropdown-btn {
   white-space: normal !important;
   word-wrap: break-word;
