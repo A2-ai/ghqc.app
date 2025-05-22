@@ -11,95 +11,16 @@ ghqc_status_ui <- function(id) {
     useShinyjs(),
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/styles.css"),
-      tags$script(type = "module", src = "ghqc.app/js/adjust_grid.js"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "ghqc.app/css/status_sidebar.css"),
+      tags$script(HTML(glue::glue("var ns_prefix = '{ns(\"\")}';"))),
+      tags$script(src = "ghqc.app/js/status.js"),
       tags$script(type = "module", src = "ghqc.app/js/toggle_sidebar.js"),
-      tags$style(HTML("
-    ::placeholder {
-      color: #8e8e8e; /* match colors of placeholders */
-    }
-  ")),
-      tags$style(HTML("
-  .checkbox label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    font-weight: 600;
-    font-size: 13px;
-    color: #333;
-  }
-")),
-      tags$script(HTML(glue::glue("
-  Shiny.onInputChange('{ns('show_qcer')}', document.getElementById('{ns('show_qcer')}').checked);
-  document.getElementById('{ns('show_qcer')}').addEventListener('change', function() {{
-    Shiny.setInputValue('{ns('show_qcer')}', this.checked);
-  }});
-"))),
-      tags$style(HTML("
-div[id$='-sidebar'] {
-    width: 200px;
-    min-width: 200px;
-    max-width: 200px;
-    flex: 0 0 0;
-    overflow-y: auto;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sidebar-collapsed div[id$='-sidebar'] {
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    flex: 0 0 0 !important;
-  }
-
-  .sidebar-collapsed div[id$='-sidebar'] * {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  div[id$='-sidebar'] * {
-    opacity: 1;
-    transition: opacity 0.2s ease;
-  }
-")),
-      tags$script(HTML("
-  $(document).on('click', 'button[id^=\"ghqc_status_app-modal_btn_\"]', function() {
-    Shiny.setInputValue(this.id, Math.random());
-  });
-")),
-      tags$style(HTML("
-  table.dataTable td, table.dataTable th {
-    border-left: none !important;
-    border-right: none !important;
-  }
-")),
-      tags$style(HTML("
-  .dataTables_wrapper .dataTables_scrollBody {
-    height: auto !important;
-    max-height: none !important;
-    min-height: 20px !important;
-  }
-")),
-      tags$style(HTML("
-  .gadget-absfill {
-    top: 0 !important;
-    bottom: 0 !important;
-  }
-")),
-      tags$style(HTML("
-  .dataTables_wrapper .dataTables_info {
-    text-align: left !important;
-    float: left !important;
-    padding-left: 0 !important;
-    margin-left: 0 !important;
-    padding: 3px !important;
-    margin: 0 !important;
-  }
-"))
+      tags$style(HTML((
+        ".gadget-absfill {
+          top: 0 !important;
+          bottom: 0 !important;
+        }"
+      )))
     ), # tags$head
     waiter_show_on_load(
       html = tagList(

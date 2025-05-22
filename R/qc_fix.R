@@ -17,28 +17,33 @@ get_init_qc_commit_from_issue_body <- function(issue_body) {
 
 
 
-create_assignees_list <- function(assignees, issue_creator) {
-  # get user
+
+
+create_notify_list <- function(assignees, issue_creator) {
   user_login <- get_user()
   assignee_logins <- sapply(assignees, function(assignee) assignee$login)
 
-  # if user is in the list of assignees, @ the issue creator
-  # or, if there are no assignees, and the user is not the issue creator, @ the issue creator - the user is probably an unassigned QCer
-  if (user_login %in% assignee_logins || (length(assignee_logins) == 0 && user_login != issue_creator)) {
-    return(glue::glue("@{issue_creator}"))
+  users_to_notify <- {
+    # if user is in the list of assignees, @ the issue creator
+    # or, if there are no assignees, and the user is not the issue creator, @ the issue creator - the user is probably an unassigned QCer
+    if (user_login %in% assignee_logins || (length(assignee_logins) == 0 && user_login != issue_creator)) {
+      glue::glue("@{issue_creator}")
+    }
+    # else, @ the assignees
+    else {
+      sapply(assignee_logins, function(assignee_login) glue::glue("@{assignee_login}"))
+    }
   }
 
-  # else, @ the assignees
-  sapply(assignee_logins, function(assignee_login) glue::glue("@{assignee_login}"))
-}
-
-create_assignees_body <- function(assignees_list) {
-  if (length(assignees_list) == 0) ""
+  if (length(users_to_notify) == 0) {
+    return("")
+  }
   else {
-    list <- glue::glue_collapse(assignees_list, sep = "\n")
-    glue::glue("{list}\n\n\n")
+    list <- glue::glue_collapse(users_to_notify, sep = "\n")
+    return(glue::glue("{list}\n\n\n"))
   }
-}
+} # create_notify_list
+
 
 create_message_body <- function(message) {
   if (is.null(message)) ""
@@ -102,11 +107,11 @@ create_notify_comment_body <- function(issue,
   # log
   debug(.le$logger, glue::glue("Creating comment body for Issue #{issue$number}:{issue$title} in {.le$org}/{.le$repo}"))
 
-  debug(.le$logger, glue::glue("Creating assignees body..."))
-  assignees_list <- create_assignees_list(assignees = issue$assignees,
-                                          issue_creator = issue$user$login)
-  assignees_body <- create_assignees_body(assignees_list)
-  debug(.le$logger, glue::glue("Created assignees body"))
+  debug(.le$logger, glue::glue("Creating notified users body..."))
+  notified_users_body <- create_notify_list(assignees = issue$assignees,
+                                            issue_creator = issue$user$login
+                                            )
+  debug(.le$logger, glue::glue("Created notified users body"))
 
   debug(.le$logger, glue::glue("Creating message body..."))
   message_body <- create_message_body(message)
@@ -152,7 +157,7 @@ create_notify_comment_body <- function(issue,
   debug(.le$logger, glue::glue("Got metadata body"))
 
   comment_body_first <- as.character(glue::glue("# QC Notification\n\n",
-                                                "{assignees_body}",
+                                                "{notified_users_body}",
                                                 "{message_body}",
                                                 .trim = FALSE))
 
@@ -161,42 +166,38 @@ create_notify_comment_body <- function(issue,
                                    .trim = FALSE))
 
   # log
-  log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
-
-  info(.le$logger, glue::glue("Created comment body for issue #{issue$number} in {.le$org}/{.le$repo} with
-                              Assignee(s):     {log_assignees}
-                              Previous commit: {reference_commit}
-                              Original commit: {comparator_commit}"))
+  # log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
+  #
+  # info(.le$logger, glue::glue("Created comment body for issue #{issue$number} in {.le$org}/{.le$repo} with
+  #                             Assignee(s):     {log_assignees}
+  #                             Previous commit: {reference_commit}
+  #                             Original commit: {comparator_commit}"))
 
   return(c(comment_body_first, comment_body_second))
 }
 
 
-post_comment <- function(issue_number, body) {
-  debug(.le$logger, glue::glue("Posting comment to Issue #{issue_number} in {.le$org}/{.le$repo}..."))
 
-  comment <- gh::gh("POST /repos/:org/:repo/issues/:issue_number/comments",
-                    .api_url = .le$github_api_url,
-                    org = .le$org,
-                    repo = .le$repo,
-                    issue_number = issue_number,
-                    body = body
-                    )
-
-  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
+create_hyperlink <- function(display_text, url) {
+  glue::glue("<a href=\"{url}\" target=\"_blank\">{display_text}</a>")
 }
 
-create_approve_comment_body <- function(file_path, initial_qc_commit, approved_qc_commit) {
+
+create_approve_comment_body <- function(file_path, initial_qc_commit, approved_qc_commit, issue) {
   file_contents_url <- get_file_contents_url(file_path = file_path,
                                              git_sha = approved_qc_commit)
 
-  file_contents_html <- glue::glue("<a href=\"{file_contents_url}\" target=\"_blank\">file contents at approved qc commit</a>")
+  file_contents_html <- create_hyperlink(display_text = "file contents at approved qc commit",
+                                         url = file_contents_url
+                                         )
 
   init_vs_approved_commit_diff_url <- get_commit_comparison_url(reference_commit = initial_qc_commit,
                                                                 comparator_commit = approved_qc_commit
                                                                 )
 
-  init_vs_approved_commit_diff_html <- glue::glue("<a href=\"{init_vs_approved_commit_diff_url}\" target=\"_blank\">initial qc commit vs. approved qc commit</a>")
+  init_vs_approved_commit_diff_html <- create_hyperlink(display_text = "initial qc commit vs. approved qc commit",
+                                                        url = init_vs_approved_commit_diff_url
+                                                        )
 
   metadata_body <- glue::glue("## Metadata\n",
                          "* approved qc commit: {approved_qc_commit}\n",
@@ -205,7 +206,12 @@ create_approve_comment_body <- function(file_path, initial_qc_commit, approved_q
                          .trim = FALSE
   )
 
+  notified_users_body <- create_notify_list(assignees = issue$assignees,
+                                            issue_creator = issue$user$login
+                                            )
+
   comment_body_first <- as.character(glue::glue("# QC Approved\n\n",
+                                                "{notified_users_body}\n\n",
                                                 .trim = FALSE))
 
   comment_body_second <- as.character(glue::glue("{metadata_body}",
@@ -220,6 +226,74 @@ approve <- function(issue_number, body) {
 
   # step 2: close issue
   close_issue(issue_number)
+}
+
+unapprove <- function(issue_number, unapprove_comment_body, approve_comment) {
+  # step 1: post unapprove comment
+  post_comment(issue_number, unapprove_comment_body)
+
+  # step 2: edit approve comment
+  edit_approve_comment(approve_comment)
+
+  # step 3: reopen issue
+  open_issue(issue_number)
+}
+
+
+create_unapprove_comment_body <- function(approve_comment, issue) {
+  approve_comment_url <- approve_comment$html_url
+  unapproved_comment <- create_hyperlink(display_text = "previous approval comment",
+                                         url = approve_comment_url)
+
+  metadata_body <- glue::glue("## Metadata\n",
+                              "* {unapproved_comment}\n",
+                              .trim = FALSE)
+
+  notified_users_body <- create_notify_list(assignees = issue$assignees,
+                                            issue_creator = issue$user$login)
+
+  comment_body_first <- as.character(glue::glue("# QC Unapproved\n\n",
+                                                "{notified_users_body}\n\n",
+                                                .trim = FALSE))
+
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                                 .trim = FALSE))
+
+  return(c(comment_body_first, comment_body_second))
+} # create_unapprove_comment_body
+
+edit_approve_comment <- function(approve_comment) {
+  comment_id <- approve_comment$id
+  comment_body <- approve_comment$body
+
+  # strikeout "# QC Approved" header
+  new_comment_body <- stringr::str_replace(comment_body, "^# QC Approved", "# ~~QC Approved~~")
+
+  # strikeout each metadata line starting with "* "
+  new_comment_body <- stringr::str_replace_all(new_comment_body, "(?m)^\\* (.*)$", "* ~~\\1~~")
+
+  gh::gh(
+    "PATCH /repos/:org/:repo/issues/comments/:comment_id",
+    org = .le$org,
+    repo = .le$repo,
+    comment_id = comment_id,
+    body = new_comment_body
+  )
+} # edit_approve_comment
+
+
+post_comment <- function(issue_number, body) {
+  debug(.le$logger, glue::glue("Posting comment to Issue #{issue_number} in {.le$org}/{.le$repo}..."))
+
+  comment <- gh::gh("POST /repos/:org/:repo/issues/:issue_number/comments",
+                    .api_url = .le$github_api_url,
+                    org = .le$org,
+                    repo = .le$repo,
+                    issue_number = issue_number,
+                    body = body
+  )
+
+  info(.le$logger, glue::glue("Posted comment to Issue #{issue_number} in {.le$org}/{.le$repo}"))
 }
 
 

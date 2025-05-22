@@ -64,6 +64,7 @@ ghqc_status_server <- function(id,
     # comment reactives
     post_notification_trigger <- reactiveVal(FALSE)
     post_approve_trigger <- reactiveVal(FALSE)
+    post_unapprove_trigger <- reactiveVal(FALSE)
 
 
     # cache previously rendered sets of milestones
@@ -424,22 +425,6 @@ ghqc_status_server <- function(id,
 
     # QC APPROVED
 
-    approve_button <- function(ns) {
-      function(i) {
-        row_id <- sprintf("row_%d", i)
-        sprintf(
-          '<button id="%s" type="button" class="btn btn-sm"
-        style="background-color: #56a230; color: white; border-color: #56a230;"
-        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Approve
-       </button>',
-          ns(paste0("approve_button_", row_id)),
-          ns("show_approve_modal_row"),
-          i
-        )
-      }
-    }
-
     # when the green approve button is clicked
     observeEvent(input$show_approve_modal_row, {
       row_index <- input$show_approve_modal_row$row
@@ -504,11 +489,17 @@ ghqc_status_server <- function(id,
       df <- filtered_data()
       req(df)
 
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
+
       tryCatch({
         create_approve_comment_body(
-          file_path = df[row_index, ]$file_name,
+          file_path = issue_name,
           initial_qc_commit = df[row_index, ]$initial_qc_commit,
-          approved_qc_commit = df[row_index, ]$comparator_commit
+          approved_qc_commit = df[row_index, ]$comparator_commit,
+          issue = issue
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
@@ -558,24 +549,6 @@ ghqc_status_server <- function(id,
 
     # QC NOTIFICATIONS
 
-    notify_button <- function(ns) {
-      function(i, hard = TRUE) {
-        row_id <- sprintf("row_%d", i)
-        btn_class <- if (hard) "btn btn-sm btn-info" else "btn btn-sm btn-light"
-
-        sprintf(
-          '<button id="%s" type="button" class="%s"
-        onclick="Shiny.setInputValue(\'%s\', {row: %d, nonce: Math.random()});">
-        Notify
-       </button>',
-          ns(paste0("notify_button_", row_id)),
-          btn_class,
-          ns("show_notify_modal_row"),
-          i
-        )
-      }
-    }
-
     observeEvent(input$show_notify_modal_row, {
       row_index <- input$show_notify_modal_row$row
       df <- filtered_data()
@@ -616,13 +589,22 @@ ghqc_status_server <- function(id,
       issue_name <- df[row_index, ]$file_name
       issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
 
+      if (input$show_notify_modal_row$action == "Repost last QC notification") {
+        comparator_commit <- df[row_index, ]$latest_qc_commit
+        reference_commit <- df[row_index, ]$previous_qc_commit
+      }
+      else {
+        comparator_commit <- df[row_index, ]$comparator_commit
+        reference_commit <- df[row_index, ]$latest_qc_commit
+      }
+
       tryCatch({
         create_notify_comment_body(
           issue = issue,
           message = NULL,
           diff = TRUE,
-          comparator_commit = df[row_index, ]$comparator_commit,
-          reference_commit = df[row_index, ]$latest_qc_commit
+          comparator_commit = comparator_commit,
+          reference_commit = reference_commit
         )
       }, error = function(e) {
         rlang::abort(conditionMessage(e))
@@ -668,7 +650,100 @@ ghqc_status_server <- function(id,
     }) # post_notify_comment
 
 
+    ### UNAPPROVE
+    # when the red button is clicked
+    observeEvent(input$show_unapprove_modal_row, {
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(nrow(df) >= row_index)
 
+      show_unapprove_preview_modal(df, row_index)
+    })
+
+    show_unapprove_preview_modal <- function(df, row_index) {
+      unapprove_comment_parts <- unapprove_comment_body()
+      display_comment_body <- glue::glue_collapse(unapprove_comment_parts)
+      path <- create_gfm_file(display_comment_body)
+      html <- readLines(path, warn = FALSE) %>% paste(collapse = "\n")
+      file_name <- df[row_index, ]$file_name
+
+      showModal(modalDialog(
+        title = tags$div(
+          tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("proceed_unapprove_post"), "Unapprove"),
+          style = "text-align: right;"
+        ),
+        footer = NULL,
+        easyClose = TRUE,
+        tagList(
+          HTML(glue::glue("Post this comment to unapprove QC for <b>{file_name}</b>.<br><br>")),
+          textInput(ns("unapprove_message"), "Message", placeholder = "Explain why QC is unapproved..."),
+          HTML(html)
+        )
+      ))
+    }
+
+    unapprove_comment_body <- reactive({
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      cache <- status_cache()
+      milestone <- df[row_index, ]$milestone_name
+      issue_name <- df[row_index, ]$file_name
+      issue <- cache[[milestone]]$issue_objects[[milestone]][[issue_name]]
+      approve_comment <- df[row_index, ]$approve_comment
+
+      tryCatch({
+        create_unapprove_comment_body(
+          approve_comment = approve_comment,
+          issue = issue
+        )
+      }, error = function(e) {
+        rlang::abort(conditionMessage(e))
+      })
+    })
+
+    post_unapprove_comment <- observeEvent(post_unapprove_trigger(), {
+      req(isTruthy(post_unapprove_trigger()))
+      unapprove_comment_parts <- unapprove_comment_body()
+      req(unapprove_comment_parts)
+      row_index <- input$show_unapprove_modal_row$row
+      df <- filtered_data()
+      req(df)
+
+      display_comment_body <- glue::glue_collapse(c(unapprove_comment_parts[1], input$unapprove_message, "\n\n", unapprove_comment_parts[2]))
+
+      post_unapprove_trigger(FALSE)
+
+      w_pc <- create_waiter(ns, "Unapproving QC...")
+      w_pc$show()
+      on.exit(w_pc$hide())
+
+      tryCatch(
+        {
+          unapprove(issue_number = df[row_index, ]$issue_number,
+                    unapprove_comment_body = display_comment_body,
+                    approve_comment = df[row_index, ]$approve_comment
+                    )
+
+          showModal(modalDialog(
+            title = tags$div(
+              tags$span("QC Unapproved", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+              actionButton(ns("dismiss_modal"), "Dismiss"),
+              style = "text-align: right;"
+            ),
+            footer = NULL,
+            easyClose = TRUE,
+            tags$a(href = df[row_index, ]$issue_url, "Click here to view the Issue on GitHub", target = "_blank")
+          ))
+        },
+        error = function(e) {
+          rlang::abort(conditionMessage(e))
+        }
+      )
+    }) # post_unapprove_comment
 
 
 
@@ -815,45 +890,25 @@ ghqc_status_server <- function(id,
       req(show_table())
       df <- filtered_data()
 
-      # add notify button
       if (nrow(df) > 0) {
-        df$Notify <- sapply(1:nrow(df), function(i) {
-          row <- df[i, ]
-
-          if (row$Notify == "hard") {
-            notify_button(ns)(i, hard = TRUE)
-          }
-          else if (row$Notify == "soft") {
-            notify_button(ns)(i, hard = FALSE)
-          }
-          else {
-            NA_character_
-          }
-        })
-
-
-        df$`Approve` <- sapply(1:nrow(df), function(i) {
-          row <- df[i, ]
-
-          if (row$`Approve` == "approve") {
-            approve_button(ns)(i)
-          }
-          else if (row$`Approve` == "none") {
-            NA_character_
-          }
-          else {
-            row$`Approve`
-          }
+        # Add action column
+        df$Action <- sapply(1:nrow(df), function(i) {
+          row_data <- df[i, ]$Action
+          opts <- row_data$options %||% character(0)
+          msg  <- row_data$message
+          generate_action_ui(i, opts, msg)
         })
       } # if rows
 
 
-      # remove info columns
+      # remove info columns in display
       df <- df[, !colnames(df) %in% c("milestone_name",
                                       "file_name",
                                       "issue_number",
                                       "initial_qc_commit",
                                       "latest_qc_commit",
+                                      "previous_qc_commit",
+                                      "approve_comment",
                                       "comparator_commit",
                                       "issue_url")]
 
@@ -988,9 +1043,22 @@ ghqc_status_server <- function(id,
     })
 
     observeEvent(input$proceed_approve_post, {
-      debug(.le$logger, glue::glue("post comment button proceeded and modal removed."))
+      debug(.le$logger, glue::glue("post approve comment button proceeded and modal removed."))
       removeModal()
       post_approve_trigger(TRUE)
+    })
+
+    observeEvent(input$proceed_unapprove_preview, {
+      removeModal()
+      df <- filtered_data()
+      row_index <- input$show_unapprove_modal_row$row
+      show_unapprove_preview_modal(df, row_index)
+    })
+
+    observeEvent(input$proceed_unapprove_post, {
+      debug(.le$logger, glue::glue("post unapprove comment button proceeded and modal removed."))
+      removeModal()
+      post_unapprove_trigger(TRUE)
     })
 
     observeEvent(input$return, {
