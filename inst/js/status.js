@@ -16,20 +16,27 @@ $(document).on('shiny:connected', function() {
 
 function triggerDefaultAction(id, action) {
   console.log("triggerDefaultAction called with:", id, action);
+
   let labelMap = {
     'Notify file changes': 'btn-info',
     'Approve': 'btn-success',
     'Repost last QC notification': 'btn-plum',
     'Notify latest commit': 'btn-plum',
-    'Unapprove': 'btn-danger'
+    'Unapprove (danger)': 'btn-danger',
+    'Unapprove (light)': 'btn-light'
   };
+
+  // Fallback to btn-default if not listed
+  let btnClass = labelMap[action] || 'btn-default';
+
+  // Strip variant from label: "Unapprove (danger)" => "Unapprove"
+  let buttonLabel = action.replace(/\s?\(.*?\)$/, '');
 
   let btnMain = document.getElementById('main-btn-' + id);
   let btnCaret = document.getElementById('caret-btn-' + id);
-  let btnClass = labelMap[action] || 'btn-default';
 
   if (btnMain) {
-    btnMain.innerText = action;
+    btnMain.innerText = buttonLabel;
     btnMain.className = 'btn btn-sm ' + btnClass;
   }
 
@@ -37,15 +44,18 @@ function triggerDefaultAction(id, action) {
     btnCaret.className = 'btn btn-sm dropdown-toggle ' + btnClass;
   }
 
-  if (action === 'Approve') {
+  if (buttonLabel === 'Approve') {
     console.log("Setting input value:", ns_prefix + 'show_approve_modal_row');
     Shiny.setInputValue(ns_prefix + 'show_approve_modal_row', { row: parseInt(id), nonce: Math.random() });
-  } else if (action === 'Notify file changes' || action === 'Notify latest commit' || action === 'Repost last QC notification') {
-    Shiny.setInputValue(ns_prefix + 'show_notify_modal_row', { row: parseInt(id), action: action, nonce: Math.random() });
-  } else if (action === 'Unapprove') {
+  } else if (
+    buttonLabel === 'Notify file changes' ||
+    buttonLabel === 'Notify latest commit' ||
+    buttonLabel === 'Repost last QC notification'
+  ) {
+    Shiny.setInputValue(ns_prefix + 'show_notify_modal_row', { row: parseInt(id), action: buttonLabel, nonce: Math.random() });
+  } else if (buttonLabel === 'Unapprove') {
     Shiny.setInputValue(ns_prefix + 'show_unapprove_modal_row', { row: parseInt(id), nonce: Math.random() });
   } else {
-    Shiny.setInputValue(ns_prefix + 'action_' + id, action, {priority: 'event'});
+    Shiny.setInputValue(ns_prefix + 'action_' + id, buttonLabel, {priority: 'event'});
   }
-
 }

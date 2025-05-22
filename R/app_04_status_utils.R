@@ -1,3 +1,7 @@
+strip_variant <- function(label) {
+  sub("\\s*\\(.*\\)$", "", label)
+}
+
 #' @importFrom rlang .data
 get_most_recent_milestone <- function(all_ghqc_milestones) {
   milestone_df <- all_ghqc_milestones |>
@@ -17,11 +21,15 @@ dropdown_split_button_html <- function(id, default, options) {
                         "Notify file changes" = "btn-info",
                         "Notify latest commit" = "btn-plum",
                         "Repost last QC notification" = "btn-plum",
-                        "Unapprove" = "btn-danger"
+                        "Unapprove (danger)" = "btn-danger",
+                        "Unapprove (light)" = "btn-light",
+                        "btn-default"
     )
+    display_label <- strip_variant(option)
+
     glue::glue(
       '<li><a class="btn {btn_class} btn-sm btn-block dropdown-btn" href="#"
-          onclick="triggerDefaultAction(\'{id}\', \'{option}\')">{option}</a></li>'
+      onclick="triggerDefaultAction(\'{id}\', \'{option}\')">{display_label}</a></li>'
     )
   })
 
@@ -58,21 +66,24 @@ generate_action_ui <- function(id, options, message = NULL) {
     glue::glue('{message %||% \"\"}')
   } else if (length(options) == 1) {
     label <- options[1]
+    display_label <- strip_variant(label)
     btn_class <- switch(label,
                         "Approve" = "btn-success",
                         "Notify file changes" = "btn-info",
                         "Notify latest commit" = "btn-plum",
                         "Repost last QC notification" = "btn-plum",
-                        "Unapprove" = "btn-danger",
+                        "Unapprove (danger)" = "btn-danger",
+                        "Unapprove (light)" = "btn-light",
                         "btn-default"
     )
     glue::glue('
-      <button id="main-btn-{id}" type="button" class="btn btn-sm {btn_class}"
-        onclick="triggerDefaultAction(\'{id}\', \'{label}\')">
-        {label}
-      </button>
-    ')
-  } else {
+  <button id="main-btn-{id}" type="button" class="btn btn-sm {btn_class}"
+    onclick="triggerDefaultAction(\'{id}\', \'{label}\')">
+    {display_label}
+  </button>
+')
+  }
+  else {
     default <- options[1]
     dropdown_split_button_html(id, default, options)
   }

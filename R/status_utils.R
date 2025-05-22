@@ -42,8 +42,12 @@ get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
   message <- function(msg) list(message = msg)
 
   # Priority #1: "Unapprove"
-  if (qc_status %in% c("Approved", "Approved; subsequent file changes", "Issue re-opened after approval")) { # want this before git_status logic
-    return(list(options = "Unapprove"))
+  if (qc_status %in% c("Approved")) { # want this before git_status logic
+    return(list(options = "Unapprove (light)"))
+  }
+
+  if (qc_status %in% c("Approved; subsequent file changes", "Issue re-opened after approval")) {
+    return(list(options = "Unapprove (danger)"))
   }
 
   # Priority #2: Any messages about fixing out-of-sync git
