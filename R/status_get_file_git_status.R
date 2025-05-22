@@ -108,8 +108,7 @@ get_files_with_uncommitted_local_changes <- function() {
 
 get_local_commits <- function() {
   local_log_output <- system("git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'", intern = TRUE)
-  local_commit_log <- utils::read.csv(text = local_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(local_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  local_commit_log <- parse_commit_log(local_log_output)
   debug(.le$logger, glue::glue("Retrieved local commit log"))
 
   return(local_commit_log$commit)
@@ -117,8 +116,7 @@ get_local_commits <- function() {
 
 get_remote_commits <- function(current_branch) {
   remote_log_output <- system(glue::glue("git log {.le$remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  remote_commit_log <- parse_commit_log(remote_log_output)
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
 
   return(remote_commit_log$commit)
@@ -126,11 +124,16 @@ get_remote_commits <- function(current_branch) {
 
 get_remote_commits_full_name <- function(remote) {
   remote_log_output <- system(glue::glue("git log {remote} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
-  remote_commit_log <- utils::read.csv(text = remote_log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE)
-  names(remote_commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  remote_commit_log <- parse_commit_log(remote_log_output)
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
 
   return(remote_commit_log$commit)
+}
+
+parse_commit_log <- function(log_output) {
+  commit_log <- utils::read.csv(text = log_output, sep = "|", header = FALSE, stringsAsFactors = FALSE, quote = "")
+  names(commit_log) <- c("commit", "author_name", "author_email", "time", "message")
+  return(commit_log)
 }
 
 check_remote_branch_deleted <- function(branch_name) {
