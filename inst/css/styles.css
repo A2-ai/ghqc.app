@@ -258,7 +258,7 @@ table.dataTable td, table.dataTable th {
   filter: brightness(0.9);
 }
 
-.custom-dropdown {
+.dropdown-menu.custom-dropdown {
   position: absolute !important;
   z-index: 9999; /* Ensure it appears on top */
   will-change: transform;
