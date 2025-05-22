@@ -1,4 +1,4 @@
-# ghqc.app 0.5.4
+# ghqc.app 0.6.0
 
 `ghqc_status_app()`:
 
@@ -7,7 +7,8 @@
     
     - Approve
     - Notify file changes
-    - Notify new commit
+    - Notify latest commit
+    - Repost last QC notification
     - Unapprove
 
 # ghqc.app 0.5.3
