@@ -153,7 +153,7 @@ get_qc_commit_info <- function(file_name, issue_body, num_comments, comments_url
   res <- list(
     previous_qc_commit = NA_character_,
     latest_qc_commit = initial_qc_commit, # initialize as initial qc commit, update if needed
-    approve_comment = data.frame(),
+    approve_comment = data.frame(body = NA_character_, html_url = NA_character_, id = NA_character_),
     qc_approved = FALSE
   )
 
@@ -174,7 +174,11 @@ get_qc_commit_info <- function(file_name, issue_body, num_comments, comments_url
       approved_qc_commit <-  comment_metadata$`approved qc commit`
 
       if (!is.null(approved_qc_commit)) {
-        res$approve_comment <- comment_row
+        res$approve_comment <- data.frame(body = comment_row$body,
+                                    html_url = comment_row$html_url,
+                                    id = comment_row$id
+                                    )
+        #res$approve_comment <- comment_row
         res$latest_qc_commit <- approved_qc_commit
         res$qc_approved <- TRUE
         return(res)
