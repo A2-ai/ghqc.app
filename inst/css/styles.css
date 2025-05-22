@@ -206,6 +206,7 @@ table.dataTable td, table.dataTable th {
   height: auto !important;
   max-height: none !important;
   min-height: 20px !important;
+  overflow: visible !important;
 }
 
 
