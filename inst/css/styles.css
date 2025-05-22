@@ -259,10 +259,9 @@ table.dataTable td, table.dataTable th {
 }
 
 .dropdown-menu.custom-dropdown {
-  position: absolute !important;
-  z-index: 9999; /* Ensure it appears on top */
-  will-change: transform;
-  margin-top: 2px;
+  position: fixed !important;
+  display: none;
+  z-index: 9999;
 }
 
 .dropdown-btn {
@@ -281,6 +280,7 @@ table.dataTable td, table.dataTable th {
 
 /* this line prevents caret from wrapping to next line */
 .btn-group {
+  position: relative;
   white-space: nowrap;
   display: inline-flex;
 }
