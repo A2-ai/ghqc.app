@@ -258,11 +258,12 @@ table.dataTable td, table.dataTable th {
   filter: brightness(0.9);
 }
 
+/*
 .dropdown-menu.custom-dropdown {
   position: fixed !important;
-  display: none;
   z-index: 9999;
 }
+*/
 
 .dropdown-btn {
   white-space: normal !important;
