@@ -1,3 +1,7 @@
+# ghqc.app 0.6.1
+
+- fixes bug in which commits with quotes are incorrectly parsed
+
 # ghqc.app 0.6.0
 
 `ghqc_status_app()`:
