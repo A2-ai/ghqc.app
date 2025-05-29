@@ -106,7 +106,7 @@ format_diff_section <- function(diff_lines) {
   diff_with_line_numbers <- add_line_numbers(diff_cat)
 }
 
-get_script_contents <- function(file_path, reference, comparator) {
+get_script_contents <- function(reference_file_path, comparator_file_path, reference_commit, comparator_commit) {
   temp_dir <- tempdir()
   file_diff_dir <- file.path(temp_dir, "file_diff_dir")
   fs::dir_create(file_diff_dir)
@@ -121,7 +121,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   file_at_comparator <- tempfile(tmpdir = file_diff_dir)
 
   # get reference file contents
-  command_ref <- glue::glue("git show {reference}:\"{file_path}\" > {file_at_reference}")
+  command_ref <- glue::glue("git show {reference_commit}:\"{reference_file_path}\" > {file_at_reference}")
   result_ref <- processx::run("sh", c("-c", command_ref), error_on_status = FALSE)
 
   if (result_ref$status != 0) {
@@ -134,7 +134,7 @@ get_script_contents <- function(file_path, reference, comparator) {
   }
 
   # get reference file contents
-  command_comp <- glue::glue("git show {comparator}:\"{file_path}\" > {file_at_comparator}")
+  command_comp <- glue::glue("git show {comparator_commit}:\"{comparator_file_path}\" > {file_at_comparator}")
   result_comp <- processx::run("sh", c("-c", command_comp), error_on_status = FALSE)
 
   if (result_comp$status != 0) {

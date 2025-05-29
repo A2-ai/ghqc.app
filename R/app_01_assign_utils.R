@@ -683,10 +683,11 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
         req(issue_display)
         #browser()
         issue_parts <- split_issue_parts(issue_display)
+        previous_issue_number <- issue_parts$issue_number
         issue <- get_issue_from_all_issues(issue_parts$issue_title, issues_rv())
         remote_commits <- get_remote_commits(current_branch = gert::git_branch())
-
         last_remote_commit <- remote_commits[1]
+        comparator_file_path <- generate_input_id(name = name)
 
         initial_qc_commit <- get_init_qc_commit_from_issue_body(issue$body)
         qc_commit_info <- get_qc_commit_info(file_name = issue$title,
@@ -695,17 +696,14 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
                                              comments_url = issue$comments_url,
                                              initial_qc_commit = initial_qc_commit
                                              )
-
-
         latest_qc_commit <- qc_commit_info$latest_qc_commit
 
-
-        comment_body_parts <- create_notify_comment_body(issue = issue,
-                                                         message = NULL, # input$message_id
-                                                         diff = TRUE,
-                                                         comparator_commit = last_remote_commit,
-                                                         reference_commit = latest_qc_commit
-        )
+        comment_body_parts <- create_previous_qc_comment_body(diff = TRUE,
+                                                              reference_file_path = issue$title,
+                                                              comparator_file_path = comparator_file_path,
+                                                              reference_commit = last_remote_commit,
+                                                              comparator_commit = latest_qc_commit,
+                                                              previous_issue_number = previous_issue_number)
         comment_body <- glue::glue_collapse(comment_body_parts)
         html_file_path <- create_gfm_file(comment_body)
         custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
