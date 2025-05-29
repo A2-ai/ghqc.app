@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names, all_milestone_objects) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -281,7 +281,8 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
-            create_checklist_preview_event(input = input, name = name, checklists = checklists)
+            post_qc_history_button_event(input = input, output = output, name = name, ns = ns, all_milestone_objects = all_milestone_objects)
+            #create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {conditionMessage(e)}"))
@@ -462,7 +463,6 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           removeClass("create_qc_items", "disabled-btn")
           addClass("create_qc_items", "enabled-btn")
         }
-
       }
     })
 
