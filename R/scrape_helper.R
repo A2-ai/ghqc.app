@@ -181,6 +181,13 @@ get_issue_body_metadata <- function(body) {
 
 
 get_close_info <- function(issue) {
+  if (issue$state == "open") {
+    return(list(
+      closer = NA,
+      closed_at = NA
+    ))
+  }
+
   issue_events <- gh::gh(issue$events_url)
   events_list <- get_events_list(issue_events)
   closures <- events_list[grep("closed", events_list)]

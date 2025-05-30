@@ -57,7 +57,7 @@ get_file_qc_status <- function(file,
         return(file_changes_to_post(git_status, last_remote_file_change_after_qc_commit, file, latest_qc_commit, latest_qc_commit_short))
       }
 
-      return(in_progress(latest_qc_commit_short))
+      return(in_progress(latest_qc_commit_short, latest_qc_commit, last_remote_commit = remote_commits[1]))
     } # Open and qc not approved
 
     # Closed and qc not approved
@@ -177,9 +177,17 @@ file_changes_to_post <- function(git_status, last_remote_file_change_after_qc_co
   )
 } # file_changes_to_post
 
-in_progress <- function(latest_qc_commit_short) {
+in_progress <- function(latest_qc_commit_short, last_remote_commit, latest_qc_commit) {
   qc_status <- "Awaiting approval"
-  diagnostics <- format_diagnostics_list(list(glue::glue("Last posted commit: {latest_qc_commit_short}")))
+
+  diagnostics_list <- list(glue::glue("Last posted commit: {latest_qc_commit_short}"))
+
+  if (latest_qc_commit != last_remote_commit) {
+    last_remote_commit_short <- get_hyperlinked_last_remote_commit_diff(latest_qc_commit, last_remote_commit)
+    diagnostics_list <- append(diagnostics_list, glue::glue("Last remote commit: {last_remote_commit_short}"))
+  }
+
+  diagnostics <- format_diagnostics_list(diagnostics_list)
 
   list(qc_status = qc_status,
        diagnostics = diagnostics
@@ -298,7 +306,7 @@ get_file_qc_status_non_local_qc_branch <- function(file,
         return(file_changes_to_post(git_status = NA_character_, last_remote_file_change_after_qc_commit, file, latest_qc_commit, latest_qc_commit_short))
       }
 
-      return(in_progress(latest_qc_commit_short))
+      return(in_progress(latest_qc_commit_short, last_remote_commit = remote_commits[1], latest_qc_commit))
     } # Open and qc not approved
 
     # Closed and qc not approved

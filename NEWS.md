@@ -1,3 +1,8 @@
+# ghqc.app 0.6.2
+
+- `ghqc_status_app()`: adds "remote commit ahead" to diagnostics in the case that the remote commit is ahead of the last posted qc commit even though the QC file hasn't changed.
+- `ghqc_record_app()`: formatting fixes in summary tables
+
 # ghqc.app 0.6.1
 
 - fixes bug in which commits with quotes are incorrectly parsed
