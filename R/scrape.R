@@ -123,7 +123,7 @@ create_qc_data_section <- function(issue, status) {
       NULL
     }
   }
-  if (!is.null(closed_by)) {
+  if (!is.null(closed_by) && issue_state != "Open") {
     closed_by_section <- glue::glue("* **Closed by:** {closed_by}")
     sections <- c(sections, closed_by_section)
   }
