@@ -472,6 +472,12 @@ create_intro <- function(milestone_names) {
   - \\setlength{{\\headheight}}{{30pt}}
   - \\fancyfoot[C]{{Page \\thepage\\ of \\pageref{{LastPage}}}}
   - \\usepackage{{lastpage}}
+  - \\usepackage{{microtype}}
+  - \\usepackage{{ragged2e}}
+  - \\usepackage{{fvextra}}
+  - \\usepackage[normalem]{{ulem}}
+  - \\justifying
+  - \\sloppy
   - \\lstset{{breaklines=true}}{logo_exists_extra_header}
   output:
     pdf_document:
