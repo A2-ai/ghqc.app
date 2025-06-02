@@ -95,10 +95,10 @@ get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_comm
     opts <- c(opts, "Approve")
   }
 
-  # Priority #3: "Notify latest commit" button
+  # Priority #3: "Notify last remote commit" button
   possible_updates <- latest_qc_commit != comparator_commit
   if (qc_status == "Awaiting approval" && possible_updates) {
-    opts <- c(opts, "Notify latest commit")
+    opts <- c(opts, "Notify last remote commit")
   }
 
   # Priority #4: "Repost last QC notification" button
@@ -144,6 +144,13 @@ get_hyperlinked_commit <- function(long_commit, file) {
 get_hyperlinked_commit_diff <- function(old_commit, new_commit) {
   commit_diff_url <- file.path(.le$full_repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
   hyperlinked_commit_diff <- glue::glue('<a href="{commit_diff_url}" target="_blank">Commit difference</a>')
+  return(hyperlinked_commit_diff)
+}
+
+get_hyperlinked_last_remote_commit_diff <- function(old_commit, new_commit) {
+  commit_diff_url <- file.path(.le$full_repo_url, "compare", glue::glue("{old_commit}..{new_commit}"))
+  short_new_commit <- substr(new_commit, 1, 7)
+  hyperlinked_commit_diff <- glue::glue('<a href="{commit_diff_url}" target="_blank">{short_new_commit}</a>')
   return(hyperlinked_commit_diff)
 }
 

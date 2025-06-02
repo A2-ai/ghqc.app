@@ -21,7 +21,7 @@ function triggerDefaultAction(id, action) {
     'Notify file changes': 'btn-info',
     'Approve': 'btn-success',
     'Repost last QC notification': 'btn-plum',
-    'Notify latest commit': 'btn-plum',
+    'Notify last remote commit': 'btn-plum',
     'Unapprove (danger)': 'btn-danger',
     'Unapprove (light)': 'btn-light'
   };
@@ -49,7 +49,7 @@ function triggerDefaultAction(id, action) {
     Shiny.setInputValue(ns_prefix + 'show_approve_modal_row', { row: parseInt(id), nonce: Math.random() });
   } else if (
     buttonLabel === 'Notify file changes' ||
-    buttonLabel === 'Notify latest commit' ||
+    buttonLabel === 'Notify last remote commit' ||
     buttonLabel === 'Repost last QC notification'
   ) {
     Shiny.setInputValue(ns_prefix + 'show_notify_modal_row', { row: parseInt(id), action: buttonLabel, nonce: Math.random() });

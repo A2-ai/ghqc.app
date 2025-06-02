@@ -41,6 +41,10 @@ ghqc_record <- function(milestone_objects,
     issue_objects_in_milestone <- issue_objects[[milestone_name]]
     statuses_in_milestone <- statuses[[milestone_name]]
 
+    common_files <- intersect(names(issue_objects_in_milestone), names(statuses_in_milestone))
+    issue_objects_in_milestone <- issue_objects_in_milestone[common_files]
+    statuses_in_milestone <- statuses_in_milestone[common_files]
+
     milestone_body <- create_milestone_report_section(milestone_name, issue_objects_in_milestone, statuses_in_milestone, just_tables)
     create_big_section(milestone_name, milestone_body)
   })
@@ -123,13 +127,13 @@ create_qc_data_section <- function(issue, status) {
       NULL
     }
   }
-  if (!is.null(closed_by)) {
+  if (!is.null(closed_by) && issue$state != "open") {
     closed_by_section <- glue::glue("* **Closed by:** {closed_by}")
     sections <- c(sections, closed_by_section)
   }
 
   closed_at <- {
-    if (!is.null(issue$closed_at)) {
+    if (!is.null(issue$closed_at)  && issue$state != "open") {
       humanize_time(issue$closed_at)
     }
     else {
@@ -468,6 +472,12 @@ create_intro <- function(milestone_names) {
   - \\setlength{{\\headheight}}{{30pt}}
   - \\fancyfoot[C]{{Page \\thepage\\ of \\pageref{{LastPage}}}}
   - \\usepackage{{lastpage}}
+  - \\usepackage{{microtype}}
+  - \\usepackage{{ragged2e}}
+  - \\usepackage{{fvextra}}
+  - \\usepackage[normalem]{{ulem}}
+  - \\justifying
+  - \\sloppy
   - \\lstset{{breaklines=true}}{logo_exists_extra_header}
   output:
     pdf_document:
@@ -535,9 +545,11 @@ print(table)
 
 create_set_of_issue_sections <- function(issues, statuses) {
   issue_numbers <- sapply(issues, function(issue) issue$number)
-  issue_markdown_strings <- Map(issue_to_markdown, issues, statuses)
-
-  #issue_markdown_strings <- sapply(issues, function(issue) issue_to_markdown(issue))
+  issue_markdown_strings <- Map(
+    issue_to_markdown,
+    issues,
+    statuses
+  )
   issue_titles <- sapply(issues, function(issue) issue$title)
 
   issue_section_strs <- mapply(create_medium_section, section_title = issue_titles, contents = issue_markdown_strings)
