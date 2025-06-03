@@ -20,13 +20,13 @@ generate_uncommitted_message <- function(uncommitted_files, error_icon_html, war
   messages <- c()
   if (length(uncommitted_files$selected) > 0) {
     messages <- c(messages, sprintf(
-      "%s All selected files must have local changes committed before proceeding. The following selected files have local uncommitted changes:<br><br><ul>%s</ul><br>",
+      "%s All selected files must have local changes committed before proceeding. The following selected files have local uncommitted changes:<br><br><ul>%s</ul>",
       error_icon_html, generate_html_list(uncommitted_files$selected)
     ))
   }
   if (length(uncommitted_files$general) > 0 && length(uncommitted_files$selected) == 0) {
     messages <- c(messages, sprintf(
-      "%s The following local files have uncommitted changes, but are not selected:<ul>%s</ul><br>",
+      "%s The following local files have uncommitted changes, but are not selected:<ul>%s</ul>",
       warning_icon_html, generate_html_list(uncommitted_files$general)
     ))
   }
@@ -38,7 +38,7 @@ generate_existing_issue_message <- function(existing_issues, error_icon_html) {
   messages <- c()
   if (length(existing_issues) > 0) {
     messages <- c(messages, sprintf(
-      "%s The following selected files are already associated with Issues in the Milestone:<ul>%s</ul><br>",
+      "%s The following selected files are already associated with Issues in the Milestone:<ul>%s</ul>",
       error_icon_html, generate_html_list(existing_issues)
     ))
   }
@@ -54,7 +54,7 @@ generate_existing_qc_branch_message <- function(issues_in_existing_milestone, er
 
   if (current_branch != qc_branch) {
     messages <- c(messages, sprintf(
-      "%s The existing Milestone is already associated with QC branch <em>%s</em>. The current branch is <em>%s</em>. Switch to QC branch or create a new Milestone.<br>",
+      "%s The existing Milestone is already associated with QC branch <em>%s</em>. The current branch is <em>%s</em>. Switch to the QC branch or create a new Milestone.<br>",
       error_icon_html, qc_branch, current_branch
     ))
   }
@@ -117,9 +117,8 @@ determine_modal_message <- function(selected_files,
   messages <- c(messages, generate_existing_issue_message(existing_issues, error_icon_html))
 
   if (!is.null(issues_in_existing_milestone)) {
-    messages <- generate_existing_qc_branch_message(issues_in_existing_milestone, error_icon_html)
+    messages <- messages <- c(messages, generate_existing_qc_branch_message(issues_in_existing_milestone, error_icon_html))
   }
-
 
   # Errors and Warnings
   messages <- c(messages, generate_uncommitted_message(uncommitted_files, error_icon_html, warning_icon_html))
@@ -140,6 +139,6 @@ determine_modal_message <- function(selected_files,
     return(list(message = NULL, state = NULL))
   } else {
     state <- if (any(grepl(error_icon_html, messages))) "error" else "warning"
-    return(list(message = paste(messages, collapse = "\n"), state = state))
+    return(list(message = paste(messages, collapse = "<br>"), state = state))
   }
 }
