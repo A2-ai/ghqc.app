@@ -1,3 +1,7 @@
+# ghqc.app 0.6.3
+
+- fixes bug created by ghqc.app 0.5.2 in which multiple ghqc Issues for a given QC file can be created in a Milestone (only one ghqc Issue for a given QC file per Milestone should be allowed)
+
 # ghqc.app 0.6.2
 
 - `ghqc_status_app()`: adds "remote commit ahead" to diagnostics in the case that the remote commit is ahead of the last posted qc commit even though the QC file hasn't changed.
