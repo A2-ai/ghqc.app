@@ -1,3 +1,7 @@
+# ghqc.app 0.6.4
+
+- fixes bug in `ghqc_notify_app()` in which not all ghqc Issues were listed in dropdown due to change in function filtering behavior now that the QC branch is also a label added to ghqc Issues.
+
 # ghqc.app 0.6.3
 
 - fixes bug created by ghqc.app 0.5.2 in which multiple ghqc Issues for a given QC file can be created in a Milestone (only one ghqc Issue for a given QC file per Milestone should be allowed)
