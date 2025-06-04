@@ -330,9 +330,12 @@ get_all_issues_in_repo <- function() {
 
 get_only_ghqc_issues <- function(issues) {
   if (length(issues) == 0) return(issues)
-  labels <- sapply(issues, function(x) x$labels)
-  if (length(labels) == 0) return(c(list(), list()))
-  issues[sapply(labels, function(x) "ghqc" %in% sapply(x, function(y) y))]
+
+  issues[sapply(issues, function(issue) {
+    any(sapply(issue$labels, function(label) {
+      is.character(label$name) && label$name == "ghqc"
+    }))
+  })]
 }
 
 get_all_issues_in_milestone_from_milestone_number <- function(milestone_number, milestone_name) {
