@@ -1,3 +1,7 @@
+# ghqc.app 0.6.5
+
+- fixes bug in `ghqc_status_app()`in which the api url isn't included for the QC approved comment edit api call (works for github which is the default, but not GHE)
+
 # ghqc.app 0.6.4
 
 - fixes bug in `ghqc_notify_app()` in which not all ghqc Issues were listed in dropdown due to change in function filtering behavior now that the QC branch is also a label added to ghqc Issues.

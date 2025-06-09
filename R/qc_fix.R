@@ -276,6 +276,7 @@ edit_approve_comment <- function(approve_comment) {
     "PATCH /repos/:org/:repo/issues/comments/:comment_id",
     org = .le$org,
     repo = .le$repo,
+    .api_url = .le$github_api_url,
     comment_id = comment_id,
     body = new_comment_body
   )
