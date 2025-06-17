@@ -32,6 +32,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
   moduleServer(id, function(input, output, session) {
     inputted_milestone_rv <- reactiveVal(NULL)
     relevant_files <- reactiveVal(list())
+    previous_qc_rv <- reactiveVal(list())
     issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
     issues_in_existing_milestone_rv <- reactiveVal(NULL)
 
@@ -181,7 +182,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
         {
           relevant_files_list <- tryCatch({
             relevant_files()
-          }, error = function(e){
+          }, error = function(e) {
             NULL
           })
           file_data <- extract_file_data(input, selected_items(), relevant_files_list)
@@ -281,7 +282,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
-            post_qc_history_button_event(input = input, output = output, name = name, ns = ns, all_milestone_objects = all_milestone_objects)
+            post_qc_history_button_event(input = input, output = output, name = name, ns = ns, all_milestone_objects = all_milestone_objects, previous_qc_rv = previous_qc_rv)
             #create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {

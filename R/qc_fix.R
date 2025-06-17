@@ -113,6 +113,7 @@ create_previous_qc_comment_body <- function(diff,
 
   ## check if file exists locally # TODO test this
 
+
   # if is a binary file, don't display git diff
   if (stringr::str_detect(reference_file_path, exclude_patterns()) || stringr::str_detect(comparator_file_path, exclude_patterns())) {
     diff <- FALSE

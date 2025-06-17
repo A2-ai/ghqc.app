@@ -317,7 +317,7 @@ ghqc_notify_server <- function(id, open_milestone_names) {
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
           actionButton(ns("proceed_post"), "Post"),
           style = "text-align: right;"
         ),
