@@ -444,7 +444,7 @@ ghqc_status_server <- function(id,
         showModal(modalDialog(
           title = tags$div(
             tags$span("Warning", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-            actionButton(ns("return"), "Cancel", style = "color: red;"),
+            actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
             actionButton(ns("proceed_approve_preview"), "Proceed anyway"),
             style = "text-align: right;"
           ),
@@ -470,7 +470,7 @@ ghqc_status_server <- function(id,
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
           actionButton(ns("proceed_approve_post"), "Approve"),
           style = "text-align: right;"
         ),
@@ -564,7 +564,7 @@ ghqc_status_server <- function(id,
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
           actionButton(ns("proceed_notify_post"), "Notify"),
           style = "text-align: right;"
         ),
@@ -670,7 +670,7 @@ ghqc_status_server <- function(id,
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
           actionButton(ns("proceed_unapprove_post"), "Unapprove"),
           style = "text-align: right;"
         ),

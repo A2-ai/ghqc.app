@@ -260,7 +260,7 @@ ghqc_notify_server <- function(id, open_milestone_names) {
                                                            diff = input$show_diff,
                                                            comparator_commit = commits_for_compare$comparator_commit,
                                                            reference_commit = commits_for_compare$reference_commit
-          )
+                                                           )
           comment_body <- glue::glue_collapse(comment_body_parts)
         },
         error = function(e) {
@@ -317,7 +317,7 @@ ghqc_notify_server <- function(id, open_milestone_names) {
       showModal(modalDialog(
         title = tags$div(
           tags$span("Preview", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-          actionButton(ns("return"), "Cancel", style = "color: red;"),
+          actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
           actionButton(ns("proceed_post"), "Post"),
           style = "text-align: right;"
         ),

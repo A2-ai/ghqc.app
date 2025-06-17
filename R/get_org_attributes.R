@@ -469,3 +469,21 @@ get_remote_ref_for_branch <- function(branch_name) {
   # Return the full remote name, e.g., "origin/qc_branch_1"
   return(branches$name[match_idx[1]])
 }
+
+get_milestone_number_from_all_milestones <- function(milestone_name, milestone_objects) {
+  match_index <- which(vapply(milestone_objects, function(m) identical(m$title, milestone_name), logical(1)))
+  if (length(match_index) > 0) {
+    return(milestone_objects[[match_index]]$number)
+  } else {
+    return(NA_integer_)  # or handle error/log
+  }
+}
+
+get_issue_from_all_issues <- function(issue_name, all_issues) {
+  match_index <- which(vapply(all_issues, function(issue) identical(issue$title, issue_name), logical(1)))
+  if (length(match_index) > 0) {
+    return(all_issues[[match_index]])
+  } else {
+    return(NULL)  # or NA, or rlang::abort("Issue not found")
+  }
+}

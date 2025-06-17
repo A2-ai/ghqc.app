@@ -33,7 +33,7 @@ generate_input_id <- function(prefix = NULL, name) {
 #' @param checklist_choices A vector of checklist choices for the selectize input fields.
 #'
 #' @noRd
-render_selected_list <- function(input, ns, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, output) {
+render_selected_list <- function(input, ns, items = NULL, checklist_choices = NULL, depth = 0, relevant_files = NULL, previous_qc = NULL, output) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Rendering selected list with items: {paste(items, collapse = ', ')}"))
@@ -47,7 +47,7 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
         file_preview_id <- generate_input_id("button", name)
-        preview_input_id <- generate_input_id("preview", name)
+        history_input_id <- generate_input_id("history", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
         assignee_input <- selectizeInput(
@@ -84,9 +84,9 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
           class = "associate-relevant-files-button"
         )
 
-        preview_input <- actionButton(
-          ns(preview_input_id),
-          label = HTML(glue::glue("<span>Preview<br>{get_checklist_display_name_var()}</span>")),
+        associate_previous_qc <- actionButton(
+          ns(history_input_id),
+          label = HTML(glue::glue("<span>Associate<br>previous QC</span>")),
           style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
           class = "checklist-preview-button"
         )
@@ -96,10 +96,10 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         ul <- tagAppendChild(ul,
                              div(
                                class = "grid-items",
-                               div(class = "item-a", associate_relevant_files),
-                               div(class = "item-b", assignee_input),
                                div(class = "item-c", checklist_input),
-                               div(class = "item-d", preview_input)
+                               div(class = "item-b", assignee_input),
+                               div(class = "item-d", associate_relevant_files),
+                               div(class = "item-d", associate_previous_qc)
                              )
         )
 
@@ -119,7 +119,28 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
             relevant_files_list
           )
 
-          ul <- tagAppendChild(ul, relevant_files_section)
+
+          browser()
+          previous_qc_section <- NULL
+          if (!is.null(previous_qc) && length(previous_qc[[issue_name]]) > 0) {
+            previous_qc_section <- div(
+              style = "flex: 1;",
+              tags$strong("Previous QC:"),
+              previous_qc[[issue_name]]
+            )
+          }
+
+          combined_section <- div(
+            style = "display: flex; flex-direction: row; justify-content: space-between; padding-bottom: 15px;",
+            relevant_files_section,
+            previous_qc_section
+          )
+
+          ul <- tagAppendChild(ul, combined_section)
+
+
+
+          #ul <- tagAppendChild(ul, relevant_files_section)
         } # if relevant files
       } # for
 
@@ -218,17 +239,21 @@ extract_file_data <- function(input, items, relevant_files_list) {
       for (name in items) {
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
-        preview_input_id <- generate_input_id("preview", name)
-        filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
+        history_input_id <- generate_input_id("history", name)
+        #filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
 
         checklist_input_value <- input[[checklist_input_id]]
         assignee_input_value <- input[[assignee_input_id]]
-        preview_input_value <- input[[preview_input_id]]
+        history_input_value <- input[[history_input_id]]
         # passing in reactive instead to preserve order of selection
         #filtered_file_selector_value <- input[[filtered_file_selector_id]]
 
         if (!isTruthy(assignee_input_value) || assignee_input_value == "No assigned QCer") {
           assignee_input_value <- NULL
+        }
+
+        if (!isTruthy(history_input_value)) {
+          history_input_value <- NULL
         }
         # requires the widget and input to be available before proceeding
         if (!isTruthy(checklist_input_value) || checklist_input_value == "") {
@@ -254,13 +279,15 @@ extract_file_data <- function(input, items, relevant_files_list) {
         }
         else {
            relevant_file_data <- NULL
-         }
+        }
+        browser()
 
         file_data <- append(file_data,
                             list(create_file_data_structure(
                               file_name = generate_input_id(name = name),
                               assignees = assignee_input_value,
                               checklist_type = checklist_input_value,
+                              previous_qc = history_input_value,
                               relevant_files =  relevant_file_data
                             ))
                       )
@@ -360,68 +387,6 @@ create_button_preview_event <- function(input, name) {
         },
         ignoreInit = TRUE
       )
-      debug(.le$logger, glue::glue("Created button preview event for item: {name} successfully"))
-    },
-    error = function(e) {
-      log4r::error(glue::glue("Error creating observe event for item {name}: {conditionMessage(e)}"))
-      rlang::abort(conditionMessage(e))
-    }
-  )
-}
-
-#' @import shiny
-#' @importFrom glue glue
-#' @importFrom log4r warn error info debug
-#' @importFrom shinyjs enable disable addClass removeClass delay
-create_checklist_preview_event <- function(input, name, checklists) {
-  tryCatch(
-    {
-      preview_input_id <- generate_input_id("preview", name)
-      checklist_input_id <- generate_input_id("checklist", name)
-
-      observeEvent(input[[preview_input_id]], {
-        selected_checklist <- input[[checklist_input_id]]
-
-        if (selected_checklist == "") {
-          showModal(
-            modalDialog(
-              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-                               modalButton("Dismiss"),
-                               style = "text-align: right;"
-              ),
-              footer = NULL,
-              easyClose = TRUE,
-              renderUI({
-                glue::glue("Select a {get_checklist_display_name_var()} to preview in the {get_checklist_display_name_var(capitalized = TRUE)} dropdown.")
-              })
-            )
-          )
-        }
-        else {
-          info <- checklists[[selected_checklist]]
-          showModal(
-            modalDialog(
-              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
-                               modalButton("Dismiss"),
-                               style = "text-align: right;"
-              ),
-              footer = NULL,
-              easyClose = TRUE,
-              renderUI({
-                header <- tags$h3(selected_checklist)
-                list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
-                tagList(
-                  header,
-                  tags$ul(list)
-                )
-              })
-            )
-          )
-        }
-
-      },
-      ignoreInit = TRUE)
-
       debug(.le$logger, glue::glue("Created button preview event for item: {name} successfully"))
     },
     error = function(e) {
@@ -587,8 +552,8 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
                         style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
               tags$div(
                 style = "text-align: right;",
-                actionButton(ns("add_files"), "Associate files", style = "margin-right: 10px;"),
-                modalButton("Dismiss")
+                actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
+                actionButton(ns("add_files"), "Associate")
               )
             ),
             footer = NULL,
@@ -618,4 +583,149 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       rlang::abort(conditionMessage(e))
     }
   )
+}
+
+
+
+post_qc_history_button_event <- function(input, output, name, ns, all_milestone_objects, previous_qc_rv) { # TODO
+  tryCatch({
+
+    issues_rv <- reactiveVal(list())
+
+    milestone_id <- generate_input_id("milestone_selector", name)
+    issue_id <- generate_input_id("issue_selector", name)
+    message_id <- generate_input_id("message_input", name)
+    history_input_id <- generate_input_id("history", name)
+
+    # assumes you have a reactive object with all available issues/milestones
+      observeEvent(input[[history_input_id]], {
+      removeModal()
+      all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
+      #browser()
+
+      output[[milestone_id]] <- renderUI({
+        selectInput(
+          ns(milestone_id),
+          "Milestone",
+          choices = c("(Required)" = "", all_milestone_names)
+        )
+      })
+
+
+      output[[issue_id]] <- renderUI({
+        milestone_name <- input[[milestone_id]]
+        req(milestone_name)
+        milestone_number <- get_milestone_number_from_all_milestones(milestone_name = milestone_name,
+                                                                     milestone_objects = all_milestone_objects)
+
+        issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
+        issues_rv(issues)
+        issue_choices <- convert_issue_df_format(issues)
+
+        selectInput(
+          ns(issue_id),
+          "Issue",
+          choices = c("(Required)" = "", issue_choices)
+        )
+      })
+
+      output[[message_id]] <- renderUI({
+        textAreaInput(
+          ns(message_id),
+          "Message",
+          value = "",
+          rows = 3,
+          placeholder = "Describe changes since the previous QC"
+        )
+      })
+
+      output[[paste0(name, "_diff_preview")]] <- renderUI({
+        issue_display <- input[[issue_id]]
+        req(issue_display)
+        issue_parts <- split_issue_parts(issue_display)
+        previous_issue_number <- issue_parts$issue_number
+        issue <- get_issue_from_all_issues(issue_parts$issue_title, issues_rv())
+        remote_commits <- get_remote_commits(current_branch = gert::git_branch())
+        last_remote_commit <- remote_commits[1]
+        comparator_file_path <- generate_input_id(name = name)
+
+        initial_qc_commit <- get_init_qc_commit_from_issue_body(issue$body)
+        qc_commit_info <- get_qc_commit_info(file_name = issue$title,
+                                             issue_body = issue$body,
+                                             num_comments = issue$comments,
+                                             comments_url = issue$comments_url,
+                                             initial_qc_commit = initial_qc_commit
+                                             )
+        latest_qc_commit <- qc_commit_info$latest_qc_commit
+
+        comment_body_parts <- create_previous_qc_comment_body(diff = TRUE,
+                                                              reference_file_path = issue$title,
+                                                              comparator_file_path = comparator_file_path,
+                                                              reference_commit = last_remote_commit,
+                                                              comparator_commit = latest_qc_commit,
+                                                              previous_issue_number = previous_issue_number)
+        # save to reactiveVal
+        meta <- previous_qc_rv()
+        if (is.null(meta[[name]])) meta[[name]] <- list()
+        meta[[name]]$comment_body_parts <- comment_body_parts
+        previous_qc_rv(meta)
+
+        comment_body <- glue::glue_collapse(comment_body_parts)
+        html_file_path <- create_gfm_file(comment_body)
+        custom_html <- readLines(html_file_path, warn = FALSE) %>% paste(collapse = "\n")
+
+        div(
+          HTML(custom_html)
+        )
+      })
+
+      showModal(
+        modalDialog(
+          title = tags$div(
+            tags$span("Associate previous QC", style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+            tags$div(
+              style = "text-align: right;",
+              actionButton(ns("return"), "Cancel", style = "color: #a94442;"),
+              actionButton(ns("post_qc_history"), "Associate")
+            )
+          ),
+          footer = NULL,
+          easyClose = TRUE,
+          fluidRow(
+            column(6,
+                   uiOutput(ns(milestone_id)),
+                   uiOutput(ns(issue_id)),
+                   uiOutput(ns(message_id))
+            ),
+            column(6,
+                   uiOutput(ns(paste0(name, "_diff_preview")))
+            )
+          )
+        )
+      )
+    })
+
+      observeEvent(input$post_qc_history, {
+        req(input[[issue_id]], input[[milestone_id]])
+
+        # Save metadata
+        meta <- previous_qc_rv()
+        if (is.null(meta[[name]])) meta[[name]] <- list()
+
+        meta[[name]]$milestone <- input[[milestone_id]]
+        meta[[name]]$issue <- input[[issue_id]]
+        meta[[name]]$message <- input[[message_id]]
+        # comment_body_parts is already saved by the preview step
+
+        previous_qc_rv(meta)
+
+        removeModal()
+      })
+
+    debug(.le$logger, glue::glue("Created associate previous QC event for item: {name} successfully"))
+  },
+  error = function(e) {
+    log4r::error(glue::glue("Error creating associate previous QC event for item {name}: {conditionMessage(e)}"))
+    rlang::abort(conditionMessage(e))
+  })
 }
