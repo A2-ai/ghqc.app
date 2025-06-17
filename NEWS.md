@@ -1,3 +1,20 @@
+# ghqc.app 0.6.5
+
+- fixes bug in `ghqc_status_app()`in which the api url isn't included for the QC approved comment edit api call (works for github which is the default, but not GHE)
+
+# ghqc.app 0.6.4
+
+- fixes bug in `ghqc_notify_app()` in which not all ghqc Issues were listed in dropdown due to change in function filtering behavior now that the QC branch is also a label added to ghqc Issues.
+
+# ghqc.app 0.6.3
+
+- fixes bug created by ghqc.app 0.5.2 in which multiple ghqc Issues for a given QC file can be created in a Milestone (only one ghqc Issue for a given QC file per Milestone should be allowed)
+
+# ghqc.app 0.6.2
+
+- `ghqc_status_app()`: adds "remote commit ahead" to diagnostics in the case that the remote commit is ahead of the last posted qc commit even though the QC file hasn't changed.
+- `ghqc_record_app()`: formatting fixes in summary tables
+
 # ghqc.app 0.6.1
 
 - fixes bug in which commits with quotes are incorrectly parsed
