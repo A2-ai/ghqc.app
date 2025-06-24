@@ -1,3 +1,7 @@
+# ghqc.app 0.7.0
+
+- new feature that allows checklists to be imported via text files - this way checklist templates can be verbatim and take advantage of GitHub-flavored markdown features
+
 # ghqc.app 0.6.5
 
 - fixes bug in `ghqc_status_app()`in which the api url isn't included for the QC approved comment edit api call (works for github which is the default, but not GHE)
