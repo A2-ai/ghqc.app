@@ -238,7 +238,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           input = input,
           ns = ns,
           items = selected_items(),
-          checklist_choices = checklists,
+          checklist_choices = c(checklists$txt, checklists$yaml),
           relevant_files = relevant_files_list,
           output = output
         )
@@ -281,7 +281,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
-            create_checklist_preview_event(input = input, name = name, checklists = checklists)
+            create_checklist_preview_event(input = input, name = name, checklists = c(checklists$txt, checklists$yaml))
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {conditionMessage(e)}"))
@@ -421,7 +421,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
                            ),
           footer = NULL,
           easyClose = TRUE,
-          selectInput(ns("checklist_info"), NULL, choices = names(checklists), width = "100%"),
+          selectInput(ns("checklist_info"), NULL, choices = names(c(checklists$txt, checklists$yaml)), width = "100%"),
           uiOutput(ns("file_info_panel"))
         )
       )
@@ -433,6 +433,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       req(input$checklist_info)
       debug(.le$logger, glue::glue("{get_checklist_display_name_var(capitalized = TRUE)} selected for review: {input$checklist_info}"))
 
+      checklists <- c(checklists$txt, checklists$yaml)
       info <- checklists[[input$checklist_info]]
 
       log_string <- glue::glue_collapse(info, sep = "\n")
