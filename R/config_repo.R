@@ -8,10 +8,10 @@ ghqc_set_config_repo <- function(repo_path = file.path("~/.local/share/ghqc", co
     rlang::abort(glue::glue("The 'checklists' directory is not found in {repo_path}. Please ensure the directory is present before continuing"))
   }
 
-  checklist_content <- fs::dir_ls(file.path(repo_path, "checklists"), regexp = "[.]yaml$")
+  checklist_content <- fs::dir_ls(file.path(repo_path, "checklists"), regexp = "\\.(ya?ml|txt)$")
   if (length(checklist_content) == 0) {
-    error(.le$logger, glue::glue("The 'checklists' directory in {repo_path} has no .yaml files. Please ensure the directory is populated before continuing"))
-    rlang::abort(glue::glue("The 'checklists' directory in {repo_path} has no .yaml files. Please ensure the directory is populated before continuing"))
+    error(.le$logger, glue::glue("The 'checklists' directory in {repo_path} has no .yaml or .txt files. Please ensure the directory is populated before continuing"))
+    rlang::abort(glue::glue("The 'checklists' directory in {repo_path} has no .yaml or .txt files. Please ensure the directory is populated before continuing"))
   }
 
   if (all(grepl("INVALID - ", basename(checklist_content)))) {

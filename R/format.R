@@ -1,8 +1,14 @@
 
 format_issue_body <- function(checklist_type, file_path, relevant_files, file_names) {
   checklists <- get_checklists()
-  file_items <- checklists[[checklist_type]]
-  qc_checklist <- format_checklist_items(file_items)
+
+  if (checklist_type %in% names(checklists$yaml)) {
+    file_items <- checklists$yaml[[checklist_type]]
+    qc_checklist <- format_checklist_items(file_items)
+  }
+  else {
+    qc_checklist <- checklists$txt[[checklist_type]]
+  }
 
   metadata <- format_metadata(checklist_type, file_path)
 

@@ -238,7 +238,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           input = input,
           ns = ns,
           items = selected_items(),
-          checklist_choices = checklists,
+          checklist_choices = c(checklists$txt, checklists$yaml),
           relevant_files = relevant_files_list,
           output = output
         )
@@ -421,11 +421,13 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
                            ),
           footer = NULL,
           easyClose = TRUE,
-          selectInput(ns("checklist_info"), NULL, choices = names(checklists), width = "100%"),
+          selectInput(ns("checklist_info"), NULL, choices = names(c(checklists$txt, checklists$yaml)), width = "100%"),
           uiOutput(ns("file_info_panel"))
         )
       )
     })
+
+
 
 
     output$file_info_panel <- renderUI({
@@ -433,14 +435,21 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
       req(input$checklist_info)
       debug(.le$logger, glue::glue("{get_checklist_display_name_var(capitalized = TRUE)} selected for review: {input$checklist_info}"))
 
-      info <- checklists[[input$checklist_info]]
+      checklist_name <- input$checklist_info
+      if (checklist_name %in% names(checklists$yaml)) {
+        info <- checklists$yaml[[checklist_name]]
 
-      log_string <- glue::glue_collapse(info, sep = "\n")
-      debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
+        log_string <- glue::glue_collapse(info, sep = "\n")
+        debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
 
-      list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+        list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+        return(tags$ul(list))
+      }
+      else {
+        info <- checklists$txt[[checklist_name]]
+        return(render_markdown_html(info))
+      }
 
-      tags$ul(list)
     })
     #--- checklist info button end
 

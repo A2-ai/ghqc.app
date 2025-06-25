@@ -21,7 +21,7 @@ rproj_root_dir <- function() {
 get_valid_checklists <- function() {
   tryCatch(
       {
-        yaml_checklists <- get_checklists()
+        checklists <- get_checklists()
       },
       error = function(e) {
         error(.le$logger, glue::glue("There was an error retrieving {get_checklist_display_name_var(plural = TRUE)}: {conditionMessage(e)}"))
@@ -29,7 +29,7 @@ get_valid_checklists <- function() {
       }
   )
 
-  return(yaml_checklists)
+  return(checklists)
 } # get_valid_checklists
 
 get_members_errors <- function() {

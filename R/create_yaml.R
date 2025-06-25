@@ -1,6 +1,7 @@
 get_checklists <- function() {
   checklists_path <- file.path(.le$config_repo_path, "checklists")
   yaml_checklists <- list.files(checklists_path, pattern = "\\.ya?ml$", full.names = TRUE)
+  txt_checklists <- list.files(checklists_path, pattern = "\\.txt$", full.names = TRUE)
   custom_checklist <- system.file("default_checklist", "custom.yaml", package = "ghqc.app")
   yaml_checklists <- c(yaml_checklists, custom_checklist)
 
@@ -17,20 +18,28 @@ get_checklists <- function() {
     yaml_checklists <- yaml_checklists[!invalid_search]
   }
 
-  checklists_data <- sapply(yaml_checklists, function(yaml_checklist) {
+  checklists_data <- list()
+
+  # Legacy yaml checklists
+  checklists_data$yaml <- sapply(yaml_checklists, function(yaml_checklist) {
     yaml::read_yaml(yaml_checklist)
   }, USE.NAMES = FALSE)
+
+  # Verbatim txt checklists
+  checklists_data$txt <- setNames(
+    lapply(txt_checklists, function(path) {
+      paste(readLines(path, warn = FALSE), collapse = "\n")
+    }),
+    nm = txt_checklists %>%
+      basename() %>%
+      tools::file_path_sans_ext() %>%
+      stringr::str_remove_all("`")
+  )
 
   return(checklists_data)
 }
 
-create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, checklists = get_checklists(), relevant_files) {
-  # if checklist_type wasn't given, make it the file ext
-  # if (is.null(checklist_type)) {
-  #   file_extension <- tools::file_ext(file_name)
-  #   checklist_type <- file_extension
-  #
-  # }
+create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, relevant_files) {
 
   file_data <- list(
     name = file_name,
@@ -44,8 +53,6 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
   if (!is.null(relevant_files)) {
     file_data$relevant_files <- relevant_files
   }
-
-  #file_data$items <- checklists[[checklist_type]]
 
   file_data
 }
