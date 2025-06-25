@@ -369,6 +369,25 @@ create_button_preview_event <- function(input, name) {
   )
 }
 
+render_markdown_html <- function(md_string) {
+  md_file <- tempfile(fileext = ".md")
+  writeLines(md_string, md_file)
+
+  html_file <- tempfile(fileext = ".html")
+  suppressMessages(suppressWarnings(
+    rmarkdown::pandoc_convert(
+      input = md_file,
+      to = "html5",
+      from = "gfm",
+      output = html_file,
+      options = c("--standalone", "--metadata", "title= ")
+    )
+  ))
+
+  html <- paste(readLines(html_file, warn = FALSE), collapse = "\n")
+  HTML(html)
+}
+
 #' @import shiny
 #' @importFrom glue glue
 #' @importFrom log4r warn error info debug
@@ -397,8 +416,21 @@ create_checklist_preview_event <- function(input, name, checklists) {
             )
           )
         }
-        else {
-          info <- checklists[[selected_checklist]]
+        else { # else a checklist is selected in the dropdown
+          if (selected_checklist %in% names(checklists$yaml)) {
+            info <- checklists$yaml[[selected_checklist]]
+
+            log_string <- glue::glue_collapse(info, sep = "\n")
+            debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
+
+            list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+            checklist_rendered <- tags$ul(list)
+          }
+          else {
+            info <- checklists$txt[[selected_checklist]]
+            checklist_rendered <- render_markdown_html(info)
+          }
+
           showModal(
             modalDialog(
               title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
@@ -408,11 +440,10 @@ create_checklist_preview_event <- function(input, name, checklists) {
               footer = NULL,
               easyClose = TRUE,
               renderUI({
-                header <- tags$h3(selected_checklist)
-                list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+                header <- tags$h1(selected_checklist, style = "margin-top: 0; margin-bottom: 0.5em;")
                 tagList(
                   header,
-                  tags$ul(list)
+                  checklist_rendered
                 )
               })
             )

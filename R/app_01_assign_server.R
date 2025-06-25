@@ -281,7 +281,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
-            create_checklist_preview_event(input = input, name = name, checklists = c(checklists$txt, checklists$yaml))
+            create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {conditionMessage(e)}"))
@@ -428,20 +428,28 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
     })
 
 
+
+
     output$file_info_panel <- renderUI({
       req(checklists)
       req(input$checklist_info)
       debug(.le$logger, glue::glue("{get_checklist_display_name_var(capitalized = TRUE)} selected for review: {input$checklist_info}"))
 
-      checklists <- c(checklists$txt, checklists$yaml)
-      info <- checklists[[input$checklist_info]]
+      checklist_name <- input$checklist_info
+      if (checklist_name %in% names(checklists$yaml)) {
+        info <- checklists$yaml[[checklist_name]]
 
-      log_string <- glue::glue_collapse(info, sep = "\n")
-      debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
+        log_string <- glue::glue_collapse(info, sep = "\n")
+        debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
 
-      list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+        list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+        return(tags$ul(list))
+      }
+      else {
+        info <- checklists$txt[[checklist_name]]
+        return(render_markdown_html(info))
+      }
 
-      tags$ul(list)
     })
     #--- checklist info button end
 
