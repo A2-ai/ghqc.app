@@ -1,3 +1,7 @@
+# ghqc.app 0.7.1
+
+- `ghqc_status_app()`: fixes small bug in which windows style line breaks aren't normalized for parsing the Relevant files section
+
 # ghqc.app 0.7.0
 
 - new feature that allows checklists to be imported via text files - this way checklist templates can be verbatim and take advantage of GitHub-flavored markdown features
