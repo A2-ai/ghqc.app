@@ -114,45 +114,67 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
                              )
         )
 
+        # container to hold both sections side by side
+        side_by_side_container <- div(
+          style = "display: flex; gap: 20px; flex-wrap: wrap; padding-bottom: 15px;",
 
-        # relevant files section
-        if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
-          relevant_files_list <- tags$ul(
-            lapply(relevant_files[[name]], function(file) {
-              tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
-            })
-          )
+          # relevant files section
+          if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
+            div(
+              class = "relevant-files-section",
+              style = "flex: 1; min-width: 200px;",
+              tags$strong("Relevant files:"),
+              tags$ul(
+                lapply(relevant_files[[name]], function(file) {
+                  tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
+                })
+              )
+            )
+          },
 
-          relevant_files_section <- div(
-            class = "relevant-files-section",
-            style = "padding-bottom: 15px;",
-            tags$strong("Relevant files:"),
-            relevant_files_list
-          )
-
-
-          browser()
-          previous_qc_section <- NULL
-          if (!is.null(previous_qc) && length(previous_qc[[issue_name]]) > 0) {
-            previous_qc_section <- div(
-              style = "flex: 1;",
+          # previous qc section
+          if (!is.null(previous_qc) && length(previous_qc[[name]]) > 0) {
+            div(
+              class = "previous-qc-section",
+              style = "flex: 1; min-width: 200px;",
               tags$strong("Previous QC:"),
-              previous_qc[[issue_name]]
+              previous_qc[[name]]$issue
             )
           }
+        )
 
-          combined_section <- div(
-            style = "display: flex; flex-direction: row; justify-content: space-between; padding-bottom: 15px;",
-            relevant_files_section,
-            previous_qc_section
-          )
-
-          ul <- tagAppendChild(ul, combined_section)
+        # append side-by-side section to main container
+        ul <- tagAppendChild(ul, side_by_side_container)
 
 
+        # # relevant files section
+        # if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
+        #   relevant_files_list <- tags$ul(
+        #     lapply(relevant_files[[name]], function(file) {
+        #       tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
+        #     })
+        #   )
+        #
+        #   relevant_files_section <- div(
+        #     class = "relevant-files-section",
+        #     style = "padding-bottom: 15px;",
+        #     tags$strong("Relevant files:"),
+        #     relevant_files_list
+        #   )
+        #
+        #   ul <- tagAppendChild(ul, relevant_files_section)
+        # } # if relevant files
+        #
+        # if (!is.null(previous_qc) && length(previous_qc[[name]]) > 0) {
+        #   previous_qc_section <- div(
+        #     style = "flex: 1;",
+        #     tags$strong("Previous QC:"),
+        #     previous_qc[[name]]$issue
+        #   )
+        #
+        #   ul <- tagAppendChild(ul, previous_qc_section)
+        # } # if previous qc
 
-          #ul <- tagAppendChild(ul, relevant_files_section)
-        } # if relevant files
       } # for
 
       debug(.le$logger, "Rendered selected list successfully")
@@ -291,7 +313,6 @@ extract_file_data <- function(input, items, relevant_files_list) {
         else {
            relevant_file_data <- NULL
         }
-        browser()
 
         file_data <- append(file_data,
                             list(create_file_data_structure(
@@ -702,37 +723,36 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
     message_id <- generate_input_id("message_input", name)
     history_input_id <- generate_input_id("history", name)
 
-    # assumes you have a reactive object with all available issues/milestones
-      observeEvent(input[[history_input_id]], {
-      removeModal()
-      all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
-      #browser()
+    observeEvent(input[[history_input_id]], {
+    removeModal()
+    all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestone_objects)
 
-      output[[milestone_id]] <- renderUI({
-        selectInput(
-          ns(milestone_id),
-          "Milestone",
-          choices = c("(Required)" = "", all_milestone_names)
-        )
-      })
+    output[[milestone_id]] <- renderUI({
+      selectInput(
+        ns(milestone_id),
+        "Milestone",
+        choices = c("(Required)" = "", all_milestone_names)
+      )
+    })
 
 
-      output[[issue_id]] <- renderUI({
-        milestone_name <- input[[milestone_id]]
-        req(milestone_name)
-        milestone_number <- get_milestone_number_from_all_milestones(milestone_name = milestone_name,
-                                                                     milestone_objects = all_milestone_objects)
+    output[[issue_id]] <- renderUI({
+      milestone_name <- input[[milestone_id]]
+      req(milestone_name)
+      milestone_number <- get_milestone_number_from_all_milestones(milestone_name = milestone_name,
+                                                                   milestone_objects = all_milestone_objects)
 
-        issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
-        issues_rv(issues)
-        issue_choices <- convert_issue_df_format(issues)
+      issues <- get_all_issues_in_milestone_from_milestone_number(milestone_number, milestone_name)
+      issues_rv(issues)
+      issue_choices <- convert_issue_df_format(issues)
 
-        selectInput(
-          ns(issue_id),
-          "Issue",
-          choices = c("(Required)" = "", issue_choices)
-        )
-      })
+      selectInput(
+        ns(issue_id),
+        "Issue",
+        choices = c("(Required)" = "", issue_choices)
+      )
+    })
+
 
       output[[message_id]] <- renderUI({
         textAreaInput(
@@ -796,16 +816,10 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
           ),
           footer = NULL,
           easyClose = TRUE,
-          fluidRow(
-            column(6,
-                   uiOutput(ns(milestone_id)),
-                   uiOutput(ns(issue_id)),
-                   uiOutput(ns(message_id))
-            ),
-            column(6,
-                   uiOutput(ns(paste0(name, "_diff_preview")))
-            )
-          )
+           uiOutput(ns(milestone_id)),
+           uiOutput(ns(issue_id)),
+           uiOutput(ns(message_id)),
+           uiOutput(ns(paste0(name, "_diff_preview")))
         )
       )
     })

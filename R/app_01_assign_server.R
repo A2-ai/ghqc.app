@@ -241,6 +241,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           items = selected_items(),
           checklist_choices = c(checklists$txt, checklists$yaml),
           relevant_files = relevant_files_list,
+          previous_qc = previous_qc_rv(),
           output = output
         )
 
