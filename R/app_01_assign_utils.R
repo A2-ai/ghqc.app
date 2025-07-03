@@ -397,6 +397,100 @@ create_button_preview_event <- function(input, name) {
 }
 
 
+render_markdown_html <- function(md_string) {
+  md_file <- tempfile(fileext = ".md")
+  writeLines(md_string, md_file)
+
+  html_file <- tempfile(fileext = ".html")
+  suppressMessages(suppressWarnings(
+    rmarkdown::pandoc_convert(
+      input = md_file,
+      to = "html5",
+      from = "gfm",
+      output = html_file,
+      options = c("--standalone", "--metadata", "title= ")
+    )
+  ))
+
+  html <- paste(readLines(html_file, warn = FALSE), collapse = "\n")
+  HTML(html)
+}
+
+#' @import shiny
+#' @importFrom glue glue
+#' @importFrom log4r warn error info debug
+#' @importFrom shinyjs enable disable addClass removeClass delay
+create_checklist_preview_event <- function(input, name, checklists) {
+  tryCatch(
+    {
+      preview_input_id <- generate_input_id("preview", name)
+      checklist_input_id <- generate_input_id("checklist", name)
+
+      observeEvent(input[[preview_input_id]], {
+        selected_checklist <- input[[checklist_input_id]]
+
+        if (selected_checklist == "") {
+          showModal(
+            modalDialog(
+              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                               modalButton("Dismiss"),
+                               style = "text-align: right;"
+              ),
+              footer = NULL,
+              easyClose = TRUE,
+              renderUI({
+                glue::glue("Select a {get_checklist_display_name_var()} to preview in the {get_checklist_display_name_var(capitalized = TRUE)} dropdown.")
+              })
+            )
+          )
+        }
+        else { # else a checklist is selected in the dropdown
+          if (selected_checklist %in% names(checklists$yaml)) {
+            info <- checklists$yaml[[selected_checklist]]
+
+            log_string <- glue::glue_collapse(info, sep = "\n")
+            debug(.le$logger, glue::glue("Items found in the {get_checklist_display_name_var()}: \n{log_string}"))
+
+            list <- convert_list_to_ui(info) # checklists needs additional formatting for list of named elements
+            checklist_rendered <- tags$ul(list)
+          }
+          else {
+            info <- checklists$txt[[selected_checklist]]
+            checklist_rendered <- render_markdown_html(info)
+          }
+
+          showModal(
+            modalDialog(
+              title = tags$div(tags$span(glue::glue("{get_checklist_display_name_var(capital = TRUE)} Preview"), style = "float: left; font-weight: bold; font-size: 20px; margin-top: 5px;"),
+                               modalButton("Dismiss"),
+                               style = "text-align: right;"
+              ),
+              footer = NULL,
+              easyClose = TRUE,
+              renderUI({
+                header <- tags$h1(selected_checklist, style = "margin-top: 0; margin-bottom: 0.5em;")
+                tagList(
+                  header,
+                  checklist_rendered
+                )
+              })
+            )
+          )
+        }
+
+      },
+      ignoreInit = TRUE)
+
+      debug(.le$logger, glue::glue("Created button preview event for item: {name} successfully"))
+    },
+    error = function(e) {
+      log4r::error(glue::glue("Error creating observe event for item {name}: {conditionMessage(e)}"))
+      rlang::abort(conditionMessage(e))
+    }
+  )
+}
+
+
 
 
 #' Associate Relevant Files Event

@@ -241,19 +241,33 @@ get_relevant_files <- function(issue, milestone_name) {
     "## Relevant files[\\s\\S]*?(?=\\n#{1,6} )"
   )
 
+  relevant_files_section <- gsub("\r\n", "\n", relevant_files_section)
   file_pattern <- "- \\*\\*(.*?)\\*\\*\\s*- \\[`(.*?)`\\]\\((.*?)\\)(?:\\s*>\\s*(.*?))?(?:\\n|$)"
 
   matches <- stringr::str_match_all(relevant_files_section, file_pattern)[[1]]
 
-  relevant_files_df <- data.frame(
-    relevant_file_name = matches[,3],
-    qc_file_name = issue$title,
-    relevant_file_url = matches[,4],
-    relevant_file_note = stringr::str_trim(matches[,5]),
-    milestone_name = milestone_name,
-    issue_number = issue$number,
-    stringsAsFactors = FALSE
-  )
+  relevant_files_df <- tryCatch({
+    data.frame(
+      relevant_file_name = matches[,3],
+      qc_file_name = issue$title,
+      relevant_file_url = matches[,4],
+      relevant_file_note = stringr::str_trim(matches[,5]),
+      milestone_name = milestone_name,
+      issue_number = issue$number,
+      stringsAsFactors = FALSE
+    )
+  }, error = function(e) {
+    data.frame(
+      relevant_file_name = character(0),
+      qc_file_name = character(0),
+      relevant_file_url = character(0),
+      relevant_file_note = character(0),
+      milestone_name = character(0),
+      issue_number = numeric(0),
+      stringsAsFactors = FALSE
+    )
+  })
+
 
   return(relevant_files_df)
 } # get_relevant_files
