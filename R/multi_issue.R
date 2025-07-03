@@ -35,6 +35,13 @@ create_issue <- function(file, issue_params, file_names, qc_branch) {
   label <- do.call(gh::gh, c("POST /repos/:org/:repo/issues/:issue_number/labels", label_params))
   debug(.le$logger, glue::glue("Labels 'ghqc' and '{qc_branch}' (QC branch) added to {issue_params$title}"))
 
+  # post previous qc comment
+  if (!is.null(file$previous_qc)) {
+    post_comment(issue_number = issue$number,
+                 body = file$previous_qc
+    )
+  }
+
   # return the issue number
   list(number = issue$number, assignees = issue_params$assignees)
 } # create_issue

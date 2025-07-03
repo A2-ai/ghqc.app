@@ -185,7 +185,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           }, error = function(e) {
             NULL
           })
-          file_data <- extract_file_data(input, selected_items(), relevant_files_list)
+          file_data <- extract_file_data(input, selected_items(), relevant_files_list, previous_qc_rv())
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{conditionMessage(e)}"))
@@ -468,7 +468,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           NULL
         })
 
-        file_data <- extract_file_data(input, selected_items(), relevant_files_list)
+        file_data <- extract_file_data(input, selected_items(), relevant_files_list, previous_qc_rv())
         if (!is.null(file_data)) {
           debug(.le$logger, glue::glue("create_qc_items buttons are activated because there are {length(selected_items())} selected items and milestone is named {inputted_milestone_rv()}"))
           removeClass("create_qc_items", "disabled-btn")

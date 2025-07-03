@@ -147,34 +147,6 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         ul <- tagAppendChild(ul, side_by_side_container)
 
 
-        # # relevant files section
-        # if (!is.null(relevant_files) && length(relevant_files[[name]]) > 0) {
-        #   relevant_files_list <- tags$ul(
-        #     lapply(relevant_files[[name]], function(file) {
-        #       tags$li(file, style = "font-size: 12px; color: #333; padding: 2px 0;")
-        #     })
-        #   )
-        #
-        #   relevant_files_section <- div(
-        #     class = "relevant-files-section",
-        #     style = "padding-bottom: 15px;",
-        #     tags$strong("Relevant files:"),
-        #     relevant_files_list
-        #   )
-        #
-        #   ul <- tagAppendChild(ul, relevant_files_section)
-        # } # if relevant files
-        #
-        # if (!is.null(previous_qc) && length(previous_qc[[name]]) > 0) {
-        #   previous_qc_section <- div(
-        #     style = "flex: 1;",
-        #     tags$strong("Previous QC:"),
-        #     previous_qc[[name]]$issue
-        #   )
-        #
-        #   ul <- tagAppendChild(ul, previous_qc_section)
-        # } # if previous qc
-
       } # for
 
       debug(.le$logger, "Rendered selected list successfully")
@@ -263,38 +235,29 @@ return "<div><strong>" + escape(item.username) + "</div>"
 #' @return A list of structured data for each file, including the file name, assignees, and checklist type.
 #'
 #' @noRd
-extract_file_data <- function(input, items, relevant_files_list) {
+extract_file_data <- function(input, items, relevant_files_list, previous_qc) {
   tryCatch(
     {
       debug(.le$logger, glue::glue("Extracting file data for items: {paste(items, collapse = ', ')}"))
 
       file_data <- list()
       for (name in items) {
+
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
-        history_input_id <- generate_input_id("history", name)
-        #filtered_file_selector_id <- generate_input_id("filtered_file_selector", name)
 
         checklist_input_value <- input[[checklist_input_id]]
         assignee_input_value <- input[[assignee_input_id]]
-        history_input_value <- input[[history_input_id]]
-        # passing in reactive instead to preserve order of selection
-        #filtered_file_selector_value <- input[[filtered_file_selector_id]]
-
         if (!isTruthy(assignee_input_value) || assignee_input_value == "No assigned QCer") {
           assignee_input_value <- NULL
         }
 
-        if (!isTruthy(history_input_value)) {
-          history_input_value <- NULL
-        }
         # requires the widget and input to be available before proceeding
         if (!isTruthy(checklist_input_value) || checklist_input_value == "") {
           return(NULL)
         }
 
         relevant_files <- relevant_files_list[[name]]
-
         if (length(relevant_files) > 0) {
           relevant_file_data <- lapply(relevant_files, function(file) {
             name_input_id <- paste0("name_", file)
@@ -314,12 +277,20 @@ extract_file_data <- function(input, items, relevant_files_list) {
            relevant_file_data <- NULL
         }
 
+        previous_qc <- previous_qc[[name]]
+        if (length(previous_qc) == 4) {
+          previous_qc_data <- glue::glue_collapse(c(previous_qc$comment_body_parts[1], previous_qc$message, "\n\n", previous_qc$comment_body_parts[2]))
+        }
+        else {
+          previous_qc_data <- NULL
+        }
+
         file_data <- append(file_data,
                             list(create_file_data_structure(
                               file_name = generate_input_id(name = name),
                               assignees = assignee_input_value,
                               checklist_type = checklist_input_value,
-                              previous_qc = history_input_value,
+                              previous_qc = previous_qc_data,
                               relevant_files =  relevant_file_data
                             ))
                       )
@@ -786,8 +757,8 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
         comment_body_parts <- create_previous_qc_comment_body(diff = TRUE,
                                                               reference_file_path = issue$title,
                                                               comparator_file_path = comparator_file_path,
-                                                              reference_commit = last_remote_commit,
-                                                              comparator_commit = latest_qc_commit,
+                                                              reference_commit = latest_qc_commit,
+                                                              comparator_commit = last_remote_commit,
                                                               previous_issue_number = previous_issue_number)
         # save to reactiveVal
         meta <- previous_qc_rv()
