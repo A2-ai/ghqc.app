@@ -735,6 +735,7 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
         )
       })
 
+
       output[[paste0(name, "_diff_preview")]] <- renderUI({
         issue_display <- input[[issue_id]]
         req(issue_display)
@@ -761,10 +762,11 @@ post_qc_history_button_event <- function(input, output, name, ns, all_milestone_
                                                               comparator_commit = last_remote_commit,
                                                               previous_issue_number = previous_issue_number)
         # save to reactiveVal
+
         meta <- previous_qc_rv()
         if (is.null(meta[[name]])) meta[[name]] <- list()
         meta[[name]]$comment_body_parts <- comment_body_parts
-        previous_qc_rv(meta)
+        previous_qc_rv(meta) # this line is causing the waiter to appear after the issue is selected - finding a way to not assign to this value right away to get the body_parts will avoid this
 
         comment_body <- glue::glue_collapse(comment_body_parts)
         html_file_path <- create_gfm_file(comment_body)

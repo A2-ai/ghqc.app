@@ -74,25 +74,13 @@ create_comment_metadata_body <- function(reference_commit,
 }
 
 create_previous_qc_metadata_body <- function(reference_commit,
-                                             reference_file_path,
                                              comparator_commit,
-                                             comparator_file_path,
                                              commit_comparison,
                                              previous_issue_number) {
-
-  previous_qc_script <- {
-    if (reference_file_path != comparator_file_path) {
-      "* previous qc script: {reference_script}\n"
-    }
-    else {
-      ""
-    }
-  }
 
   metadata <- glue::glue("## Metadata\n",
                          "* current commit: {comparator_commit}\n",
                          "* previous commit: {reference_commit}\n",
-                         previous_qc_script,
                          "* {commit_comparison}\n",
                          "* #{previous_issue_number}\n\n\n",
                          .trim = FALSE)
@@ -156,9 +144,7 @@ create_previous_qc_comment_body <- function(diff,
                                                   )
 
   metadata_body <- create_previous_qc_metadata_body(reference_commit = reference_commit,
-                                                    reference_file_path = reference_file_path,
                                                     comparator_commit = comparator_commit,
-                                                    comparator_file_path = comparator_file_path,
                                                     commit_comparison = commit_comparison,
                                                     previous_issue_number = previous_issue_number
                                                     )
