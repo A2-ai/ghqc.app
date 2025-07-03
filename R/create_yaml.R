@@ -39,7 +39,7 @@ get_checklists <- function() {
   return(checklists_data)
 }
 
-create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, relevant_files) {
+create_file_data_structure <- function(file_name, assignees = NULL, checklist_type, checklists = get_checklists(), relevant_files, previous_qc) {
 
   file_data <- list(
     name = file_name,
@@ -54,7 +54,12 @@ create_file_data_structure <- function(file_name, assignees = NULL, checklist_ty
     file_data$relevant_files <- relevant_files
   }
 
-  file_data
+
+  if (!is.null(previous_qc)) {
+    file_data$previous_qc <- previous_qc
+  }
+
+  return(file_data)
 }
 
 # files should be a list of lists like this:

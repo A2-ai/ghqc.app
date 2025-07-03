@@ -73,6 +73,20 @@ create_comment_metadata_body <- function(reference_commit,
 
 }
 
+create_previous_qc_metadata_body <- function(reference_commit,
+                                             comparator_commit,
+                                             commit_comparison,
+                                             previous_issue_number) {
+
+  metadata <- glue::glue("## Metadata\n",
+                         "* current commit: {comparator_commit}\n",
+                         "* previous commit: {reference_commit}\n",
+                         "* {commit_comparison}\n",
+                         "* #{previous_issue_number}\n\n\n",
+                         .trim = FALSE)
+
+} # create_previous_qc_metadata_body
+
 create_diff_body <- function(diff, reference_commit, reference_script, comparator_commit, comparator_script) {
   if (!diff) return("")
 
@@ -87,12 +101,71 @@ create_diff_body <- function(diff, reference_commit, reference_script, comparato
                "{diff_formatted}")
 }
 
+
+create_previous_qc_comment_body <- function(diff,
+                                            reference_file_path,
+                                            comparator_file_path,
+                                            reference_commit,
+                                            comparator_commit,
+                                            previous_issue_number
+                                            ) {
+
+  ## check if file exists locally # TODO test this
+
+  # if is a binary file, don't display git diff
+  if (stringr::str_detect(reference_file_path, exclude_patterns()) || stringr::str_detect(comparator_file_path, exclude_patterns())) {
+    diff <- FALSE
+  }
+
+  debug(.le$logger, glue::glue("Creating Previous QC comment body for {comparator_file_path} in {.le$org}/{.le$repo}"))
+
+  debug(.le$logger, glue::glue("Getting script contents..."))
+
+  script_contents <- get_script_contents(reference_file_path = reference_file_path,
+                                         comparator_file_path = comparator_file_path,
+                                         reference_commit = reference_commit,
+                                         comparator_commit = comparator_commit
+                                         )
+  reference_script <- script_contents$reference_script
+  comparator_script <- script_contents$comparator_script
+  debug(.le$logger, glue::glue("Got script contents"))
+
+  debug(.le$logger, glue::glue("Getting file difference body..."))
+  diff_body <- create_diff_body(diff = diff,
+                                reference_commit = reference_commit,
+                                reference_script = reference_script,
+                                comparator_commit = comparator_commit,
+                                comparator_script = comparator_script)
+  debug(.le$logger, glue::glue("Got file difference body"))
+
+  debug(.le$logger, glue::glue("Getting metadata body..."))
+  commit_comparison <- get_commit_comparison_html(reference_commit = reference_commit,
+                                                  comparator_commit = comparator_commit
+                                                  )
+
+  metadata_body <- create_previous_qc_metadata_body(reference_commit = reference_commit,
+                                                    comparator_commit = comparator_commit,
+                                                    commit_comparison = commit_comparison,
+                                                    previous_issue_number = previous_issue_number
+                                                    )
+  debug(.le$logger, glue::glue("Got metadata body"))
+
+  comment_body_first <- as.character(glue::glue("# Previous QC\n\n",
+                                                .trim = FALSE))
+
+  comment_body_second <- as.character(glue::glue("{metadata_body}",
+                                                 "{diff_body}",
+                                                 .trim = FALSE))
+
+  return(c(comment_body_first, comment_body_second))
+} # create_previous_qc_comment_body
+
 create_notify_comment_body <- function(issue,
                                 message = NULL,
                                 diff = FALSE,
                                 reference_commit = "original",
-                                comparator_commit = "current",
-                                remote) {
+                                comparator_commit = "current"
+                                ) {
 
   ## check if file exists locally
   if (!fs::file_exists(issue$title)) {
@@ -132,7 +205,11 @@ create_notify_comment_body <- function(issue,
   }
 
   debug(.le$logger, glue::glue("Getting script contents..."))
-  script_contents <- get_script_contents(issue$title, reference = reference_commit, comparator = comparator_commit)
+  script_contents <- get_script_contents(reference_file_path = issue$title,
+                                         comparator_file_path = issue$title,
+                                         reference_commit = reference_commit,
+                                         comparator_commit = comparator_commit
+                                         )
   reference_script <- script_contents$reference_script
   comparator_script <- script_contents$comparator_script
   debug(.le$logger, glue::glue("Got script contents"))
@@ -164,14 +241,6 @@ create_notify_comment_body <- function(issue,
   comment_body_second <- as.character(glue::glue("{metadata_body}",
                                    "{diff_body}",
                                    .trim = FALSE))
-
-  # log
-  # log_assignees <- if (length(assignees_list) == 0) "None" else paste(assignees_list, collapse = ', ')
-  #
-  # info(.le$logger, glue::glue("Created comment body for issue #{issue$number} in {.le$org}/{.le$repo} with
-  #                             Assignee(s):     {log_assignees}
-  #                             Previous commit: {reference_commit}
-  #                             Original commit: {comparator_commit}"))
 
   return(c(comment_body_first, comment_body_second))
 }

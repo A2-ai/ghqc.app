@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names) {
+ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone_names, all_milestone_objects) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -32,6 +32,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
   moduleServer(id, function(input, output, session) {
     inputted_milestone_rv <- reactiveVal(NULL)
     relevant_files <- reactiveVal(list())
+    previous_qc_rv <- reactiveVal(list())
     issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
     issues_in_existing_milestone_rv <- reactiveVal(NULL)
 
@@ -181,10 +182,10 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
         {
           relevant_files_list <- tryCatch({
             relevant_files()
-          }, error = function(e){
+          }, error = function(e) {
             NULL
           })
-          file_data <- extract_file_data(input, selected_items(), relevant_files_list)
+          file_data <- extract_file_data(input, selected_items(), relevant_files_list, previous_qc_rv())
         },
         error = function(e) {
           error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{conditionMessage(e)}"))
@@ -240,6 +241,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           items = selected_items(),
           checklist_choices = c(checklists$txt, checklists$yaml),
           relevant_files = relevant_files_list,
+          previous_qc = previous_qc_rv(),
           output = output
         )
 
@@ -281,6 +283,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           {
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
+            post_qc_history_button_event(input = input, output = output, name = name, ns = ns, all_milestone_objects = all_milestone_objects, previous_qc_rv = previous_qc_rv)
             create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
@@ -465,13 +468,12 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
           NULL
         })
 
-        file_data <- extract_file_data(input, selected_items(), relevant_files_list)
+        file_data <- extract_file_data(input, selected_items(), relevant_files_list, previous_qc_rv())
         if (!is.null(file_data)) {
           debug(.le$logger, glue::glue("create_qc_items buttons are activated because there are {length(selected_items())} selected items and milestone is named {inputted_milestone_rv()}"))
           removeClass("create_qc_items", "disabled-btn")
           addClass("create_qc_items", "enabled-btn")
         }
-
       }
     })
 
