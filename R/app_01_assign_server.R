@@ -283,7 +283,7 @@ ghqc_assign_server <- function(id, root_dir, checklists, members, open_milestone
             create_button_preview_event(input, name = name)
             associate_relevant_files_button_event(input = input, output = output, name = name, ns = ns, root_dir = root_dir, relevant_files = relevant_files)
             post_qc_history_button_event(input = input, output = output, name = name, ns = ns, all_milestone_objects = all_milestone_objects, previous_qc_rv = previous_qc_rv)
-            #create_checklist_preview_event(input = input, name = name, checklists = checklists)
+            create_checklist_preview_event(input = input, name = name, checklists = checklists)
           },
           error = function(e) {
             error(.le$logger, glue::glue("There was an error creating the preview buttons: {conditionMessage(e)}"))

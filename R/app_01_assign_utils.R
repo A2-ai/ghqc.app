@@ -47,6 +47,7 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
         checklist_input_id <- generate_input_id("checklist", name)
         assignee_input_id <- generate_input_id("assignee", name)
         file_preview_id <- generate_input_id("button", name)
+        preview_input_id <- generate_input_id("preview", name)
         history_input_id <- generate_input_id("history", name)
         associate_relevant_files_id <- generate_input_id("associate_relevant_files", name)
 
@@ -70,6 +71,13 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
           options = list(placeholder = get_checklist_display_name_var(capitalized = TRUE))
         )
 
+        preview_input <- actionButton(
+          ns(preview_input_id),
+          label = HTML(glue::glue("<span>Preview<br>{get_checklist_display_name_var()}</span>")),
+          style = "height: 34px !important; font-size: 12px !important; padding: 2px 2px 2px 2px !important; color: #5f5f5f !important; line-height: 1.2em",
+          class = "checklist-preview-button"
+        )
+
         file_preview <- actionButton(
           ns(file_preview_id),
           label = HTML(modified_name),
@@ -91,12 +99,15 @@ render_selected_list <- function(input, ns, items = NULL, checklist_choices = NU
           class = "checklist-preview-button"
         )
 
+
+
         ul <- tagAppendChild(ul, div(class = "item-a", file_preview, style = "padding-bottom: 5px;"))
 
         ul <- tagAppendChild(ul,
                              div(
                                class = "grid-items",
                                div(class = "item-c", checklist_input),
+                               div(class = "item-d", preview_input),
                                div(class = "item-b", assignee_input),
                                div(class = "item-d", associate_relevant_files),
                                div(class = "item-d", associate_previous_qc)
