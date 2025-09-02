@@ -498,7 +498,7 @@ ghqc_status_server <- function(id,
         create_approve_comment_body(
           file_path = issue_name,
           initial_qc_commit = df[row_index, ]$initial_qc_commit,
-          approved_qc_commit = df[row_index, ]$comparator_commit,
+          XXapproved_qc_commit = df[row_index, ]$comparator_commit,
           issue = issue
         )
       }, error = function(e) {

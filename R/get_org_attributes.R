@@ -9,8 +9,8 @@ get_names_and_usernames <- function(username) {
 
 
 #' @importFrom log4r warn error info debug
-get_all_milestone_objects <- function() {
-  gh::gh("GET /repos/:org/:repo/milestones", org = .le$org, repo = .le$repo, .api_url = .le$github_api_url, state = "all", .limit = Inf)
+get_all_milestone_objects <- function(org = .le$org, repo = .le$repo, api_url = .le$github_api_url) {
+  gh::gh("GET /repos/:org/:repo/milestones", org = org, repo = repo, .api_url = api_url, state = "all", .limit = Inf)
 }
 
 #' @importFrom log4r warn error info debug
@@ -338,7 +338,7 @@ get_only_ghqc_issues <- function(issues) {
   })]
 }
 
-get_all_issues_in_milestone_from_milestone_number <- function(milestone_number, milestone_name) {
+get_all_issues_in_milestone_from_milestone_number <- function(org = .le$org, repo = .le$repo, api_url = .le$github_api_url, milestone_number, milestone_name) {
   # if the Milestone dne, there are no Issues in the Milestone, return an empty vector
   if (is.null(milestone_number)) {
     info(.le$logger, glue::glue("Milestone: {milestone_name} doesn't exist"))
@@ -350,14 +350,14 @@ get_all_issues_in_milestone_from_milestone_number <- function(milestone_number, 
 
   repeat {
     res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
+                  .api_url = api_url,
+                  org = org,
+                  repo = repo,
                   per_page = 100,
                   page = page,
                   state = "all",
                   milestone = milestone_number,
-                  labels = "ghqc"
+                  labels = "ghqc",
                   )
 
     # break if no more issues

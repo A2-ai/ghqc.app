@@ -98,7 +98,6 @@ determine_modal_message <- function(selected_files,
                                     ) {
   warning_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#9888;</span>"
   error_icon_html <- "<span style='font-size: 24px; vertical-align: middle;'>&#10071;</span>"
-
   uncommitted_selected_files <- selected_files[selected_files %in% uncommitted_git_files | selected_files %in% untracked_selected_files]
   uncommitted_files <- list(selected = uncommitted_selected_files, general = uncommitted_git_files)
   existing_issues <- selected_files[selected_files %in% issue_titles]

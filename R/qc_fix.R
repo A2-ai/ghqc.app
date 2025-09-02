@@ -132,9 +132,9 @@ create_notify_comment_body <- function(issue,
   }
 
   debug(.le$logger, glue::glue("Getting script contents..."))
-  script_contents <- get_script_contents(issue$title, reference = reference_commit, comparator = comparator_commit)
-  reference_script <- script_contents$reference_script
-  comparator_script <- script_contents$comparator_script
+  #script_contents <- get_script_contents(issue$title, commit = reference_commit)
+  reference_script <- get_script_contents(issue$title, commit = reference_commit)
+  comparator_script <- get_script_contents(issue$title, commit = comparator_commit)
   debug(.le$logger, glue::glue("Got script contents"))
 
   debug(.le$logger, glue::glue("Getting file difference body..."))
