@@ -55,7 +55,7 @@ ghqc_archive_ui <- function(id) {
       div(
         class = "button_block",
         miniButtonBlock(
-          actionButton(ns("create_qc_items"), "Archive QC file(s)")
+          actionButton(ns("create_qc_items"), "Archive file(s)")
         )
       )
     )
