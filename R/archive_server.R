@@ -66,8 +66,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
       color = "white"
     )
 
-
-
     observe({
       req(open_milestone_names)
 
@@ -116,7 +114,7 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
           }
           else {
             info(.le$logger, glue::glue("Inputted milestone {inputted_milestone_rv()} does not yet exist"))
-            issue_titles_in_existing_milestone_rv(NULL) # assign to reactiveVal
+            issue_titles_in_existing_milestone_rv(NULL)
             issues_in_existing_milestone_rv(NULL)
 
             list()
@@ -132,37 +130,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
       session$sendCustomMessage("highlightPaths", issue_titles_with_root_dir)
     })
 
-    qc_items <- reactive({
-      req(root_dir, selected_items())
-      tryCatch(
-        {
-          relevant_files_list <- tryCatch({
-            relevant_files()
-          }, error = function(e){
-            NULL
-          })
-          file_data <- extract_file_data(input, selected_items(), relevant_files_list)
-        },
-        error = function(e) {
-          error(.le$logger, glue::glue("There was an error extracting file data from {selected_items()}:{conditionMessage(e)}"))
-          stopApp()
-          rlang::abort(conditionMessage(e))
-        }
-      )
-    })
-
-    output$main_panel_static <- renderUI({
-      div(
-        style = "display: flex; justify-content: flex-end; padding-bottom: 20px;",
-        actionButton(ns("file_info"),
-                     label = HTML(glue::glue("<span style='font-size:2.0em;'>Preview {get_checklist_display_name_var()} options</span>")),
-                     class = "preview-button",
-                     style = "min-width: auto; display: inline-block; text-align: right; line-height: 2em; height: 2em;"
-        ) #actionButton
-      ) #div
-
-    })
-
 
 
     output$validation_message <- renderUI({
@@ -172,6 +139,64 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
         )
       )
     })
+
+    issues_in_repo <- get_all_issues_in_repo()
+
+    issues_milestone_df <- purrr::map_dfr(issues_in_repo, function(it) {
+      init_qc_commit <- get_init_qc_commit_from_issue_body(it$body)
+      latest_qc_commit <- get_qc_commit_info(
+        file_name         = gsub(" ", "_", it$title),
+        issue_body        = it$body,
+        num_comments      = it$comments,
+        comments_url      = it$comments_url,
+        initial_qc_commit = init_qc_commit
+      )$latest_qc_commit
+
+      tibble::tibble(
+        issue_number     = it$number,
+        milestone_title  = it$milestone$title,
+        title            = it$title,
+        state            = it$state,
+        latest_qc_commit = latest_qc_commit
+        # , relevant_file = rel_file  # <- add back once rel_file is defined
+      )
+    })
+
+    archive_files <- issues_milestone_df %>%
+      dplyr::pull(title) %>%
+      purrr::discard(is.na) %>%
+      unique() %>%
+      sort()
+
+    current_branch <- gert::git_branch()
+
+    local_commits <- get_local_commits()
+
+    local_log_output <- system(
+      "git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S' --name-status",
+      intern = TRUE
+    )
+
+    local_commit_df <- parse_local_log(local_log_output)
+
+    # This is the master commit list
+    local_commit_df <- dplyr::bind_rows(
+      local_commit_df %>%
+        dplyr::select(title, commit) %>%
+        dplyr::mutate(milestone_title = NA_character_, state = NA_character_),
+      issues_milestone_df %>%
+        dplyr::rename(commit = latest_qc_commit) %>%
+        dplyr::select(title, commit, milestone_title, state)
+    ) %>%
+      dplyr::distinct(title, commit, milestone_title, state, .keep_all = TRUE) %>%
+      dplyr::arrange(title)
+
+    archive_commit_df <- local_commit_df %>%
+      dplyr::filter(title %in% archive_files) %>%
+      dplyr::distinct(title, commit, milestone_title, .keep_all = TRUE) %>%
+      dplyr::select(title, commit, milestone_title) %>%
+      dplyr::arrange(title)
+
 
     output$main_panel_dynamic <- renderUI({
       req(selected_items())
@@ -191,6 +216,11 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
           items = selected_items(),
         )
 
+        archive_isolate_rendered_list(input = input,
+                              session = session,
+                              items = selected_items(),
+                              local_commit_df = local_commit_df
+        )
         session$sendCustomMessage("adjust_grid", id)
         return(list)
       }, error = function(e) {
@@ -199,6 +229,7 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
         rlang::abort(conditionMessage(e))
       })
     })
+
 
 
     observeEvent(input$proceed, {
