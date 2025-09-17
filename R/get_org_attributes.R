@@ -275,16 +275,16 @@ get_issue_timeline <- function(issue_number) {
 }
 
 #' @importFrom log4r warn error info debug
-get_all_issues_in_repo <- function() {
-  debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {.le$repo}..."))
+get_all_issues_in_repo <- function(org = .le$org, repo = .le$repo, api_url = .le$github_api_url) {
+  debug(.le$logger, glue::glue("Retrieving all Issue(s) from repo: {repo}..."))
   open_issues <- list()
   page <- 1
 
   repeat {
     res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
+                  .api_url = api_url,
+                  org = org,
+                  repo = repo,
                   state = "open",
                   per_page = 100,
                   page = page)
@@ -304,9 +304,10 @@ get_all_issues_in_repo <- function() {
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:org/:repo/issues", .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
+    res <- gh::gh("GET /repos/:org/:repo/issues",
+                  .api_url = api_url,
+                  org = org,
+                  repo = repo,
                   state = "closed",
                   per_page = 100,
                   page = page)
@@ -323,7 +324,7 @@ get_all_issues_in_repo <- function() {
 
   issues <- get_only_ghqc_issues(c(open_issues, closed_issues))
   num_issues <- length(issues)
-  info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {.le$repo}"))
+  info(.le$logger, glue::glue("Retrieved {num_issues} Issue(s) from repo: {repo}"))
   return(issues)
 
 }
