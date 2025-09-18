@@ -191,12 +191,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
       dplyr::distinct(title, commit, milestone_title, state, .keep_all = TRUE) %>%
       dplyr::arrange(title)
 
-    archive_commit_df <- local_commit_df %>%
-      dplyr::filter(title %in% archive_files) %>%
-      dplyr::distinct(title, commit, milestone_title, .keep_all = TRUE) %>%
-      dplyr::select(title, commit, milestone_title) %>%
-      dplyr::arrange(title)
-
 
     output$main_panel_dynamic <- renderUI({
       req(selected_items())
@@ -230,7 +224,9 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
       })
     })
 
-
+    observeEvent(input$create_archive, ignoreInit = TRUE, {
+      archive_selected_items(input, session, items = selected_items(), archive_name = "andrew_archive")
+    })
 
     observeEvent(input$proceed, {
       debug(.le$logger, glue::glue("Create Issues action proceeded and modal removed."))

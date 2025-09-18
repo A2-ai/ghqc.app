@@ -29,8 +29,6 @@ ghqc_archive_app <- function() {
       ghqc_archive_server(
         id = "ghqc_archive_app",
         root_dir = root_dir,
-        checklists = checklists,
-        members = members,
         open_milestone_names = open_milestone_names
       )
     }

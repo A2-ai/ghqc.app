@@ -114,29 +114,80 @@ archive_isolate_rendered_list <- function(input, session, items, local_commit_df
     df_item <- local_commit_df %>%
       dplyr::filter(.data$title == !!name)
 
+    # Replace NA values in milestone_title with "N/A"
+    df_item <- df_item %>%
+      dplyr::mutate(milestone_title = ifelse(is.na(.data$milestone_title), "N/A", .data$milestone_title))
+
     milestone_choices <- df_item %>%
       dplyr::pull(.data$milestone_title) %>%
-      purrr::discard(is.na) %>%
       unique() %>%
       sort()
 
     commit_choices <- df_item %>%
       dplyr::pull(.data$commit) %>%
-      purrr::discard(is.na) %>%
       unique()
 
+    # Update milestone choices and set default to "N/A"
     updateSelectizeInput(
       session,
       milestone_input_id,
       choices  = milestone_choices,
+      selected = "N/A",
       server   = TRUE
     )
 
-    updateSelectizeInput(
-      session,
-      commit_input_id,
-      choices  = commit_choices,
-      server   = TRUE
-    )
+    # Update commit choices based on the milestone selection
+    observeEvent(input[[milestone_input_id]], {
+      selected_milestone <- input[[milestone_input_id]]
+
+      # If "N/A" is selected, include all commits
+      if (selected_milestone == "N/A") {
+        filtered_commits <- commit_choices  # Show all commits
+      } else {
+        # Filter commits based on the selected milestone
+        filtered_commits <- df_item %>%
+          dplyr::filter(.data$milestone_title == selected_milestone) %>%
+          dplyr::pull(.data$commit) %>%
+          unique()
+      }
+
+      # Update the commit selectize input with the filtered commits
+      updateSelectizeInput(
+        session,
+        commit_input_id,
+        choices  = filtered_commits,
+        selected = "",  # Reset the selected commit to empty string (forces placeholder)
+        options = list(
+          placeholder = "Select a commit"  # Placeholder text
+        ),
+        server   = TRUE
+      )
+    })
   }
+}
+
+archive_selected_items <- function(input, session, items, archive_name = "andrew_archive") {
+  ts       <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  base_dir <- normalizePath("archives", mustWork = FALSE)
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+
+  archive_dir <- file.path(base_dir, paste0(archive_name, "_", ts))
+  dir.create(archive_dir, recursive = TRUE, showWarnings = FALSE)
+
+  for (item in items) {
+    commit_input_id <- generate_input_id("commit", item)
+    sel_commit      <- input[[commit_input_id]]
+
+    if (is.null(sel_commit) || identical(sel_commit, "")) next
+
+    script_contents <- get_script_contents(item, sel_commit)
+
+    # use item directly as the file name (creates subdirs if item contains "/")
+    file_path <- file.path(archive_dir, item)
+    dir.create(dirname(file_path), recursive = TRUE, showWarnings = FALSE)
+
+    writeLines(script_contents, file_path, useBytes = TRUE)
+  }
+
+  shiny::showNotification(paste("Archived to:", archive_dir), type = "message")
 }
