@@ -56,7 +56,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
       )
     }
 
-    qc_trigger <- reactiveVal(FALSE)
 
     w_load_items <- Waiter$new(
       id = ns("main_panel_dynamic"),
@@ -79,12 +78,17 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
 
     output$sidebar <- renderUI({
       tagList(
+        textInput(ns("archive_name"), "Archive name", value = ""),
         selectizeInput(
           ns("milestone_existing"),
           "Select Existing Milestone",
           choices = "",
           multiple = TRUE,
           width = "100%"
+        ),
+        shinyWidgets::prettyCheckbox("flatten", "Flatten file paths", value = FALSE, icon = icon("check")),
+        shinyWidgets::prettyCheckbox("issue_open", "Include open issues", value = FALSE, icon = icon("check")),
+        shinyWidgets::prettyCheckbox("relevant_files", "Include relevant files", value = FALSE, icon = icon("check")
         ),
         div(
           style = "font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; font-weight: bold;",
@@ -225,8 +229,18 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
     })
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
-      archive_selected_items(input, session, items = selected_items(), archive_name = "andrew_archive")
+      archive_name <- input$archive_name
+
+       if (is.null(archive_name) || archive_name == "") {
+        showNotification("Please enter an archive name.", type = "error")
+         return()
+       }
+
+      archive_selected_items(input, session, items = selected_items(),
+                             archive_name = archive_name)
     })
+
+
 
     observeEvent(input$proceed, {
       debug(.le$logger, glue::glue("Create Issues action proceeded and modal removed."))
