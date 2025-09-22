@@ -186,37 +186,87 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
       dplyr::arrange(title)
 
 
+    selected_milestones_rv <- reactiveVal(NULL)
+
+    observe({
+      selected_milestones_rv(input$milestone_existing)
+    })
+
+    milestone_commit_df <- reactive({
+      base <- local_commit_df  # or local_commit_df()
+      sel  <- selected_milestones_rv()
+
+      sel <- unique(trimws(if (is.null(sel)) character(0) else sel))
+      sel <- sel[nzchar(sel)]
+
+      if (length(sel) == 0) {
+        # nothing selected -> empty df (same columns)
+        return(base[0, , drop = FALSE])
+      }
+
+      dplyr::filter(base, !is.na(milestone_title) & milestone_title %in% sel)
+    })
+
+
     output$main_panel_dynamic <- renderUI({
-      req(selected_items())
       tryCatch({
-        if (length(selected_items()) == 0) {
-          return(HTML("<div style='font-size: small !important; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; color: #a94442; font-weight: 700;'>No files selected (required)</div>"))
+        df <- milestone_commit_df()
+        items_from_milestone_df <- if (!is.null(df) && nrow(df) > 0) {
+          sort(unique(na.omit(df$title)))
+        } else {
+          character(0)  # nothing selected or no matches -> no rows in milestone grid
         }
 
+        sel <- selected_items()
+        has_sel <- !is.null(sel) && length(sel) > 0
+
         w_load_items$show()
-
-        log_string <- glue::glue_collapse(selected_items(), sep = ", ")
-        debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
-
-
-
-        list <- additonal_archive_render_selected_list(
-          input = input,
-          ns = ns,
-          items = selected_items(),
-        )
-
-        additonal_archive_isolate_rendered_list(input = input,
-                              session = session,
-                              items = selected_items(),
-                              local_commit_df = local_commit_df
-        )
         session$sendCustomMessage("adjust_grid", id)
-        return(list)
+
+        ui_parts <- list()
+
+        if (length(items_from_milestone_df) > 0) {
+          ui_parts <- c(
+            list(
+              milestone_archive_render(
+                input  = input,
+                ns     = ns,
+                items  = items_from_milestone_df,
+                depth  = 0,
+                output = output
+              ),
+              milestone_archive_isolate_rendered_list(
+                input = input,
+                session = session,
+                items  = items_from_milestone_df,
+                milestone_commit_df = milestone_commit_df
+              )
+            )
+          )
+        }
+
+        # Render selected list and milestone commit inputs
+        ui_parts <- c(
+          ui_parts,
+          list(
+            additonal_archive_render_selected_list(
+              input = input,
+              ns    = ns,
+              items = sel
+            ),
+            additonal_archive_isolate_rendered_list(
+              input = input,
+              session = session,
+              items   = sel,
+              local_commit_df = local_commit_df
+            )
+          )
+        )
+
+        do.call(tagList, ui_parts)
       }, error = function(e) {
         error(.le$logger, glue::glue("There was an error rendering items in right panel: {conditionMessage(e)}"))
-        stopApp()
-        rlang::abort(conditionMessage(e))
+        stopApp(); rlang::abort(conditionMessage(e))
       })
     })
 
@@ -232,9 +282,11 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
         input        = input,
         session      = session,
         items        = selected_items(),
-        archive_name = archive_name,
-        flatten      = isTRUE(input$flatten)  # <- capture checkbox here
+        archive_name = input$archive_name,
+        flatten      = isTRUE(input$flatten),
+        milestone_commit_df = milestone_commit_df
       )
+
     })
 
 
