@@ -40,7 +40,8 @@ parse_local_log <- function(lines, keep_status = FALSE) {
 }
 
 
-archive_render_selected_list <- function(input, ns, items = NULL, depth = 0, output) {
+
+additonal_archive_render_selected_list <- function(input, ns, items = NULL, depth = 0, output) {
   tryCatch({
     debug(.le$logger, glue::glue(
       "Rendering selected list with items: {paste(items, collapse = ', ')}"
@@ -90,7 +91,7 @@ archive_render_selected_list <- function(input, ns, items = NULL, depth = 0, out
 
 
 
-archive_isolate_rendered_list <- function(input, session, items, local_commit_df) {
+additonal_archive_isolate_rendered_list <- function(input, session, items, local_commit_df) {
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
 

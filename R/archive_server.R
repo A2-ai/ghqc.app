@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_archive_server <- function(id, root_dir, checklists, members, open_milestone_names) {
+ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -31,7 +31,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
 
   moduleServer(id, function(input, output, session) {
     inputted_milestone_rv <- reactiveVal(NULL)
-    relevant_files <- reactiveVal(list())
     issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
     issues_in_existing_milestone_rv <- reactiveVal(NULL)
 
@@ -70,7 +69,6 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
 
     output$sidebar <- renderUI({
       tagList(
-        textInput(ns("archive_name"), "Archive name", value = ""),
         selectizeInput(
           ns("milestone_existing"),
           "Select Existing Milestone",
@@ -78,12 +76,13 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
           multiple = TRUE,
           width = "100%"
         ),
+        textInput(ns("archive_name"), "Archive name", value = ""),
         shinyWidgets::prettyCheckbox(ns("flatten"), "Flatten file paths", value = FALSE, icon = icon("check")),
         shinyWidgets::prettyCheckbox(ns("issue_open"), "Include open issues", value = FALSE, icon = icon("check")),
         shinyWidgets::prettyCheckbox(ns("relevant_files"), "Include relevant files", value = FALSE, icon = icon("check")),
         div(
           style = "font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; font-weight: bold;",
-          "Select File(s) for QC"
+          "Select Additional File(s) for Archive"
         ),
         treeNavigatorUI(ns("treeNavigator"))
       )
@@ -199,13 +198,15 @@ ghqc_archive_server <- function(id, root_dir, checklists, members, open_mileston
         log_string <- glue::glue_collapse(selected_items(), sep = ", ")
         debug(.le$logger, glue::glue("Files selected for QC: {log_string}"))
 
-        list <- archive_render_selected_list(
+
+
+        list <- additonal_archive_render_selected_list(
           input = input,
           ns = ns,
           items = selected_items(),
         )
 
-        archive_isolate_rendered_list(input = input,
+        additonal_archive_isolate_rendered_list(input = input,
                               session = session,
                               items = selected_items(),
                               local_commit_df = local_commit_df
