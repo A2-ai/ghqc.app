@@ -136,6 +136,8 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
 
     issues_in_repo <- get_all_issues_in_repo()
 
+
+
     issues_milestone_df <- purrr::map_dfr(issues_in_repo, function(it) {
       init_qc_commit <- get_init_qc_commit_from_issue_body(it$body)
       latest_qc_commit <- get_qc_commit_info(
@@ -151,10 +153,10 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
         milestone_title  = it$milestone$title,
         title            = it$title,
         state            = it$state,
-        latest_qc_commit = latest_qc_commit
-        # , relevant_file = rel_file  # <- add back once rel_file is defined
+        latest_qc_commit = latest_qc_commit,
       )
     })
+
 
     archive_files <- issues_milestone_df %>%
       dplyr::pull(title) %>%
@@ -193,11 +195,9 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
     })
 
     milestone_commit_df <- reactive({
-      base <- local_commit_df  # or local_commit_df()
+      base <- local_commit_df
       sel  <- selected_milestones_rv()
 
-      sel <- unique(trimws(if (is.null(sel)) character(0) else sel))
-      sel <- sel[nzchar(sel)]
 
       if (length(sel) == 0) {
         # nothing selected -> empty df (same columns)
@@ -245,23 +245,27 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
           )
         }
 
-        # Render selected list and milestone commit inputs
         ui_parts <- c(
           ui_parts,
           list(
             additonal_archive_render_selected_list(
               input = input,
-              ns    = ns,
-              items = sel
-            ),
+              ns = ns,
+              items = sel,
+              depth = 0,
+              output = output,
+              milestone_commit_df = milestone_commit_df
+            )
+          ),
             additonal_archive_isolate_rendered_list(
               input = input,
               session = session,
               items   = sel,
-              local_commit_df = local_commit_df
+              local_commit_df = local_commit_df,
+              milestone_commit_df = milestone_commit_df
             )
           )
-        )
+
 
         do.call(tagList, ui_parts)
       }, error = function(e) {
