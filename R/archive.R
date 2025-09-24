@@ -15,9 +15,9 @@ ghqc_archive_app <- function() {
   # error handling before starting app
   root_dir <- rproj_root_dir()
   check_github_credentials()
-  checklists <- get_valid_checklists()
-  members <- get_members_errors()
 
+  all_milestones <- get_all_non_empty_milestone_objects()
+  all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
   open_milestone_objects <- get_open_non_empty_milestone_objects()
   open_milestone_names <- get_milestone_names_from_milestone_objects(open_milestone_objects)
 
@@ -29,6 +29,7 @@ ghqc_archive_app <- function() {
       ghqc_archive_server(
         id = "ghqc_archive_app",
         root_dir = root_dir,
+        all_milestone_names = all_milestone_names,
         open_milestone_names = open_milestone_names
       )
     }

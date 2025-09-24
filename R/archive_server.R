@@ -8,7 +8,7 @@
 #' @importFrom rprojroot find_rstudio_root_file
 NULL
 
-ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
+ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_milestone_names) {
   iv <- shinyvalidate::InputValidator$new()
 
   observe({
@@ -32,7 +32,6 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
     inputted_milestone_rv <- reactiveVal(NULL)
     issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
     issues_in_existing_milestone_rv <- reactiveVal(NULL)
-
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
@@ -51,12 +50,12 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
     )
 
     observe({
-      req(open_milestone_names)
+      req(all_milestone_names)
 
       updateSelectizeInput(
         session,
         "milestone_existing",
-        choices = open_milestone_names
+        choices = all_milestone_names
       )
     })
 
@@ -81,8 +80,27 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
       )
     })
 
+    shown_milestones <- reactiveVal(character(0))
+
     observe({
       req(inputted_milestone_rv())
+
+      if (inputted_milestone_rv() %in% open_milestone_names) {
+        shown_milestones_list <- shown_milestones()
+
+        if (!(inputted_milestone_rv() %in% shown_milestones_list)) {
+          showModal(modalDialog(
+            title = "Milestone Found",
+            paste("The milestone", inputted_milestone_rv(), "exists in the open milestones."),
+            easyClose = TRUE,
+            footer = tagList(
+              modalButton("Close")
+            )
+          ))
+
+          shown_milestones(c(shown_milestones_list, inputted_milestone_rv()))
+        }
+      }
 
       issue_titles_with_root_dir <- tryCatch({
         milestone <- get_milestone_from_name(inputted_milestone_rv())
@@ -92,7 +110,7 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
                                                                                    milestone_number = milestone$number)
           issue_titles <- sapply(issues_in_milestone, function(issue) issue$title)
 
-          issue_titles_in_existing_milestone_rv(issue_titles)  # assign to reactiveVal
+          issue_titles_in_existing_milestone_rv(issue_titles)
           issues_in_existing_milestone_rv(issues_in_milestone)
 
           file.path(basename(root_dir), issue_titles)
@@ -110,6 +128,7 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
 
       session$sendCustomMessage("highlightPaths", issue_titles_with_root_dir)
     })
+
 
     output$validation_message <- renderUI({
       validate(
@@ -179,36 +198,28 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
 
       req(selected_milestones)
 
-      # If only one milestone is selected, no need to check for duplicates
       if (length(selected_milestones) <= 1) {
         return()
       }
 
-      # Get the newly selected milestone (last one selected)
       new_selected_milestone <- selected_milestones[length(selected_milestones)]
 
-      # Get the titles of the newly selected milestone
       new_filtered_df <- local_commit_df %>%
         filter(milestone_title == new_selected_milestone)
 
       new_selected_titles <- unique(new_filtered_df$title)
 
-      # Get all the previously selected milestones (all but the newly selected one)
       prev_selected_milestones <- selected_milestones[1:(length(selected_milestones) - 1)]
 
-      # Check each previously selected milestone to see if there are duplicates with the new one
       for (prev_milestone in prev_selected_milestones) {
-        # Get the titles of the previous selected milestone
         prev_filtered_df <- local_commit_df %>%
           filter(milestone_title == prev_milestone)
 
         prev_selected_titles <- unique(prev_filtered_df$title)
 
-        # Find duplicates by checking for overlapping titles between the newly selected and previous milestones
         duplicate_titles <- intersect(new_selected_titles, prev_selected_titles)
 
         if (length(duplicate_titles) > 0) {
-          # Show the modal warning with duplicate titles
           showModal(modalDialog(
             title = "Duplicate Files Found",
             paste("There are duplicate files detected between milestones. Please select a different milestone"),
@@ -218,57 +229,83 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
             )
           ))
 
-          # Deselect the newly selected milestone with duplicates and keep the valid milestones
-          valid_selection <- selected_milestones[1:(length(selected_milestones) - 1)]  # Keep the previous valid selections
+          valid_selection <- selected_milestones[1:(length(selected_milestones) - 1)]
 
-          # Update the selectize input, keeping the valid selections selected
           updateSelectizeInput(session, "milestone_existing",
-                               choices = open_milestone_names,
-                               selected = valid_selection)  # Keep only the valid selections
+                               choices = all_milestone_names,
+                               selected = valid_selection)
 
-          return()  # Exit the loop after rejecting the new milestone
+          return()
         }
       }
     })
 
+    warned_duplicates <- reactiveVal(character(0))
+
     archive_files <- reactive({
-      selected_milestones <- selected_milestones_rv()  # Access the reactive value here
+      selected_milestones <- selected_milestones_rv()
 
-      if (is.null(selected_milestones) || length(selected_milestones) == 0) {
-        return(character(0))  # Return an empty vector if no milestones are selected
+      archive_files <- character(0)
+
+      if (!is.null(selected_milestones) && length(selected_milestones) > 0) {
+        filtered_issues <- issues_milestone_df %>%
+          {
+            if (!isTRUE(input$issue_open)) {
+              dplyr::filter(., .data$state == "closed")
+            } else {
+              .
+            }
+          } %>%
+          dplyr::filter(.data$milestone_title %in% !!selected_milestones)
+
+        relevant_files_checked <- isTRUE(input$relevant_files)  # More explicit check for TRUE
+
+        if (relevant_files_checked) {
+          archive_files <- filtered_issues %>%
+            dplyr::mutate(relevant_file = trimws(relevant_file), title = trimws(title)) %>%
+            dplyr::mutate(relevant_file = dplyr::na_if(relevant_file, ""), title = dplyr::na_if(title, "")) %>%
+            dplyr::select(relevant_file, title) %>%
+            unlist()
+          archive_files <- unique(archive_files)
+
+        } else {
+          archive_files <- filtered_issues %>%
+            dplyr::pull(title) %>%
+            unique() %>%
+            sort()
+        }
       }
 
-      # Check if the relevant_files checkbox is TRUE (checked)
-      relevant_files_checked <- isTRUE(input$relevant_files)  # More explicit check for TRUE
+      tree_selected_files <- selected_items()
+      duplicate_files <- intersect(archive_files, tree_selected_files)
 
-      if (relevant_files_checked) {
-        # When 'relevant_files' is checked (TRUE), combine relevant_file and title as 'archive_files'
-        archive_files <- issues_milestone_df %>%
-          filter(milestone_title %in% !!selected_milestones) %>%  # Apply milestone filter
-          dplyr::mutate(relevant_file = trimws(relevant_file), title = trimws(title)) %>%  # Trim whitespaces
-          dplyr::mutate(relevant_file = na_if(relevant_file, ""), title = na_if(title, "")) %>%  # Handle empty strings
-          dplyr::select(relevant_file, title) %>%  # Select relevant_file and title columns
-          unlist()  # Combine into a single vector
+      # Store the duplicates that need to trigger the modal
+      duplicates_to_warn <- setdiff(duplicate_files, warned_duplicates())
 
-        # Keep only unique values
-        archive_files <- unique(archive_files)
+      if (length(duplicates_to_warn) > 0) {
+        # Show modal for each unique duplicate file, once
+        showModal(modalDialog(
+          title = "Duplicate Files Found",
+          paste("The following files are already in selected milestones:",
+                paste(duplicates_to_warn, collapse = ", ")),
+          easyClose = TRUE,
+          footer = tagList(
+            modalButton("Close")
+          )
+        ))
 
-      } else {
-        archive_files <- issues_milestone_df %>%
-          filter(milestone_title %in% !!selected_milestones) %>%
-          pull(title) %>%
-          unique() %>%
-          sort()
+        # Update warned_duplicates only after modal is shown
+        warned_duplicates(c(warned_duplicates(), duplicates_to_warn))
       }
 
+      archive_files <- unique(c(archive_files, setdiff(tree_selected_files, duplicate_files)))
     })
-
 
 
     milestone_commit_df <- reactive({
       base <- local_commit_df
 
-      # If archive_files is empty, return an empty data frame with the same columns
+
       archive_files_list <- archive_files()
       if (length(archive_files_list) == 0) {
         return(base[0, c("title", "commit", "milestone_title"), drop = FALSE])
@@ -277,20 +314,9 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
       base %>%
         filter(title %in% archive_files_list) %>%  # Filter by archive files (reactive)
         distinct(title, commit, milestone_title, .keep_all = TRUE) %>%  # Ensure distinct entries
-        select(title, commit, milestone_title) %>%  # Select relevant columns
-        arrange(title)  # Sort by title
+        select(title, commit, milestone_title) %>%
+        arrange(title)
     })
-
-    observeEvent(input$relevant_files, {
-      # When the relevant_files checkbox changes, print the milestone_commit_df
-      df <- milestone_commit_df()  # Get the current data from milestone_commit_df
-      if (!is.null(df) && nrow(df) > 0) {
-        print("Milestone Commit DF:")
-        print(df)  # Print the dataframe to console (or use other debugging methods)
-      } else {
-        print("No data in milestone_commit_df")
-      }
-    }, ignoreInit = TRUE)
 
     output$main_panel_dynamic <- renderUI({
       tryCatch({
@@ -300,9 +326,6 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
         } else {
           character(0)
         }
-
-        sel <- selected_items()
-        has_sel <- !is.null(sel) && length(sel) > 0
 
         w_load_items$show()
         session$sendCustomMessage("adjust_grid", id)
@@ -329,26 +352,6 @@ ghqc_archive_server <- function(id, root_dir, open_milestone_names) {
           )
         }
 
-        ui_parts <- c(
-          ui_parts,
-          list(
-            additonal_archive_render_selected_list(
-              input = input,
-              ns = ns,
-              items = sel,
-              depth = 0,
-              output = output,
-              milestone_commit_df = milestone_commit_df
-            )
-          ),
-          additonal_archive_isolate_rendered_list(
-            input = input,
-            session = session,
-            items   = sel,
-            local_commit_df = local_commit_df,
-            milestone_commit_df = milestone_commit_df
-          )
-        )
 
         do.call(tagList, ui_parts)
       }, error = function(e) {
