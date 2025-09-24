@@ -46,24 +46,26 @@ milestone_archive_render <- function(input, ns, items, depth = 0, output) {
       "Rendering selected list with items: {paste(items, collapse = ', ')}"
     ))
 
-
+    # Create a container div for the grid layout with flex properties for wrapping
     ul <- div(
       class = paste("grid-container", "depth", depth, sep = "-"),
-      style = "display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:10px 12px;align-items:start;"
+      style = "display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 10px 12px; align-items: start; word-wrap: break-word; height: auto;"
     )
 
-    # Header row
+    # Header row for files, milestones, and commits
     ul <- tagAppendChild(ul, div(tags$strong("Files")))
     ul <- tagAppendChild(ul, div(tags$strong("Milestones")))
     ul <- tagAppendChild(ul, div(tags$strong("Commits")))
 
+    # Loop through each item to add rows dynamically
     for (name in items) {
       modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", htmltools::htmlEscape(name))
       milestone_input_id <- generate_input_id("milestone", name)
       commit_input_id    <- generate_input_id("commit", name)
 
-
-      ul <- tagAppendChild(ul, div(class = "form-control", HTML(modified_name)))
+      # Wrap the file name with 'word-wrap: break-word' and ensure proper height handling
+      ul <- tagAppendChild(ul, div(class = "form-control", HTML(modified_name),
+                                   style = "word-wrap: break-word; white-space: normal; height: auto;"))
 
       ul <- tagAppendChild(ul, selectizeInput(
         ns(milestone_input_id), label = NULL, choices = NULL,
@@ -88,10 +90,11 @@ milestone_archive_render <- function(input, ns, items, depth = 0, output) {
   })
 }
 
-
 milestone_archive_isolate_rendered_list <- function(input, session, items, milestone_commit_df) {
   df <- milestone_commit_df()
   if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
+
+  selected_milestones <- input$milestone_existing  # List of selected milestones
 
   for (name in items) {
     debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
@@ -102,43 +105,104 @@ milestone_archive_isolate_rendered_list <- function(input, session, items, miles
     df_item <- df %>%
       dplyr::filter(.data$title == !!name)
 
-    # Get unique milestone choices (remove NAs)
+    # Get all unique milestone choices for this item (remove NAs)
     milestone_choices <- df_item %>%
+      dplyr::mutate(milestone_title = ifelse(is.na(.data$milestone_title), "N/A", .data$milestone_title)) %>%
       dplyr::pull(.data$milestone_title) %>%
       unique() %>%
-      { .[!is.na(.)] } %>%
       sort()
 
-    # Default to first milestone choice
-    default_milestone <- if (length(milestone_choices) > 0) milestone_choices[[1]] else character(0)
+    # Check for matching milestones from the selected ones
+    matching_milestones <- intersect(selected_milestones, milestone_choices)
 
-    # Get commit choices associated with the selected milestone
-    commit_choices <- df_item %>%
-      dplyr::filter(.data$milestone_title == !!default_milestone) %>%
-      dplyr::pull(.data$commit) %>%
-      unique()
+    if (length(matching_milestones) > 0) {
+      # If the item has a matching milestone, force the milestone and commit selection
 
-    default_commit <- if (length(commit_choices) > 0) commit_choices[[1]] else character(0)
+      # Set milestone to the first selected milestone (force milestone selection)
+      updateSelectizeInput(
+        session,
+        milestone_input_id,
+        choices  = matching_milestones,  # Show only the selected milestone
+        selected = matching_milestones[1],  # Force the selected milestone as the only selection
+        server   = TRUE
+      )
 
-    updateSelectizeInput(
-      session,
-      milestone_input_id,
-      choices  = milestone_choices,
-      selected = default_milestone,
-      server   = TRUE
-    )
+      # Get commit choices associated with the selected milestone
+      commit_choices <- df_item %>%
+        dplyr::filter(.data$milestone_title == matching_milestones[1]) %>%
+        dplyr::pull(.data$commit) %>%
+        unique()
 
-    updateSelectizeInput(
-      session,
-      commit_input_id,
-      choices  = commit_choices,
-      selected = default_commit,
-      server   = TRUE
-    )
+      # Default commit (based on the first commit for the selected milestone)
+      default_commit <- if (length(commit_choices) > 0) commit_choices[[1]] else "No commits"
+
+      # Force the commit selection based on the selected milestone
+      updateSelectizeInput(
+        session,
+        commit_input_id,
+        choices  = commit_choices,
+        selected = default_commit,   # Pre-select the commit for the selected milestone
+        server   = TRUE
+      )
+    } else {
+      # If the selected milestone is not available for this item, allow free selection and default to "N/A"
+
+      # Set milestone input to "N/A" (allow free selection)
+      updateSelectizeInput(
+        session,
+        milestone_input_id,
+        choices  = c("N/A", milestone_choices),  # Include "N/A" as an option for free selection
+        selected = "N/A",  # Default to "N/A"
+        server   = TRUE
+      )
+
+      # If "N/A" is selected, allow free selection for commits
+      updateSelectizeInput(
+        session,
+        commit_input_id,
+        choices  = df_item %>% dplyr::pull(.data$commit) %>% unique(),  # Show all commits for the item
+        selected = NULL,  # No pre-selected commit
+        server   = TRUE
+      )
+
+      # Dynamic update of commit choices based on milestone selection
+      observeEvent(input[[milestone_input_id]], {
+        selected_milestone <- input[[milestone_input_id]]  # Get the selected milestone
+        if (!is.null(selected_milestone) && selected_milestone != "N/A") {
+          # If a milestone is selected, update the commit choices based on the selected milestone
+          commit_choices <- df_item %>%
+            dplyr::filter(.data$milestone_title == selected_milestone) %>%
+            dplyr::pull(.data$commit) %>%
+            unique()
+
+          updateSelectizeInput(
+            session,
+            commit_input_id,
+            choices  = commit_choices,  # Show commits for the selected milestone
+            selected = NULL,  # Allow the user to freely select a commit
+            server   = TRUE
+          )
+        } else {
+          # If "N/A" is selected, allow free selection and show all commit options
+          commit_choices <- df_item %>%
+            dplyr::pull(.data$commit) %>%
+            unique()
+
+          updateSelectizeInput(
+            session,
+            commit_input_id,
+            choices  = commit_choices,  # Show all commits for the item
+            selected = NULL,  # Allow free selection
+            server   = TRUE
+          )
+        }
+      })
+    }
   }
 
   invisible(NULL)
 }
+
 
 
 additonal_archive_render_selected_list <- function(input, ns, items = NULL, depth = 0, output, milestone_commit_df) {
@@ -158,12 +222,12 @@ additonal_archive_render_selected_list <- function(input, ns, items = NULL, dept
       unique()
 
     # Check if any item is already selected in the milestone commit dataset
-    already_selected_files <- items[items %in% selected_files]
+    milestone_selected_files <- items[items %in% selected_files]
 
     # Track which files have already triggered the modal
-    if (length(already_selected_files) > 0) {
+    if (length(milestone_selected_files) > 0) {
       # Filter out files that have already been shown
-      files_to_show_modal <- setdiff(already_selected_files, shown_modal_files$shown)
+      files_to_show_modal <- setdiff(milestone_selected_files, shown_modal_files$shown)
 
       if (length(files_to_show_modal) > 0) {
         # Show the modal warning only once for each file
@@ -184,7 +248,7 @@ additonal_archive_render_selected_list <- function(input, ns, items = NULL, dept
 
     # Now check if any items are unselected (if not in selected files)
     # If a file is unselected, remove it from the shown list so that the modal can appear again if reselected
-    unselected_files <- setdiff(shown_modal_files$shown, already_selected_files)
+    unselected_files <- setdiff(shown_modal_files$shown, milestone_selected_files)
     if (length(unselected_files) > 0) {
       # Remove unselected files from the list of shown files
       shown_modal_files$shown <- setdiff(shown_modal_files$shown, unselected_files)
@@ -200,15 +264,22 @@ additonal_archive_render_selected_list <- function(input, ns, items = NULL, dept
 
     ul <- div(
       class = paste("grid-container", "depth", depth, sep = "-"),
-      style = "display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:10px 12px;align-items:start;"
+      style = "display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 10px 12px; align-items: start; word-wrap: break-word; height: auto;"
     )
+
+    # Header row for files, milestones, and commits
+    ul <- tagAppendChild(ul, div(tags$strong("Files")))
+    ul <- tagAppendChild(ul, div(tags$strong("Milestones")))
+    ul <- tagAppendChild(ul, div(tags$strong("Commits")))
 
     for (name in items_to_render) {
       modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", htmltools::htmlEscape(name))
       milestone_input_id <- generate_input_id("milestone", name)
       commit_input_id    <- generate_input_id("commit", name)
 
-      ul <- tagAppendChild(ul, div(class = "form-control", HTML(modified_name)))
+      # Wrap the file name with 'word-wrap: break-word' and ensure proper height handling
+      ul <- tagAppendChild(ul, div(class = "form-control", HTML(modified_name),
+                                   style = "word-wrap: break-word; white-space: normal; height: auto;"))
 
       ul <- tagAppendChild(ul, selectizeInput(
         ns(milestone_input_id), label = NULL, choices = NULL,
@@ -232,7 +303,6 @@ additonal_archive_render_selected_list <- function(input, ns, items = NULL, dept
     rlang::abort(error_message)
   })
 }
-
 
 additonal_archive_isolate_rendered_list <- function(input, session, items, local_commit_df, milestone_commit_df) {
   for (name in items) {
@@ -259,24 +329,20 @@ additonal_archive_isolate_rendered_list <- function(input, session, items, local
     selected_milestone <- NULL
     selected_commit <- NULL
 
-    # If the item has been selected as part of a milestone, only allow that milestone and commit
     if (length(selected_milestones) > 0) {
-      selected_milestone <- selected_milestones[[1]]  # Get the first (and only) selected milestone
+      selected_milestone <- selected_milestones[[1]]
       selected_commit <- milestone_commit_df() %>%
         dplyr::filter(.data$title == !!name & .data$milestone_title == selected_milestone) %>%
         dplyr::pull(.data$commit) %>%
         unique() %>%
-        .[[1]]  # Get the corresponding commit for this milestone
+        .[[1]]
 
-      # Filter df_item to only include the selected milestone and commit
       df_item <- df_item %>%
         dplyr::filter(.data$milestone_title == selected_milestone & .data$commit == selected_commit)
 
-      # Set milestone choices to only the selected milestone and commit choices to the selected commit
       milestone_choices <- selected_milestone
       commit_choices <- selected_commit
     } else {
-      # If the file hasn't been selected in any milestone, show all possible choices
       milestone_choices <- df_item %>%
         dplyr::pull(.data$milestone_title) %>%
         unique() %>%
@@ -287,7 +353,29 @@ additonal_archive_isolate_rendered_list <- function(input, session, items, local
         unique()
     }
 
-    # Update milestone selectize input
+    updateSelectizeInput(
+      session,
+      milestone_input_id,
+      choices  = milestone_choices,
+      selected = ifelse(is.null(selected_milestone), "N/A", selected_milestone),
+      server   = TRUE,
+      options = list(
+        disabled = !is.null(selected_milestone)
+      )
+    )
+
+    updateSelectizeInput(
+      session,
+      commit_input_id,
+      choices  = df_item %>% dplyr::pull(.data$commit) %>% unique(),
+      selected = NULL,
+      server   = TRUE,
+      options  = list(
+        placeholder = "Select a commit",
+        disabled = FALSE
+      )
+    )
+
     updateSelectizeInput(
       session,
       milestone_input_id,
@@ -311,39 +399,36 @@ additonal_archive_isolate_rendered_list <- function(input, session, items, local
       )
     )
 
-    # Observe milestone input selection and filter commits accordingly
     observeEvent(input[[milestone_input_id]], {
       selected_milestone <- input[[milestone_input_id]]
 
-      # If "N/A" is selected, include all commits
       if (selected_milestone == "N/A") {
-        filtered_commits <- commit_choices  # Show all commits
+        # If "N/A" is selected, include all commits and default to placeholder
+        filtered_commits <- commit_choices
+        selected_value <- ""   # this forces placeholder
       } else {
         # Filter commits based on the selected milestone
         filtered_commits <- df_item %>%
           dplyr::filter(.data$milestone_title == selected_milestone) %>%
           dplyr::pull(.data$commit) %>%
           unique()
+
+        selected_value <- filtered_commits[1]  # default to first commit
       }
 
-      # Update the commit selectize input with the filtered commits
       updateSelectizeInput(
         session,
         commit_input_id,
         choices  = filtered_commits,
-        selected = ifelse(is.null(selected_commit), "", selected_commit),  # Keep the selected commit if already chosen
+        selected = selected_value,
         options = list(
-          placeholder = "Select a commit"  # Placeholder text
+          placeholder = "Select a commit"
         ),
         server   = TRUE
       )
     })
   }
 }
-
-
-
-
 
 archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
   ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
