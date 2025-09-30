@@ -186,6 +186,16 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
     warned_duplicates <- reactiveVal(character(0))
 
+    warned_flatten_basenames <- reactiveVal(character(0))
+    observeEvent(input$flatten, {
+      if (!isTRUE(input$flatten)) warned_flatten_basenames(character(0))
+    }, ignoreInit = TRUE)
+
+
+    observeEvent(input$flatten, {
+      if (!isTRUE(input$flatten)) warned_flatten_basenames(character(0))
+    }, ignoreInit = TRUE)
+
     archive_files <- reactive({
       selected_milestones <- selected_milestones_rv()
 
@@ -246,9 +256,9 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
     })
 
 
+
     milestone_commit_df <- reactive({
       base <- local_commit_df
-
 
       archive_files_list <- archive_files()
       if (length(archive_files_list) == 0) {
@@ -295,10 +305,8 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
     })
 
 
-    ui_mutation_in_progress <- reactiveVal(FALSE)
     rendered_items <- shiny::reactiveVal(character(0))
 
-    # --- your original incremental renderer (unchanged except the init tweak for multiple globals) ---
     observeEvent(items_from_milestone_df(), {
       current_items  <- items_from_milestone_df()
       previous_items <- rendered_items()
@@ -326,7 +334,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
               ui = create_single_item_ui(current_it, session$ns)
             )
 
-            # PRECOMPUTE (reactive-safe here)
             df_all  <- milestone_commit_df()
             df_item <- df_all %>% dplyr::filter(.data$title == current_it)
 
@@ -417,110 +424,38 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       w_load_items$hide()
     }, ignoreInit = FALSE)
 
+    # Warn if flattening would create basename collisions among the current items
+    observeEvent(list(items_from_milestone_df(), input$flatten), ignoreInit = TRUE, {
+      req(isTRUE(input$flatten))
 
+      items <- items_from_milestone_df()
+      if (length(items) < 2) return()
 
-    # observeEvent(
-    #   list(input$milestone_existing, milestone_commit_df()),  # re-run on change
-    #   {
-    #     items_rendered <- rendered_items()
-    #     if (length(items_rendered) == 0) return()
-    #
-    #     milestone_df   <- milestone_commit_df()
-    #     selected_global <- input$milestone_existing %||% character(0)
-    #
-    #     # Only do special behavior when exactly one global milestone is selected.
-    #     if (length(selected_global) == 1) {
-    #       for (name in items_rendered) {
-    #         milestone_input_id <- generate_input_id("milestone", name)
-    #         commit_input_id    <- generate_input_id("commit", name)
-    #
-    #         df_item <- milestone_df %>% dplyr::filter(.data$title == name)
-    #
-    #         # All milestones this item can have
-    #         item_milestones <- df_item %>%
-    #           dplyr::pull(.data$milestone_title) %>%
-    #           unique() %>%
-    #           sort()
-    #
-    #         if (selected_global %in% item_milestones) {
-    #           # This item belongs to the selected global milestone → lock it
-    #           updateSelectizeInput(
-    #             session,
-    #             milestone_input_id,
-    #             choices  = selected_global,      # single option → effectively locked
-    #             selected = selected_global,
-    #             server   = TRUE
-    #           )
-    #
-    #           # Show only commits under that milestone
-    #           commit_choices <- df_item %>%
-    #             dplyr::filter(.data$milestone_title == selected_global) %>%
-    #             dplyr::pull(.data$commit) %>%
-    #             unique()
-    #
-    #           default_commit <- if (length(commit_choices) > 0) commit_choices[[1]] else NULL
-    #
-    #           updateSelectizeInput(
-    #             session,
-    #             commit_input_id,
-    #             choices  = commit_choices,
-    #             selected = default_commit,
-    #             server   = TRUE
-    #           )
-    #
-    #           # Optional: truly disable the milestone select so the user can’t change it.
-    #           # If you use shinyjs, uncomment:
-    #           # shinyjs::disable(session$ns(milestone_input_id))
-    #
-    #         } else {
-    #           # Item does NOT belong to the selected global milestone → leave it as-is (free reign)
-    #           # (No updates here on purpose.)
-    #           next
-    #         }
-    #       }
-    #       return()
-    #     }
-    #   },
-    #   ignoreInit = TRUE
-    # )
+      bn <- basename(items)
+      dup_bn <- unique(bn[duplicated(bn)])
+      if (length(dup_bn) == 0) return()
 
-        # observeEvent(input[[milestone_input_id]], {
-        #
-        #   selected_milestone_input <- input[[milestone_input_id]]
-        #   if (selected_milestone_input == "N/A" || selected_milestone_input == "") {
-        #     commit_choices <- milestone_df_item %>%
-        #       dplyr::pull(.data$commit) %>%
-        #       unique()
-        #
-        #     updateSelectizeInput(
-        #       session,
-        #       commit_input_id,
-        #       choices  = commit_choices,  # Show all commits for the item
-        #       selected = NULL,  # Allow free selection
-        #       server   = TRUE
-        #     )
-        #   } else {
-        #     commit_choices <- milestone_df_item %>%
-        #       dplyr::filter(.data$milestone_title == selected_milestone_input) %>%
-        #       dplyr::pull(.data$commit) %>%
-        #       unique()
-        #
-        #     updateSelectizeInput(
-        #       session,
-        #       commit_input_id,
-        #       choices  = commit_choices,
-        #       selected = commit_choices,
-        #       server   = TRUE
-        #     )
-        #   }
-        # })
+      # group the original item paths under each colliding basename
+      groups <- lapply(dup_bn, function(nm) {
+        paths <- items[bn == nm]
+        tagList(
+          tags$b(nm), tags$br(),
+          lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
+          tags$br()
+        )
+      })
 
-
-
-
-
-
-
+      showModal(modalDialog(
+        title = "Duplicate File Names When Flattening",
+        tagList(
+          p("These files would end up with the same name after flattening. ",
+            "Please rename one (or uncheck ", tags$i("Flatten file paths"), ")."),
+          div(groups)
+        ),
+        easyClose = TRUE,
+        footer = tagList(modalButton("Close"))
+      ))
+    })
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
       archive_name <- input$archive_name

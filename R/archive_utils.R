@@ -39,62 +39,6 @@ parse_local_log <- function(lines, keep_status = FALSE) {
   out
 }
 
-
-milestone_archive_render <- function(input, ns, items, milestone_commit_df, session, depth = 0, output) {
-  tryCatch({
-    debug(.le$logger, glue::glue(
-      "Rendering selected list with items: {paste(items, collapse = ', ')}"
-    ))
-
-    # Create a container div for the grid layout with flex properties for wrapping
-    ul <- div(
-      class = paste("grid-container", "depth", depth, sep = "-"),
-      style = "display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 10px 12px; align-items: start; word-wrap: break-word; height: auto;"
-    )
-
-    # Header row for files, milestones, and commits
-    ul <- tagAppendChild(ul, div(tags$strong("Files")))
-    ul <- tagAppendChild(ul, div(tags$strong("Milestones")))
-    ul <- tagAppendChild(ul, div(tags$strong("Commits")))
-
-
-
-    milestone_df <- milestone_commit_df()
-    # Loop through each item to add rows dynamically
-    for (name in items) {
-      modified_name <- gsub("([^a-zA-Z0-9])", "\\1<wbr>", htmltools::htmlEscape(name))
-      milestone_input_id <- generate_input_id("milestone", name)
-      commit_input_id    <- generate_input_id("commit", name)
-
-      ul <- tagAppendChild(ul, div(class = "form-control", HTML(modified_name),
-                                   style = "word-wrap: break-word; white-space: normal; height: auto;"))
-
-      ul <- tagAppendChild(ul, selectizeInput(
-        ns(milestone_input_id), label = NULL, choices = NULL,
-        multiple = FALSE, width = "100%", options = list(closeAfterSelect = TRUE)
-      ))
-
-      ul <- tagAppendChild(ul, selectizeInput(
-        ns(commit_input_id), label = NULL, choices = NULL,
-        multiple = FALSE, width = "100%", options = list(closeAfterSelect = TRUE)
-      ))
-
-
-    }
-    debug(.le$logger, "Rendered selected list successfully")
-    ul
-  },
-
-  error = function(e) {
-    items <- glue::glue_collapse(items, sep = ", ")
-    error_message <- glue::glue("Error rendering selected {items}: {conditionMessage(e)}")
-    log4r::error(.le$logger, error_message)
-    stopApp()
-    rlang::abort(error_message)
-  })
-}
-
-
 create_single_item_ui <- function(name, ns) {
   milestone_raw <- generate_input_id("milestone", name)
   commit_raw    <- generate_input_id("commit", name)
@@ -132,184 +76,13 @@ create_single_item_ui <- function(name, ns) {
   )
 }
 
-
-milestone_archive_isolate_rendered_list <- function(input, session, items, milestone_commit_df) {
-  milestone_df <- milestone_commit_df()
-  if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
-
-  selected_milestones <- input$milestone_existing
-
-  for (name in items) {
-    debug(.le$logger, glue::glue("Updating selectize inputs for item: {name}"))
-
-    milestone_input_id <- generate_input_id("milestone", name)
-    commit_input_id    <- generate_input_id("commit", name)
-
-    milestone_df_item <- milestone_df %>%
-      dplyr::filter(.data$title == name)
-
-
-    milestone_choices <-  milestone_df_item %>%
-      dplyr::mutate(milestone_title = ifelse(is.na(.data$milestone_title), "N/A", .data$milestone_title)) %>%
-      dplyr::pull(.data$milestone_title) %>%
-      unique() %>%
-      sort()
-
-    commit_choices <-  milestone_df_item %>%
-      dplyr::pull(.data$commit) %>%
-      unique()
-
-    if (length(matching_milestones) == 0){
-      updateSelectizeInput(
-        session,
-        milestone_input_id,
-        choices  = c("N/A", milestone_choices),
-        selected = "N/A",
-        server   = TRUE
-      )
-    }else if (length(matching_milestones) == 1) {
-
-      updateSelectizeInput(
-        session,
-        milestone_input_id,
-        choices  = matching_milestones,
-        selected = matching_milestones[1],
-        server   = TRUE
-      )
-
-    }else {
-      # Check for matching milestone greater than 1 done in modal pop up
-    }
-    observeEvent(input[[milestone_input_id]], {
-
-      selected_milestone_input <- input[[milestone_input_id]]
-      if (selected_milestone_input == "N/A" || selected_milestone_input == "") {
-        commit_choices <- df_item %>%
-          dplyr::pull(.data$commit) %>%
-          unique()
-
-        updateSelectizeInput(
-          session,
-          commit_input_id,
-          choices  = commit_choices,  # Show all commits for the item
-          selected = NULL,  # Allow free selection
-          server   = TRUE
-        )
-      } else {
-        commit_choices <- df_item %>%
-          dplyr::filter(.data$milestone_title == selected_milestone_input) %>%
-          dplyr::pull(.data$commit) %>%
-          unique()
-
-
-        updateSelectizeInput(
-          session,
-          commit_input_id,
-          choices  = commit_choices,
-          selected = commit_choices,
-          server   = TRUE
-        )
-      }
-    })
-
-
-
-
-
-
-
-#     if (length(matching_milestones) > 0) {
-#
-#       updateSelectizeInput(
-#         session,
-#         milestone_input_id,
-#         choices  = matching_milestones,
-#         selected = matching_milestones[1],
-#         server   = TRUE
-#       )
-#
-#
-#       commit_choices <- df_item %>%
-#         dplyr::filter(.data$milestone_title == matching_milestones[1]) %>%
-#         dplyr::pull(.data$commit) %>%
-#         unique()
-#
-#
-#       forced_commit <- if (length(commit_choices) > 0) commit_choices[[1]]
-#
-#
-#       updateSelectizeInput(
-#         session,
-#         commit_input_id,
-#         choices  = commit_choices,
-#         selected = forced_commit,
-#         server   = TRUE
-#       )
-#     } else {
-#
-#       updateSelectizeInput(
-#         session,
-#         milestone_input_id,
-#         choices  = c("N/A", milestone_choices),
-#         selected = "N/A",
-#         server   = TRUE
-#       )
-#
-#
-#       updateSelectizeInput(
-#         session,
-#         commit_input_id,
-#         choices  = df_item %>% dplyr::pull(.data$commit) %>% unique(),
-#         selected = NULL,
-#         server   = TRUE
-#       )
-#
-#
-#       observeEvent(input[[milestone_input_id]], {
-#         selected_milestone_input <- input[[milestone_input_id]]
-#         if (selected_milestone_input != "N/A") {
-#           commit_choices <- df_item %>%
-#             dplyr::filter(.data$milestone_title == selected_milestone_input) %>%
-#             dplyr::pull(.data$commit) %>%
-#             unique()
-#
-#
-#           updateSelectizeInput(
-#             session,
-#             commit_input_id,
-#             choices  = commit_choices,
-#             selected = commit_choices,
-#             server   = TRUE
-#           )
-#         } else {
-#           commit_choices <- df_item %>%
-#             dplyr::pull(.data$commit) %>%
-#             unique()
-#
-#           updateSelectizeInput(
-#             session,
-#             commit_input_id,
-#             choices  = commit_choices,  # Show all commits for the item
-#             selected = NULL,  # Allow free selection
-#             server   = TRUE
-#           )
-#         }
-#       })
-#     }
-   }
-
-   invisible(NULL)
- }
-
-
 archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
   ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
   base_dir <- "archive"
-  if (!dir.exists(base_dir)) {
-    dir.create(base_dir)
-  }
+  if (!dir.exists(base_dir)) dir.create(base_dir, recursive = TRUE)
 
+  # Collect milestone items, if provided
   milestone_items <- character(0)
   if (!is.null(milestone_commit_df)) {
     df <- if (is.function(milestone_commit_df)) milestone_commit_df() else milestone_commit_df
@@ -320,7 +93,14 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
 
   items_all <- unique(c(items %||% character(0), milestone_items))
 
-  temp_files <- character(0)
+  # Staging dir
+  stage_dir <- file.path(tempdir(), paste0("archive_stage_", ts))
+  dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
+
+  rel_files <- character(0)
+
+  # Always include a top-level folder
+  top_dir <- paste0(archive_name, "/")
 
   for (item in items_all) {
     commit_input_id <- generate_input_id("commit", item)
@@ -329,20 +109,39 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
 
     script_contents <- get_script_contents(item, sel_commit)
 
-    file_path <- if (isTRUE(flatten)) {
-      file.path(tempdir(), basename(item))
+    # Path inside the zip
+    rel_path <- if (isTRUE(flatten)) {
+      paste0(top_dir, basename(item))
     } else {
-      file.path(tempdir(), item)
+      paste0(top_dir, gsub("\\\\", "/", item))
     }
 
-    temp_files <- c(temp_files, file_path)
-    writeLines(script_contents, file_path, useBytes = TRUE)
+    abs_path <- file.path(stage_dir, rel_path)
+    dir.create(dirname(abs_path), recursive = TRUE, showWarnings = FALSE)
+    writeLines(script_contents, abs_path, useBytes = TRUE)
+
+    rel_files <- c(rel_files, gsub("\\\\", "/", rel_path))
+  }
+
+  if (length(rel_files) == 0) {
+    showNotification("No files to archive.", type = "warning")
+    unlink(stage_dir, recursive = TRUE, force = TRUE)
+    return(invisible(NULL))
   }
 
   zip_file <- file.path(base_dir, paste0(archive_name, "_", ts, ".zip"))
-  zip(zip_file, files = temp_files)
 
-  unlink(temp_files, recursive = TRUE)
+  owd <- getwd()
+  on.exit(setwd(owd), add = TRUE)
+  setwd(stage_dir)
+
+  utils::zip(
+    zipfile = normalizePath(file.path(owd, zip_file), mustWork = FALSE),
+    files   = rel_files
+  )
+
+  setwd(owd)
+  unlink(stage_dir, recursive = TRUE, force = TRUE)
 
   showNotification(paste("Archived and zipped to:", zip_file), type = "message")
 }
