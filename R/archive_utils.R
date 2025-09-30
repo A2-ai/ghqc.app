@@ -50,8 +50,8 @@ create_single_item_ui <- function(name, ns) {
     # Files cell
     shiny::tags$div(
       class = "form-control",
-      HTML(htmltools::htmlEscape(name)),
-      style = "word-wrap: break-word; white-space: normal;"
+      style = "word-wrap: break-word; white-space: normal; height: auto;",
+      HTML(htmltools::htmlEscape(name))
     ),
 
     # Milestones cell (NOTE: inputId is namespaced!)
@@ -77,7 +77,6 @@ create_single_item_ui <- function(name, ns) {
 }
 
 archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
-  ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
   base_dir <- "archive"
   if (!dir.exists(base_dir)) dir.create(base_dir, recursive = TRUE)
@@ -94,7 +93,7 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
   items_all <- unique(c(items %||% character(0), milestone_items))
 
   # Staging dir
-  stage_dir <- file.path(tempdir(), paste0("archive_stage_", ts))
+  stage_dir <- file.path(tempdir(), paste0("archive_stage"))
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
 
   rel_files <- character(0)
@@ -129,7 +128,7 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
     return(invisible(NULL))
   }
 
-  zip_file <- file.path(base_dir, paste0(archive_name, "_", ts, ".zip"))
+  zip_file <- file.path(base_dir, paste0(archive_name, ".zip"))
 
   owd <- getwd()
   on.exit(setwd(owd), add = TRUE)

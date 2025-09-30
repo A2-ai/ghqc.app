@@ -48,7 +48,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       ),
       color = "white"
     )
-
+    # Gets closed milestones so it can default to closed milestones
     observe({
       req(all_milestone_names, open_milestone_names)
 
@@ -65,6 +65,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
         selected = selected
       )
     })
+    # Adds left side ui
 
     output$sidebar <- renderUI({
       tagList(
@@ -88,6 +89,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       )
     })
 
+    # Open milestone toggle making it so all milestones are avalible if the button is checked
     observe({
       req(all_milestone_names, open_milestone_names)
 
@@ -111,6 +113,37 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       )
     })
 
+    # Defaults archive name to autopopulated
+    repo_name <- {
+      rn <- tryCatch(basename(normalizePath(root_dir)), error = function(e) root_dir)
+      rn <- as.character(rn)[1]
+      if (is.na(rn) || !nzchar(rn)) rn <- "repo"
+      rn
+    }
+
+    last_auto_suggest <- reactiveVal(NULL)
+    user_override     <- reactiveVal(FALSE)
+
+    auto_archive_name <- reactive({
+      sel <- input$milestone_existing
+      if (is.null(sel)) sel <- character(0)
+      sel <- as.character(sel)
+
+      rn <- as.character(repo_name)[1]
+
+      nm <- paste(c(rn, sel), collapse = "_")
+
+      nm <- gsub("\\s+", "_", nm)
+      nm <- gsub("[^A-Za-z0-9._-]", "", nm)
+
+    })
+
+    # Lets user type over default archive name
+    observe({
+      sugg <- auto_archive_name()
+      if (is.null(sugg) || !nzchar(sugg)) return()
+      updateTextInput(session, "archive_name", placeholder = sugg)
+    })
 
     issues_in_repo <- get_all_issues_in_repo()
 
@@ -163,7 +196,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
 
 
-
+    # Duplicate files across milestones warning
     selected_milestones_rv <- reactiveVal(NULL)
 
     observe({
@@ -214,19 +247,8 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       }
     })
 
-
+    # Gets files that are going to be archived, gives warning if a selected file is a duplicate of a file in a global milestone
     warned_duplicates <- reactiveVal(character(0))
-
-    warned_flatten_basenames <- reactiveVal(character(0))
-    observeEvent(input$flatten, {
-      if (!isTRUE(input$flatten)) warned_flatten_basenames(character(0))
-    }, ignoreInit = TRUE)
-
-
-    observeEvent(input$flatten, {
-      if (!isTRUE(input$flatten)) warned_flatten_basenames(character(0))
-    }, ignoreInit = TRUE)
-
     archive_files <- reactive({
       selected_milestones <- selected_milestones_rv()
 
@@ -286,7 +308,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       archive_files <- unique(c(archive_files, setdiff(tree_selected_files, duplicate_files)))
     })
 
-
+    # Get master commit list with archive files in it
 
     milestone_commit_df <- reactive({
       base <- local_commit_df
@@ -313,7 +335,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
     })
 
 
-
+  # Renders ui
     output$main_panel_dynamic <- renderUI({
       tryCatch({
         w_load_items$show()
@@ -364,7 +386,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
               where = "beforeEnd",
               ui = create_single_item_ui(current_it, session$ns)
             )
-            #gets all file info
+            #gets all file info(milestones and commits)
             df_all  <- milestone_commit_df()
             df_item <- df_all %>% dplyr::filter(.data$title == current_it)
 
@@ -456,56 +478,64 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       w_load_items$hide()
     }, ignoreInit = FALSE)
 
-    # Warn if flattening would create basename collisions among the current items
-    observeEvent(list(items_from_milestone_df(), input$flatten), ignoreInit = TRUE, {
-      req(isTRUE(input$flatten))
-
-      items <- items_from_milestone_df()
-      if (length(items) < 2) return()
-
-      bn <- basename(items)
-      dup_bn <- unique(bn[duplicated(bn)])
-      if (length(dup_bn) == 0) return()
-
-      # group the original item paths under each colliding basename
-      groups <- lapply(dup_bn, function(nm) {
-        paths <- items[bn == nm]
-        tagList(
-          tags$b(nm), tags$br(),
-          lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
-          tags$br()
-        )
-      })
-
-      showModal(modalDialog(
-        title = "Duplicate File Names When Flattening",
-        tagList(
-          p("These files would end up with the same name after flattening. ",
-            "Please rename one (or uncheck ", tags$i("Flatten file paths"), ")."),
-          div(groups)
-        ),
-        easyClose = TRUE,
-        footer = tagList(modalButton("Close"))
-      ))
-    })
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
-      archive_name <- input$archive_name
+      items <- items_from_milestone_df()
 
-      if (is.null(archive_name) || archive_name == "") {
-        showNotification("Please enter an archive name.", type = "error")
-        return()
+      # Warn if flattening would create basename collisions among the current items
+      if (isTRUE(input$flatten) && length(items) >= 2) {
+        bn <- basename(items)
+        dup_bn <- unique(bn[duplicated(bn)])
+        if (length(dup_bn) > 0) {
+          groups <- lapply(dup_bn, function(nm) {
+            paths <- items[bn == nm]
+            tagList(
+              tags$b(nm), tags$br(),
+              lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
+              tags$br()
+            )
+          })
+
+          showModal(modalDialog(
+            title = "Duplicate File Names When Flattening",
+            tagList(
+              p("These files would end up with the same name after flattening. ",
+                "Please rename one (or uncheck ", tags$i("Flatten file paths"), ")."),
+              div(groups)
+            ),
+            easyClose = TRUE,
+            footer = tagList(modalButton("Close"))
+          ))
+
+          return()
+        }
       }
+      # Use user's typed value if provided; otherwise fall back to the suggestion
+      raw_val <- input$archive_name
+      if (is.null(raw_val)) raw_val <- ""
+
+
+      archive_name <- auto_archive_name()
+      if (is.null(archive_name)) fallback <- ""
+
+      # Effective archive name = typed value or suggestion
+      archive_name <- trimws(if (nzchar(raw_val)) raw_val else archive_name)
+
+
+      # (Optional) final sanitization to keep filenames safe
+      archive_name <- gsub("\\s+", "_", archive_name)
+      archive_name <- gsub("[^A-Za-z0-9._-]", "", archive_name)
 
       archive_selected_items(
         input        = input,
         session      = session,
         items        = selected_items(),
-        archive_name = input$archive_name,
+        archive_name = archive_name,
         flatten      = isTRUE(input$flatten),
         milestone_commit_df = milestone_commit_df
       )
     })
+
 
     observeEvent(input$proceed, {
       debug(.le$logger, glue::glue("Create Issues action proceeded and modal removed."))
