@@ -131,19 +131,21 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
       rn <- as.character(repo_name)[1]
 
-      nm <- paste(c(rn, sel), collapse = "_")
+      # Base name: repo-milestone1-milestone2
+      nm <- paste(c(rn, sel), collapse = "-")
+      nm <- gsub("\\s+", "-", nm)
 
-      nm <- gsub("\\s+", "_", nm)
-      nm <- gsub("[^A-Za-z0-9._-]", "", nm)
-
+      # Full path with .zip extension
+      file.path("archive", paste0(nm, ".zip"))
     })
 
-    # Lets user type over default archive name
+    # Update text input with the suggested path
     observe({
       sugg <- auto_archive_name()
       if (is.null(sugg) || !nzchar(sugg)) return()
       updateTextInput(session, "archive_name", placeholder = sugg)
     })
+
 
     issues_in_repo <- get_all_issues_in_repo()
 
@@ -521,10 +523,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       # Effective archive name = typed value or suggestion
       archive_name <- trimws(if (nzchar(raw_val)) raw_val else archive_name)
 
-
-      # (Optional) final sanitization to keep filenames safe
-      archive_name <- gsub("\\s+", "_", archive_name)
-      archive_name <- gsub("[^A-Za-z0-9._-]", "", archive_name)
 
       archive_selected_items(
         input        = input,

@@ -78,9 +78,6 @@ create_single_item_ui <- function(name, ns) {
 
 archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
 
-  base_dir <- "archive"
-  if (!dir.exists(base_dir)) dir.create(base_dir, recursive = TRUE)
-
   # Collect milestone items, if provided
   milestone_items <- character(0)
   if (!is.null(milestone_commit_df)) {
@@ -92,14 +89,15 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
 
   items_all <- unique(c(items %||% character(0), milestone_items))
 
-  # Staging dir
-  stage_dir <- file.path(tempdir(), paste0("archive_stage"))
+  # Stage dir
+  stage_dir <- file.path(tempdir(), "archive_stage")
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
 
   rel_files <- character(0)
 
-  # Always include a top-level folder
-  top_dir <- paste0(archive_name, "/")
+  # Top-level folder inside the zip = filename without extension
+  zip_stem <- tools::file_path_sans_ext(basename(archive_name))
+  top_dir  <- paste0(zip_stem, "/")
 
   for (item in items_all) {
     commit_input_id <- generate_input_id("commit", item)
@@ -108,7 +106,6 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
 
     script_contents <- get_script_contents(item, sel_commit)
 
-    # Path inside the zip
     rel_path <- if (isTRUE(flatten)) {
       paste0(top_dir, basename(item))
     } else {
@@ -122,25 +119,31 @@ archive_selected_items <- function(input, session, items, archive_name, flatten 
     rel_files <- c(rel_files, gsub("\\\\", "/", rel_path))
   }
 
-  if (length(rel_files) == 0) {
+  if (!length(rel_files)) {
     showNotification("No files to archive.", type = "warning")
     unlink(stage_dir, recursive = TRUE, force = TRUE)
     return(invisible(NULL))
   }
 
-  zip_file <- file.path(base_dir, paste0(archive_name, ".zip"))
-
+  ## Compute absolute output path BEFORE setwd()
   owd <- getwd()
+  zip_file_abs <- normalizePath(
+    if (grepl("^(?:/|[A-Za-z]:)", archive_name)) archive_name else file.path(owd, archive_name),
+    mustWork = FALSE
+  )
+
+  # Ensure directory exists, overwrite if exists
+  out_dir <- dirname(zip_file_abs)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  if (file.exists(zip_file_abs)) unlink(zip_file_abs, force = TRUE)
+
   on.exit(setwd(owd), add = TRUE)
   setwd(stage_dir)
 
-  utils::zip(
-    zipfile = normalizePath(file.path(owd, zip_file), mustWork = FALSE),
-    files   = rel_files
-  )
+  utils::zip(zipfile = zip_file_abs, files = rel_files)
 
   setwd(owd)
   unlink(stage_dir, recursive = TRUE, force = TRUE)
-
-  showNotification(paste("Archived and zipped to:", zip_file), type = "message")
+  showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
+  invisible(zip_file_abs)
 }
