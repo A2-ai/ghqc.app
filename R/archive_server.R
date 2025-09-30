@@ -50,12 +50,19 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
     )
 
     observe({
-      req(all_milestone_names)
+      req(all_milestone_names, open_milestone_names)
+
+      closed_milestone_names <- setdiff(all_milestone_names, open_milestone_names)
+
+
+      prev <- isolate(input$milestone_existing)
+      selected <- if (is.null(prev)) character(0) else intersect(prev, closed_milestone_names)
 
       updateSelectizeInput(
         session,
         "milestone_existing",
-        choices = all_milestone_names
+        choices  = closed_milestone_names,
+        selected = selected
       )
     })
 
@@ -68,6 +75,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
           multiple = TRUE,
           width = "100%"
         ),
+        shinyWidgets::prettyCheckbox(ns("open_milestone"), "Include open milestones", value = FALSE, icon = icon("check")),
         textInput(ns("archive_name"), "Archive name", value = ""),
         shinyWidgets::prettyCheckbox(ns("flatten"), "Flatten file paths", value = FALSE, icon = icon("check")),
         shinyWidgets::prettyCheckbox(ns("issue_open"), "Include open issues", value = FALSE, icon = icon("check")),
@@ -77,6 +85,29 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
           "Select Additional File(s) for Archive"
         ),
         treeNavigatorUI(ns("treeNavigator"))
+      )
+    })
+
+    observe({
+      req(all_milestone_names, open_milestone_names)
+
+      # Default = closed milestones
+      milestone_choices <- setdiff(all_milestone_names, open_milestone_names)
+
+      # If "Include open milestones" is checked, switch to all milestones
+      if (isTRUE(input$open_milestone)) {
+        milestone_choices <- all_milestone_names
+      }
+
+      # Preserve only valid selections
+      prev <- isolate(input$milestone_existing)
+      selected <- if (is.null(prev)) character(0) else intersect(prev, milestone_choices)
+
+      updateSelectizeInput(
+        session,
+        "milestone_existing",
+        choices  = milestone_choices,
+        selected = selected
       )
     })
 
@@ -315,7 +346,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       items_to_remove <- setdiff(previous_items, current_items)
 
       rendered_items(current_items)
-
+      # adds ability to add or remove a selected item
       if (length(items_to_remove)) {
         for (it in items_to_remove) {
           selector <- paste0("[id='", session$ns(generate_input_id("item_row", it)), "']")
@@ -333,7 +364,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
               where = "beforeEnd",
               ui = create_single_item_ui(current_it, session$ns)
             )
-
+            #gets all file info
             df_all  <- milestone_commit_df()
             df_item <- df_all %>% dplyr::filter(.data$title == current_it)
 
@@ -345,43 +376,44 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
             commits_all <- df_item %>%
               dplyr::pull(.data$commit) %>%
               unique()
-
+            # matches global milestones to milestones in a file
             selected_globals <- input$milestone_existing
             if (is.null(selected_globals)) selected_globals <- character(0)
             matching_globals <- selected_globals[selected_globals %in% milestone_choices]
 
             if (length(matching_globals) >= 1) {
-              init_milestone_choices  <- matching_globals
-              init_milestone_selected <- matching_globals[1]
-              init_commit_choices     <- NULL
-              init_commit_selected    <- NULL
+              milestone_choices  <- matching_globals
+              milestone_selected <- matching_globals[1]
+              commit_choices     <- NULL
+              commit_selected    <- NULL
             } else {
-              init_milestone_choices  <- c("N/A", milestone_choices)
-              init_milestone_selected <- "N/A"
-              init_commit_choices     <- commits_all
-              init_commit_selected    <- NULL
+              # if there isn't a matching milestone allow user to pick one
+              milestone_choices  <- c("N/A", milestone_choices)
+              milestone_selected <- "N/A"
+              commit_choices     <- commits_all
+              commit_selected    <- NULL
             }
 
             session$onFlushed(function() {
               shiny::updateSelectizeInput(
                 session,
                 generate_input_id("milestone", current_it),
-                choices  = init_milestone_choices,
-                selected = init_milestone_selected,
+                choices  = milestone_choices,
+                selected = milestone_selected,
                 server   = TRUE
               )
-              if (!is.null(init_commit_choices)) {
+              if (!is.null(commit_choices)) {
                 shiny::updateSelectizeInput(
                   session,
                   generate_input_id("commit", current_it),
-                  choices  = init_commit_choices,
-                  selected = init_commit_selected,
+                  choices  = commit_choices,
+                  selected = commit_selected,
                   server   = TRUE
                 )
               }
             }, once = TRUE)
 
-            # Per-item local milestone -> commit coupling (unchanged; listens ONLY to local milestone)
+            # commits now match local milestone selection N/A allows all options
             milestone_input_id <- generate_input_id("milestone", current_it)
             commit_input_id    <- generate_input_id("commit",    current_it)
 
