@@ -1,3 +1,4 @@
+
 #parsing for all commits change where this is in the app
 parse_local_log <- function(lines, keep_status = FALSE) {
   lines <- as.character(lines)
@@ -54,7 +55,6 @@ create_single_item_ui <- function(name, ns) {
       HTML(htmltools::htmlEscape(name))
     ),
 
-    # Milestones cell (NOTE: inputId is namespaced!)
     shiny::selectizeInput(
       inputId = ns(milestone_raw),
       label   = NULL,
@@ -64,7 +64,6 @@ create_single_item_ui <- function(name, ns) {
       options = list(closeAfterSelect = TRUE)
     ),
 
-    # Commits cell (NOTE: inputId is namespaced!)
     shiny::selectizeInput(
       inputId = ns(commit_raw),
       label   = NULL,

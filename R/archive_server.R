@@ -29,9 +29,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
   )
 
   moduleServer(id, function(input, output, session) {
-    inputted_milestone_rv <- reactiveVal(NULL)
-    issue_titles_in_existing_milestone_rv <- reactiveVal(NULL)
-    issues_in_existing_milestone_rv <- reactiveVal(NULL)
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
@@ -89,7 +86,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       )
     })
 
-    # Open milestone toggle making it so all milestones are avalible if the button is checked
+    # Open milestone toggle making it so all milestones are available if the button is checked
     observe({
       req(all_milestone_names, open_milestone_names)
 
@@ -113,7 +110,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       )
     })
 
-    # Defaults archive name to autopopulated
+    # Defaults archive name to auto populated
     repo_name <- {
       rn <- tryCatch(basename(normalizePath(root_dir)), error = function(e) root_dir)
       rn <- as.character(rn)[1]
@@ -149,7 +146,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
     issues_in_repo <- get_all_issues_in_repo()
 
-    # Create the base issues_milestone_df (without relevant files)
+    # Create the base issues_milestone_df
     issues_milestone_df <- purrr::map_dfr(issues_in_repo, function(it) {
       init_qc_commit <- get_init_qc_commit_from_issue_body(it$body)
       latest_qc_commit <- get_qc_commit_info(
@@ -169,7 +166,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
         title            = it$title,
         state            = it$state,
         latest_qc_commit = latest_qc_commit,
-        relevant_file    = relevant_file  # Add relevant file column here
+        relevant_file    = relevant_file
       )
     })
 
@@ -492,7 +489,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
           groups <- lapply(dup_bn, function(nm) {
             paths <- items[bn == nm]
             tagList(
-              tags$b(nm), tags$br(),
               lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
               tags$br()
             )
@@ -502,7 +498,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
             title = "Duplicate File Names When Flattening",
             tagList(
               p("These files would end up with the same name after flattening. ",
-                "Please rename one (or uncheck ", tags$i("Flatten file paths"), ")."),
+                "Please unselect one of these files."),
               div(groups)
             ),
             easyClose = TRUE,
