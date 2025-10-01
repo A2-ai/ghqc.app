@@ -407,6 +407,33 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
               milestone_selected <- matching_globals[1]
               commit_choices     <- NULL
               commit_selected    <- NULL
+
+              is_from_tree <- isTRUE(it %in% selected_items())
+
+              if (is_from_tree && !isTRUE(input$issue_open)) {
+                open_globals <- df_item %>%
+                  dplyr::filter(.data$milestone_title %in% matching_globals) %>%
+                  dplyr::count(.data$milestone_title, name = "n") %>%
+                  dplyr::filter(.data$n == 1) %>%
+                  dplyr::pull(.data$milestone_title)
+
+                if (length(open_globals) > 0) {
+                  shiny::showModal(
+                    shiny::modalDialog(
+                      title = "Warning",
+                      paste0(
+                        "The file '", it,
+                        "' is in an OPEN issue for global milestone",
+                        if (length(open_globals) > 1) "s " else " ",
+                        paste0("'", open_globals, "'", collapse = ", "),
+                        "."
+                      ),
+                      easyClose = TRUE,
+                      footer = shiny::modalButton("OK")
+                    )
+                  )
+                }
+              }
             } else {
               # if there isn't a matching milestone allow user to pick one
               milestone_choices  <- c("N/A", milestone_choices)
@@ -438,6 +465,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
             milestone_input_id <- generate_input_id("milestone", current_it)
             commit_input_id    <- generate_input_id("commit",    current_it)
 
+
             shiny::observeEvent(input[[milestone_input_id]], {
               sel <- input[[milestone_input_id]]
 
@@ -467,6 +495,8 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
                 )
               }
             }, ignoreInit = FALSE)
+
+
           })
         }
       }
@@ -477,6 +507,79 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
       w_load_items$hide()
     }, ignoreInit = FALSE)
 
+
+    observeEvent(list(input$milestone_existing, milestone_commit_df()), {
+      current_items <- rendered_items()
+      if (length(current_items) == 0) return(invisible())
+
+      selected_globals <- input$milestone_existing
+      if (is.null(selected_globals)) selected_globals <- character(0)
+
+      df_all <- milestone_commit_df()
+
+      for (it in current_items) {
+        df_item <- df_all %>% dplyr::filter(.data$title == it)
+        is_from_tree <- isTRUE(it %in% selected_items())
+        milestone_choices_item <- df_item %>%
+          dplyr::pull(.data$milestone_title) %>%
+          unique() %>%
+          sort()
+
+        matching_globals <- selected_globals[selected_globals %in% milestone_choices_item]
+
+        milestone_input_id <- generate_input_id("milestone", it)
+        commit_input_id    <- generate_input_id("commit",    it)
+
+        if (length(matching_globals) >= 1) {
+          shiny::updateSelectizeInput(
+            session, milestone_input_id,
+            choices  = matching_globals,
+            selected = matching_globals[[1]],
+            server   = TRUE
+          )
+          if (is_from_tree && !isTRUE(input$issue_open)) {
+            open_globals <- df_item %>%
+              dplyr::filter(.data$milestone_title %in% matching_globals) %>%
+              dplyr::count(.data$milestone_title, name = "n") %>%
+              dplyr::filter(.data$n == 1) %>%
+              dplyr::pull(.data$milestone_title)
+
+            if (length(open_globals) > 0) {
+              shiny::showModal(
+                shiny::modalDialog(
+                  title = "Warning",
+                  paste0(
+                    "The file '", it,
+                    "' is in an OPEN issue for global milestone",
+                    if (length(open_globals) > 1) "s " else " ",
+                    paste0("'", open_globals, "'", collapse = ", "),
+                    "."
+                  ),
+                  easyClose = TRUE,
+                  footer = shiny::modalButton("OK")
+                )
+              )
+            }
+          }
+        } else {
+          commits_all <- df_item %>% dplyr::pull(.data$commit) %>% unique()
+
+          shiny::updateSelectizeInput(
+            session, milestone_input_id,
+            choices  = c("N/A", milestone_choices_item),
+            selected = "N/A",
+            server   = TRUE
+          )
+
+          shiny::updateSelectizeInput(
+            session, commit_input_id,
+            choices  = commits_all,
+            selected = NULL,
+            server   = TRUE
+          )
+        }
+      }
+    }, ignoreInit = TRUE)
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
       items <- items_from_milestone_df()

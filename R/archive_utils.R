@@ -75,6 +75,70 @@ create_single_item_ui <- function(name, ns) {
   )
 }
 
+
+# Helper: apply the "global milestones override" rule to one item
+global_milestone_override <- function(it) {
+  df_all  <- milestone_commit_df()
+  if (is.null(df_all) || nrow(df_all) == 0) return(invisible())
+
+  milestone_input_id <- generate_input_id("milestone", it)
+  commit_input_id    <- generate_input_id("commit",    it)
+
+  df_item <- df_all %>% dplyr::filter(.data$title == it)
+
+  item_milestones <- df_item %>% dplyr::pull(.data$milestone_title) %>% unique() %>% sort()
+  item_commits    <- df_item %>% dplyr::pull(.data$commit)           %>% unique()
+
+  global_milestone <- input$global_milestone %||% character(0)
+  matching_globals <- intersect(global_milestone, item_milestones)
+
+  current_sel <- input[[milestone_input_id]]
+
+  if (length(matching_globals) >= 1) {
+    # GLOBALS OVERRIDE: restrict to matching globals only
+    next_sel <- if (!is.null(current_sel) && current_sel %in% matching_globals) current_sel else matching_globals[[1]]
+
+    shiny::updateSelectizeInput(
+      session, milestone_input_id,
+      choices  = matching_globals,
+      selected = next_sel,
+      server   = TRUE,
+      options  = list(placeholder = 'Select a milestone…')
+    )
+
+    commits_filtered <- df_item %>%
+      dplyr::filter(.data$milestone_title == next_sel) %>%
+      dplyr::pull(.data$commit) %>%
+      unique()
+
+    shiny::updateSelectizeInput(
+      session, commit_input_id,
+      choices  = commits_filtered,
+      selected = if (length(commits_filtered)) commits_filtered[[1]] else NULL,
+      server   = TRUE
+    )
+
+  } else {
+    # No overlap with globals: restore full milestones
+    shiny::updateSelectizeInput(
+      session, milestone_input_id,
+      choices  = item_milestones,
+      selected = if (!is.null(current_sel) && current_sel %in% item_milestones) current_sel else NULL,
+      server   = TRUE,
+      options  = list(placeholder = 'Select a milestone…')
+    )
+
+    shiny::updateSelectizeInput(
+      session, commit_input_id,
+      choices  = item_commits,
+      selected = NULL,
+      server   = TRUE
+    )
+  }
+}
+
+
+
 archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
 
   # Collect milestone items, if provided
