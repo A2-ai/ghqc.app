@@ -4,7 +4,7 @@
 #' @importFrom waiter use_waiter waiter_show_on_load spin_1
 NULL
 
-old_ghqc_archive_ui <- function(id) {
+ghqc_archive_ui <- function(id) {
   ns <- NS(id)
   ui <- miniPage(
     use_waiter(),

@@ -8,8 +8,10 @@
 #' @return Starts a Shiny app and does not return any value.
 #' @import shiny
 #' @export
-ghqc_archive_app <- function() {
-  if (!exists("config_repo_path", .le)) ghqc_set_config_repo()
+old_ghqc_archive_app <- function() {
+  if (!exists("config_repo_path", .le)) {
+    ghqc_set_config_repo()
+  }
   get_options()
 
   # error handling before starting app
@@ -17,9 +19,13 @@ ghqc_archive_app <- function() {
   check_github_credentials()
 
   all_milestones <- get_all_non_empty_milestone_objects()
-  all_milestone_names <- get_milestone_names_from_milestone_objects(all_milestones)
+  all_milestone_names <- get_milestone_names_from_milestone_objects(
+    all_milestones
+  )
   open_milestone_objects <- get_open_non_empty_milestone_objects()
-  open_milestone_names <- get_milestone_names_from_milestone_objects(open_milestone_objects)
+  open_milestone_names <- get_milestone_names_from_milestone_objects(
+    open_milestone_objects
+  )
 
   app <- shinyApp(
     ui = ghqc_archive_ui(
