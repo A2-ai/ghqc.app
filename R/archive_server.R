@@ -358,7 +358,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
 
     rendered_items <- shiny::reactiveVal(character(0))
-
     observeEvent(items_from_milestone_df(), {
       current_items  <- items_from_milestone_df()
       previous_items <- rendered_items()
@@ -397,6 +396,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
             commits_all <- df_item %>%
               dplyr::pull(.data$commit) %>%
               unique()
+
             # matches global milestones to milestones in a file
             selected_globals <- input$milestone_existing
             if (is.null(selected_globals)) selected_globals <- character(0)
@@ -408,10 +408,9 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
               commit_choices     <- NULL
               commit_selected    <- NULL
 
-              is_from_tree <- isTRUE(it %in% selected_items())
+              files_from_tree <- isTRUE(it %in% selected_items())
 
-              if (is_from_tree && !isTRUE(input$issue_open)) {
-                open_globals <- df_item %>%
+              if (files_from_tree && !(current_it %in% previous_items) && !isTRUE(input$issue_open)) {                open_globals <- df_item %>%
                   dplyr::filter(.data$milestone_title %in% matching_globals) %>%
                   dplyr::count(.data$milestone_title, name = "n") %>%
                   dplyr::filter(.data$n == 1) %>%
@@ -422,7 +421,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
                     shiny::modalDialog(
                       title = "Warning",
                       paste0(
-                        "The file '", it,
+                        "The file '", current_it,
                         "' is in an OPEN issue for global milestone",
                         if (length(open_globals) > 1) "s " else " ",
                         paste0("'", open_globals, "'", collapse = ", "),
@@ -434,6 +433,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
                   )
                 }
               }
+
             } else {
               # if there isn't a matching milestone allow user to pick one
               milestone_choices  <- c("N/A", milestone_choices)
@@ -509,17 +509,21 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
 
     observeEvent(list(input$milestone_existing, milestone_commit_df()), {
-      current_items <- rendered_items()
-      if (length(current_items) == 0) return(invisible())
+      current_items  <- items_from_milestone_df()
+      previous_items <- rendered_items()
+
+      items_to_add    <- setdiff(current_items,  previous_items)
+
+      if (length(previous_items) == 0) return(invisible())
 
       selected_globals <- input$milestone_existing
       if (is.null(selected_globals)) selected_globals <- character(0)
 
       df_all <- milestone_commit_df()
 
-      for (it in current_items) {
+      for (it in previous_items) {
         df_item <- df_all %>% dplyr::filter(.data$title == it)
-        is_from_tree <- isTRUE(it %in% selected_items())
+        files_from_tree <- isTRUE(it %in% selected_items())
         milestone_choices_item <- df_item %>%
           dplyr::pull(.data$milestone_title) %>%
           unique() %>%
@@ -537,30 +541,7 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
             selected = matching_globals[[1]],
             server   = TRUE
           )
-          if (is_from_tree && !isTRUE(input$issue_open)) {
-            open_globals <- df_item %>%
-              dplyr::filter(.data$milestone_title %in% matching_globals) %>%
-              dplyr::count(.data$milestone_title, name = "n") %>%
-              dplyr::filter(.data$n == 1) %>%
-              dplyr::pull(.data$milestone_title)
 
-            if (length(open_globals) > 0) {
-              shiny::showModal(
-                shiny::modalDialog(
-                  title = "Warning",
-                  paste0(
-                    "The file '", it,
-                    "' is in an OPEN issue for global milestone",
-                    if (length(open_globals) > 1) "s " else " ",
-                    paste0("'", open_globals, "'", collapse = ", "),
-                    "."
-                  ),
-                  easyClose = TRUE,
-                  footer = shiny::modalButton("OK")
-                )
-              )
-            }
-          }
         } else {
           commits_all <- df_item %>% dplyr::pull(.data$commit) %>% unique()
 
@@ -583,7 +564,6 @@ ghqc_archive_server <- function(id, root_dir, all_milestone_names, open_mileston
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
       items <- items_from_milestone_df()
-
       # Warn if flattening would create basename collisions among the current items
       if (isTRUE(input$flatten) && length(items) >= 2) {
         bn <- basename(items)
