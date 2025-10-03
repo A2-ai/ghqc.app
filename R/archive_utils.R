@@ -56,12 +56,15 @@ create_single_item_ui <- function(name, ns) {
     ),
 
     shiny::selectizeInput(
-      inputId = ns(milestone_raw),
-      label   = NULL,
-      choices = character(0),
+      inputId  = ns(milestone_raw),
+      label    = NULL,
+      choices  = character(0),
       multiple = FALSE,
-      width = "100%",
-      options = list(closeAfterSelect = TRUE)
+      width    = "100%",
+      options  = list(
+        closeAfterSelect = TRUE,
+        placeholder      = "Select a milestone (optional)"
+      )
     ),
 
     shiny::selectizeInput(
@@ -70,7 +73,9 @@ create_single_item_ui <- function(name, ns) {
       choices = character(0),
       multiple = FALSE,
       width = "100%",
-      options = list(closeAfterSelect = TRUE)
+      options = list(closeAfterSelect = TRUE,
+        placeholder      = "Select a commit (required)"
+        )
     )
   )
 }
