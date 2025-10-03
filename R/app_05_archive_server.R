@@ -161,7 +161,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
 
 
-    # Change this because it was sending a duplicate message every time an additional milestone was selected
+    # Changed this because it was sending a duplicate message every time an additional milestone was selected
 
     shiny::observeEvent(input$selected_milestones, {
       selected_milestones <- input$selected_milestones
