@@ -1,5 +1,5 @@
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
-  #validator <- shinyvalidate::InputValidator$new()
+  # validator <- shinyvalidate::InputValidator$new()
 
   observe({
     req(root_dir)
@@ -33,12 +33,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
     w_load_items <- waiter::Waiter$new(
       id = session$ns("main_panel_dynamic"),
-      html = shiny::tagList(
-        waiter::spin_2()
-      ),
+      html = shiny::tagList(waiter::spin_2()),
       color = "white"
     )
 
+    # Panel Setup Start
     output$sidebar <- shiny::renderUI({
       shiny::tagList(
         shiny::selectizeInput(
@@ -48,39 +47,19 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           multiple = TRUE,
           width = "100%"
         ),
-        shiny::checkboxInput(
-          session$ns("include_open_milestones"),
-          "Include Open Milestones",
-          value = FALSE
-        ),
-        shiny::checkboxInput(
-          session$ns("include_open_issues"),
-          "Include Open Issues",
-          value = FALSE
-        ),
-        shiny::checkboxInput(
-          session$ns("include_relevant_files"),
-          "Include Relevant Files",
-          value = FALSE
-        ),
-        shiny::textInput(
-          session$ns("archive_name"),
-          "Archive Name",
-          value = ""
-        ),
-        shiny::checkboxInput(
-          session$ns("flatten"),
-          "Flatten Directory Structure",
-          value = FALSE
-        ),
+        shiny::checkboxInput(session$ns("include_open_milestones"), "Include Open Milestones", value = FALSE),
+        shiny::checkboxInput(session$ns("include_open_issues"), "Include Open Issues", value = FALSE),
+        shiny::checkboxInput(session$ns("include_relevant_files"), "Include Relevant Files", value = FALSE),
+        shiny::textInput(session$ns("archive_name"), "Archive Name", value = ""),
+        shiny::checkboxInput(session$ns("flatten"), "Flatten Directory Structure", value = FALSE),
         shiny::div(
-          style = "font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif !important; font-weight: bold;",
+          style = "font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-weight: bold;",
           "Select Additional File(s) for Archive"
         ),
         treeNavigatorUI(session$ns("treeNavigator"))
       )
     })
-
+    # set milestone choices based on open milestones checkbox
     shiny::observeEvent(input$include_open_milestones, {
       milestone_choices <- if (input$include_open_milestones) {
         milestone_df$name
@@ -91,9 +70,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       }
 
       previously_selected <- shiny::isolate(input$selected_milestones)
-      if (is.null(previously_selected)) {
-        previously_selected <- ""
-      }
+      if (is.null(previously_selected)) previously_selected <- ""
 
       shiny::updateSelectizeInput(
         session,
@@ -102,7 +79,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         selected = previously_selected
       )
     })
-
+    # Deriving outside to use when archiving files
     suggested_archive_name <- shiny::reactive({
       name <- c(repo_name, input$selected_milestones) |>
         paste0(collapse = "-") |>
@@ -112,9 +89,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     })
 
     shiny::observe({
-      if (is.null(suggested_archive_name()) || !nzchar(suggested_archive_name())) {
-        return()
-      }
+      if (is.null(suggested_archive_name()) || !nzchar(suggested_archive_name())) return()
       shiny::updateTextInput(
         session,
         "archive_name",
@@ -122,6 +97,9 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       )
     })
 
+    # Panel Setup End
+
+    # Collect Issues and Commits
     issues_df <- get_all_issues_in_repo() |>
       purrr::map_dfr(function(issue) {
         qc_commit <- get_qc_approval_or_latest(issue)$commit
@@ -143,7 +121,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
     local_commits <- get_local_log() |>
       dplyr::mutate(branch = local_branch, milestone_name = NA_character_)
- #Don't think this is working think distinct is getting rid of needed milestones
+
     commit_df <- local_commits |>
       dplyr::bind_rows(
         issues_df |>
@@ -156,19 +134,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             milestone_name
           )
       )
-    # |>
-    #   dplyr::distinct(commit, file, .keep_all = TRUE)
-
-
-
-    # Changed this because it was sending a duplicate message every time an additional milestone was selected
 
     shiny::observeEvent(input$selected_milestones, {
       selected_milestones <- input$selected_milestones
-      if (length(selected_milestones) <= 1) {
-        return()
-      }
-
+      if (length(selected_milestones) <= 1) return()
 
       subset_issues <- issues_df |>
         dplyr::filter(.data$milestone_name %in% selected_milestones)
@@ -178,27 +147,24 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         (\(x) x[!is.na(x) & nzchar(x)])()
       dup_titles <- unique(dup_titles[duplicated(dup_titles)])
 
-      browser()
-
       if (length(dup_titles) == 0) return()
 
-      shiny::showModal(shiny::modalDialog(
-        title = shiny::tags$div(
-          style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
-          shiny::tags$div(
-            shiny::modalButton("Return"),
-            style = "flex: 0 0 auto;"
+      shiny::showModal(
+        shiny::modalDialog(
+          title = shiny::tags$div(
+            style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
+            shiny::tags$div(shiny::modalButton("Return"), style = "flex: 0 0 auto;"),
+            shiny::tags$div(
+              "Duplicate Files Found",
+              style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
+            ),
+            shiny::tags$div(style = "flex: 0 0 auto;")
           ),
-          shiny::tags$div(
-            "Duplicate Files Found",
-            style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
-          ),
-          shiny::tags$div(style = "flex: 0 0 auto;")
-        ),
-        "There are duplicate files detected between milestones. Please select a different milestone",
-        easyClose = TRUE,
-        footer = NULL
-      ))
+          "There are duplicate files detected between milestones. Please select a different milestone",
+          easyClose = TRUE,
+          footer = NULL
+        )
+      )
 
       shiny::updateSelectizeInput(
         session,
@@ -209,7 +175,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
     previously_warned_duplicates <- shiny::reactiveVal()
     archive_files <- shiny::reactiveVal()
-    # TODO Change this logic so that this actually works, right now ir rerenders everything
+
     shiny::observeEvent(
       c(input$selected_milestones, selected_files(), input$include_open_issues, input$include_relevant_files),
       {
@@ -217,8 +183,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           dplyr::filter(milestone_name %in% input$selected_milestones)
 
         if (!input$include_open_issues) {
-          issue_files <- issue_files |>
-            dplyr::filter(!open)
+          issue_files <- issue_files |> dplyr::filter(!open)
         }
 
         files <- issue_files |>
@@ -245,46 +210,37 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           files <- union(files, rel)
         }
 
-        files <- c(files, selected_files()) |>
-          unique()
-
+        files <- c(files, selected_files()) |> unique()
         duplicated_files <- files[duplicated(files)]
 
-        if (
-          length(duplicated_files) == 0 ||
-          all(duplicated_files %in% previously_warned_duplicates())
-        ) {
+        if (length(duplicated_files) == 0 ||
+            all(duplicated_files %in% previously_warned_duplicates())) {
           archive_files(files)
           return()
         }
 
-        previously_warned_duplicates(c(
-          previously_warned_duplicates(),
-          duplicated_files
-        ))
-
+        previously_warned_duplicates(c(previously_warned_duplicates(), duplicated_files))
         archive_files(unique(files))
 
-        shiny::showModal(shiny::modalDialog(
-          title = shiny::tags$div(
-            style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
-            shiny::tags$div(
-              shiny::modalButton("Return"),
-              style = "flex: 0 0 auto;"
+        shiny::showModal(
+          shiny::modalDialog(
+            title = shiny::tags$div(
+              style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
+              shiny::tags$div(shiny::modalButton("Return"), style = "flex: 0 0 auto;"),
+              shiny::tags$div(
+                "Duplicate Files Found",
+                style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
+              ),
+              shiny::tags$div(style = "flex: 0 0 auto;")
             ),
-            shiny::tags$div(
-              "Duplicate Files Found",
-              style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
+            paste(
+              "The following files are already in selected milestones:",
+              paste(duplicated_files, collapse = ", ")
             ),
-            shiny::tags$div(style = "flex: 0 0 auto;")
-          ),
-          paste(
-            "The following files are already in selected milestones:",
-            paste(duplicated_files, ", ")
-          ),
-          easyClose = TRUE,
-          footer = NULL
-        ))
+            easyClose = TRUE,
+            footer = NULL
+          )
+        )
       }
     )
 
@@ -319,7 +275,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             attr_selector <- paste0("[id='", file_id, "']")
             shiny::removeUI(selector = attr_selector)
           }
-          rendered_items(character(0))
         }
 
         if (length(items_to_add) != 0) {
@@ -337,15 +292,54 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                 shiny::updateSelectizeInput(
                   session,
                   inputId = generate_input_id("milestone", this_item),
-                  choices = c(
-                    "",
-                    file_commits_df$milestone_name |> Filter(f = Negate(is.na))
-                  ),
+                  choices = c("", file_commits_df$milestone_name |> Filter(f = Negate(is.na))),
+                  selected = ""
+                )
+                shiny::updateSelectizeInput(
+                  session,
+                  generate_input_id("commit", this_item),
+                  choices = c(file_commits_df$commit),
                   selected = ""
                 )
               }, once = TRUE)
+            })
+          }
+        }
+      },
+      ignoreInit = TRUE
+    )
 
-              shiny::observe({
+    shiny::observeEvent(c(rendered_items(), input$selected_milestones, input$include_open_issues),
+      {
+
+
+        for (item in rendered_items()) {
+          local({
+            this_item <- item
+            file_commits_df <- commit_df |> dplyr::filter(.data$file == this_item)
+
+            milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
+            selected_globals <- input$selected_milestones
+            if (is.null(selected_globals)) selected_globals <- character(0)
+
+            matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
+          # Dupicate files across milestones already checked
+            if (length(matching_milestones) != 0) {
+              milestone_selected <- matching_milestones[1]
+
+              session$onFlushed(function() {
+                shiny::updateSelectizeInput(
+                  session,
+                  inputId = generate_input_id("milestone", this_item),
+                  choices = matching_milestones,
+                  selected = milestone_selected,
+                  server = TRUE
+                )
+              }, once = TRUE)
+            }
+            shiny::observeEvent(
+              input[[generate_input_id("milestone", this_item)]],
+              {
                 milestone_selection <- input[[generate_input_id("milestone", this_item)]]
 
                 commits_choices <- commit_df |>
@@ -363,24 +357,27 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                 shiny::updateSelectizeInput(
                   session,
                   generate_input_id("commit", this_item),
-                  choices  = commits_choices,
+                  choices = commits_choices,
                   selected = if (!identical(milestone_selection, "") && length(commits_choices)) {
                     commits_choices[[1]]
                   } else {
                     character(0)
                   },
-                  server   = TRUE
+                  server = TRUE
                 )
-              }) |>
-                shiny::bindEvent(input[[generate_input_id("milestone", this_item)]], ignoreInit = TRUE)
-            })
-          }
+              },
+              ignoreInit = TRUE
+            )
+          })
         }
       },
-      ignoreInit = TRUE
+      ignoreInit = FALSE
     )
-  })
-}
+  }
+)}
+
+
+
 
 
 
