@@ -83,7 +83,7 @@ create_single_item_ui <- function(name, ns) {
 
 # Helper: apply the "global milestones override" rule to one item
 global_milestone_override <- function(it) {
-  df_all  <- milestone_commit_df()
+  df_all  <- archive_files()
   if (is.null(df_all) || nrow(df_all) == 0) return(invisible())
 
   milestone_input_id <- generate_input_id("milestone", it)
@@ -144,18 +144,24 @@ global_milestone_override <- function(it) {
 
 
 
-archive_selected_items <- function(input, session, items, archive_name, flatten = FALSE, milestone_commit_df = NULL) {
+archive_selected_items <- function(input,
+                                   session,
+                                   archive_name,
+                                   flatten = FALSE,
+                                   archive_items = character(0),
+                                   milestone_df = NULL) {
 
-  # Collect milestone items, if provided
+  # Collect milestone items, if provided (same logic you had)
   milestone_items <- character(0)
-  if (!is.null(milestone_commit_df)) {
-    df <- if (is.function(milestone_commit_df)) milestone_commit_df() else milestone_commit_df
-    if (!is.null(df) && nrow(df) > 0 && "title" %in% names(df)) {
-      milestone_items <- sort(unique(stats::na.omit(df$title)))
+  if (!is.null(milestone_df)) {
+    if (is.data.frame(milestone_df) && nrow(milestone_df) > 0 && "title" %in% names(milestone_df)) {
+      milestone_items <- sort(unique(stats::na.omit(milestone_df$title)))
     }
   }
 
-  items_all <- unique(c(items %||% character(0), milestone_items))
+  # Combine: explicit archive_items + milestone-derived items
+  items_all <- unique(c(archive_items, milestone_items))
+  items_all <- items_all[nzchar(items_all)]  # keep your “don’t worry about NA” stance; remove empties
 
   # Stage dir
   stage_dir <- file.path(tempdir(), "archive_stage")

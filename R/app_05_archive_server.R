@@ -1,5 +1,4 @@
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
-  # validator <- shinyvalidate::InputValidator$new()
 
   observe({
     req(root_dir)
@@ -22,6 +21,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
   if (is.na(repo_name) || !nzchar(repo_name)) {
     repo_name <- "repo"
   }
+
+  validator <- shinyvalidate::InputValidator$new()
 
   moduleServer(id, function(input, output, session) {
     reset_triggered <- reactiveVal(FALSE)
@@ -102,7 +103,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Collect Issues and Commits
     issues_df <- get_all_issues_in_repo() |>
       purrr::map_dfr(function(issue) {
-        qc_commit <- get_qc_approval_or_latest(issue)$commit
+        qc_commit <- get_qc_approval_or_latest(issue)
         issue_branch <- get_branch_from_issue_body(issue$body)
         relevant_files <- get_relevant_files(issue, issue$milestone$title) |>
           dplyr::pull(relevant_file_name) |>
@@ -115,25 +116,33 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           open = identical(issue$state, "open"),
           qc_commit = qc_commit,
           relevant_files = relevant_files,
-          branch = issue_branch
+          issue_branch = issue_branch
         )
       })
 
     local_commits <- get_local_log() |>
       dplyr::mutate(branch = local_branch, milestone_name = NA_character_)
 
-    commit_df <- local_commits |>
-      dplyr::bind_rows(
-        issues_df |>
-          dplyr::mutate(message = NA_character_) |>
-          dplyr::select(
-            commit = qc_commit,
-            file = title,
-            message,
-            branch,
-            milestone_name
-          )
+    issues <- issues_df %>%
+      transmute(
+        commit = qc_commit,
+        issue_Branch = issue_branch,
+        milestone_name,
+        file = title
       )
+
+    local <- local_commits %>%
+      transmute(
+        commit,
+        local_Branch = branch,
+        file
+      )
+
+    commit_df <- full_join(local, issues, by = c("commit", "file")) %>%
+      mutate(
+        Branch = dplyr::coalesce(issue_Branch, local_Branch)
+      ) %>%
+      select(commit, file, local_Branch, issue_Branch, milestone_name, Branch)
 
     shiny::observeEvent(input$selected_milestones, {
       selected_milestones <- input$selected_milestones
@@ -210,39 +219,45 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           files <- union(files, rel)
         }
 
-        files <- c(files, selected_files()) |> unique()
+        files <- c(files, selected_files())
         duplicated_files <- files[duplicated(files)]
 
-        if (length(duplicated_files) == 0 ||
-            all(duplicated_files %in% previously_warned_duplicates())) {
+        if (
+          length(duplicated_files) == 0 ||
+          all(duplicated_files %in% previously_warned_duplicates())
+        ) {
           archive_files(files)
           return()
         }
 
-        previously_warned_duplicates(c(previously_warned_duplicates(), duplicated_files))
+        previously_warned_duplicates(c(
+          previously_warned_duplicates(),
+          duplicated_files
+        ))
+
         archive_files(unique(files))
 
-        shiny::showModal(
-          shiny::modalDialog(
-            title = shiny::tags$div(
-              style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
-              shiny::tags$div(shiny::modalButton("Return"), style = "flex: 0 0 auto;"),
-              shiny::tags$div(
-                "Duplicate Files Found",
-                style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
-              ),
-              shiny::tags$div(style = "flex: 0 0 auto;")
+        shiny::showModal(shiny::modalDialog(
+          title = shiny::tags$div(
+            style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
+            shiny::tags$div(
+              shiny::modalButton("Return"),
+              style = "flex: 0 0 auto;"
             ),
-            paste(
-              "The following files are already in selected milestones:",
-              paste(duplicated_files, collapse = ", ")
+            shiny::tags$div(
+              "Duplicate Files Found",
+              style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
             ),
-            easyClose = TRUE,
-            footer = NULL
-          )
-        )
-      }
-    )
+            shiny::tags$div(style = "flex: 0 0 auto;") # Empty right side
+          ),
+          paste(
+            "The following files are already in selected milestones:",
+            paste(duplicated_files, ", ")
+          ),
+          easyClose = TRUE,
+          footer = NULL
+        ))
+      })
 
     output$main_panel_dynamic <- renderUI({
       w_load_items$show()
@@ -287,6 +302,28 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
             local({
               this_item <- item
+
+              validator$add_rule(generate_input_id("milestone", item) , function(value){
+                if (!nzchar(value) || is.null(value)) {
+                  return(NULL)
+                }
+                issue_milestone_selected <- value
+
+                if (is.null(issue_milestone_selected) || issue_milestone_selected == "") {
+                  return(NULL)
+                }
+                open_milestone_names <- issues_df %>%
+                  dplyr::filter(title == item, open) %>%
+                  dplyr::pull(milestone_name)
+
+                if (issue_milestone_selected %in% open_milestone_names) {
+                  return(
+                    "Issue is open"
+                  )
+                }
+                return(NULL)
+              })
+
               file_commits_df <- commit_df |> dplyr::filter(file == this_item)
               session$onFlushed(function() {
                 shiny::updateSelectizeInput(
@@ -308,73 +345,136 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       },
       ignoreInit = TRUE
     )
-
     shiny::observeEvent(c(rendered_items(), input$selected_milestones, input$include_open_issues),
-      {
+                        {
+                          for (item in rendered_items()) {
+                            local({
+                              this_item <- item
+                              file_commits_df <- commit_df |> dplyr::filter(.data$file == this_item)
 
+                              milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
+                              selected_globals <- input$selected_milestones
+                              if (is.null(selected_globals)) selected_globals <- character(0)
 
-        for (item in rendered_items()) {
-          local({
-            this_item <- item
-            file_commits_df <- commit_df |> dplyr::filter(.data$file == this_item)
+                              matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
 
-            milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
-            selected_globals <- input$selected_milestones
-            if (is.null(selected_globals)) selected_globals <- character(0)
+                              # Dupicate files across milestones already checked
+                              if (length(matching_milestones) != 0) {
+                                milestone_selected <- matching_milestones[1]
 
-            matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
-          # Dupicate files across milestones already checked
-            if (length(matching_milestones) != 0) {
-              milestone_selected <- matching_milestones[1]
+                                session$onFlushed(function() {
+                                  shiny::updateSelectizeInput(
+                                    session,
+                                    inputId = generate_input_id("milestone", this_item),
+                                    choices = matching_milestones,
+                                    selected = milestone_selected,
+                                    server = TRUE
+                                  )
+                                }, once = TRUE)
+                              }
+                              shiny::observeEvent(
+                                input[[generate_input_id("milestone", this_item)]],
+                                {
+                                  milestone_selection <- input[[generate_input_id("milestone", this_item)]]
 
-              session$onFlushed(function() {
-                shiny::updateSelectizeInput(
-                  session,
-                  inputId = generate_input_id("milestone", this_item),
-                  choices = matching_milestones,
-                  selected = milestone_selected,
-                  server = TRUE
-                )
-              }, once = TRUE)
-            }
-            shiny::observeEvent(
-              input[[generate_input_id("milestone", this_item)]],
-              {
-                milestone_selection <- input[[generate_input_id("milestone", this_item)]]
+                                  commits_choices <- commit_df |>
+                                    dplyr::filter(.data$file == this_item) |>
+                                    dplyr::pull(.data$commit) |>
+                                    unique()
 
-                commits_choices <- commit_df |>
-                  dplyr::filter(.data$file == this_item) |>
-                  dplyr::pull(.data$commit) |>
-                  unique()
+                                  if (!(milestone_selection %in% c("", "No Milestone"))) {
+                                    commits_choices <- commit_df |>
+                                      dplyr::filter(.data$file == this_item, .data$milestone_name %in% milestone_selection) |>
+                                      dplyr::pull(.data$commit) |>
+                                      unique()
+                                  }
 
-                if (!identical(milestone_selection, "")) {
-                  commits_choices <- commit_df |>
-                    dplyr::filter(.data$file == this_item, .data$milestone_name %in% milestone_selection) |>
-                    dplyr::pull(.data$commit) |>
-                    unique()
-                }
+                                  shiny::updateSelectizeInput(
+                                    session,
+                                    generate_input_id("commit", this_item),
+                                    choices = commits_choices,
+                                    selected = if (!(milestone_selection %in% c("", "No Milestone")) && length(commits_choices)) {
+                                      commits_choices[[1]]
+                                    } else {
+                                      character(0)
+                                    },
+                                    server = TRUE
+                                  )
+                                },
+                                ignoreInit = TRUE
+                              )
+                            })
+                          }
+                        },
+                        ignoreInit = FALSE
+    )
+    observeEvent(input$create_archive, ignoreInit = TRUE, {
+      # pull from reactive and clean to a character vector
+      items_raw <- archive_files() %||% character(0)
+      archive_items <- as.character(unlist(items_raw, use.names = FALSE))
+      archive_items <- archive_items[nzchar(archive_items)]  # drop only empty strings
 
-                shiny::updateSelectizeInput(
-                  session,
-                  generate_input_id("commit", this_item),
-                  choices = commits_choices,
-                  selected = if (!identical(milestone_selection, "") && length(commits_choices)) {
-                    commits_choices[[1]]
-                  } else {
-                    character(0)
-                  },
-                  server = TRUE
-                )
-              },
-              ignoreInit = TRUE
+      # Warn if flattening would create basename collisions among the current items
+      if (isTRUE(input$flatten) && length(archive_items) >= 2) {
+        bn <- basename(archive_items)
+        dup_bn <- unique(bn[duplicated(bn) & !is.na(bn)])
+        if (length(dup_bn) > 0) {
+          groups <- lapply(dup_bn, function(nm) {
+            paths <- archive_items[!is.na(bn) & bn == nm]
+            tagList(
+              lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
+              tags$br()
             )
           })
+
+          showModal(modalDialog(
+            title = "Duplicate File Names When Flattening",
+            tagList(
+              p("These files would end up with the same name after flattening. ",
+                "Please unselect one of these files."),
+              div(groups)
+            ),
+            easyClose = TRUE,
+            footer = tagList(modalButton("Close"))
+          ))
+          return()
         }
-      },
-      ignoreInit = FALSE
-    )
-  }
-)}
+      }
+
+      # Use user's typed value if provided; otherwise fall back to the suggestion
+      raw_val <- input$archive_name
+      if (is.null(raw_val)) raw_val <- ""
+
+      archive_name <- suggested_archive_name()
+      if (is.null(archive_name)) archive_name <- ""   # fix: set the variable, not `fallback`
+
+      # Effective archive name = typed value or suggestion
+      archive_name <- trimws(if (nzchar(raw_val)) raw_val else archive_name)
+
+      archive_selected_items(
+        input         = input,
+        session       = session,
+        archive_name  = archive_name,
+        flatten       = isTRUE(input$flatten),
+        archive_items = archive_items
+      )
+    })
+
+    observeEvent(input$close, {
+      debug(.le$logger, glue::glue("App was closed through the close button."))
+      stopApp()
+    })
+
+    observeEvent(input$reset, {
+      debug(.le$logger, glue::glue("App was reset through the reset button."))
+      reset_triggered(TRUE)
+      session$reload()
+    })
+
+    validator$enable()
+  })
+}
+
 
 
 
@@ -448,10 +548,8 @@ get_local_log <- function() {
 }
 
 get_qc_approval_or_latest <- function(issue) {
-  init_commit <- list(
-    commit = get_init_qc_commit_from_issue_body(issue$body),
-    event = "initial"
-  )
+  init_commit <- get_init_qc_commit_from_issue_body(issue$body)
+
   if (issue$comments == 0) {
     return(init_commit)
   }
@@ -473,26 +571,21 @@ get_qc_approval_or_latest <- function(issue) {
     approved_qc_commit <- comment_metadata$`approved qc commit`
     if (!is.null(approved_qc_commit)) {
       if (!unapproved) {
-        return(list(
-          commit = approved_qc_commit,
-          event = "approved"
-        ))
+        return(
+          approved_qc_commit
+         )
       }
       # treat approved qc commit as normal notification if previously unapproved
       if (is.null(commit_candidate)) {
-        commit_candidate <- list(
-          commit = approved_qc_commit,
-          event = "notification"
-        )
+        commit_candidate <-
+          approved_qc_commit
       }
     }
 
     current_qc_commit <- comment_metadata$`current commit`
     if (!is.null(current_qc_commit) && is.null(commit_candidate)) {
-      commit_candidate <- list(
-        commit = approved_qc_commit,
-        event = "notification"
-      )
+      commit_candidate <-
+        approved_qc_commit
     }
   }
 
