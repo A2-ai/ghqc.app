@@ -1,41 +1,67 @@
 
 #parsing for all commits change where this is in the app
-parse_local_log <- function(lines, keep_status = FALSE) {
-  lines <- as.character(lines)
-  lines <- trimws(lines)
-  lines <- lines[nzchar(lines)]
+get_local_log <- function() {
+  local_log_output <- system(
+    "git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S' --name-status",
+    intern = TRUE
+  ) |>
+    as.character() |>
+    trimws()
+  lines <- local_log_output[nzchar(local_log_output)]
 
   is_commit <- grepl("^[0-9a-f]{40}\\|", lines)
-  commits   <- ifelse(is_commit, sub("^([0-9a-f]{40}).*$", "\\1", lines), NA_character_)
+  commits <- ifelse(
+    is_commit,
+    sub("^([0-9a-f]{40}).*$", "\\1", lines),
+    NA_character_
+  )
+
+  # Extract commit messages from commit lines
+  commit_messages <- ifelse(
+    is_commit,
+    sub("^[0-9a-f]{40}\\|[^|]*\\|[^|]*\\|[^|]*\\|(.*)$", "\\1", lines),
+    NA_character_
+  )
 
   for (i in seq_along(commits)) {
-    if (is.na(commits[i]) && i > 1) commits[i] <- commits[i-1]
+    if (is.na(commits[i]) && i > 1) {
+      commits[i] <- commits[i - 1]
+      commit_messages[i] <- commit_messages[i - 1]
+    }
   }
 
   is_change <- grepl("^([A-Z](?:\\d{1,3})?)\\t", lines, perl = TRUE)
 
-  lines   <- lines[is_change]
+  lines <- lines[is_change]
   commits <- commits[is_change]
+  commit_messages <- commit_messages[is_change]
 
   status <- sub("^([A-Z](?:\\d{1,3})?)\\t.*$", "\\1", lines, perl = TRUE)
 
-
   split2 <- strsplit(lines, "\t", fixed = TRUE)
 
-  files <- vapply(seq_along(split2), function(i) {
-    s <- status[i]
-    p <- split2[[i]]
-    if (length(p) >= 3 && grepl("^[RC]\\d{0,3}$", s)) {
-      p[[3]]
-    } else if (length(p) >= 2) {
-      p[[2]]
-    } else {
-      NA_character_
-    }
-  }, character(1))
+  files <- vapply(
+    seq_along(split2),
+    function(i) {
+      s <- status[i]
+      p <- split2[[i]]
+      if (length(p) >= 3 && grepl("^[RC]\\d{0,3}$", s)) {
+        p[[3]]
+      } else if (length(p) >= 2) {
+        p[[2]]
+      } else {
+        NA_character_
+      }
+    },
+    character(1)
+  )
 
-  out <- data.frame(commit = commits, title = files, stringsAsFactors = FALSE)
-  if (keep_status) out$status <- status
+  out <- data.frame(
+    commit = commits,
+    file = files,
+    message = commit_messages,
+    stringsAsFactors = FALSE
+  )
   rownames(out) <- NULL
   out
 }
@@ -81,67 +107,54 @@ create_single_item_ui <- function(name, ns) {
 }
 
 
-# Helper: apply the "global milestones override" rule to one item
-global_milestone_override <- function(it) {
-  df_all  <- archive_files()
-  if (is.null(df_all) || nrow(df_all) == 0) return(invisible())
+get_qc_approval_or_latest <- function(issue) {
+  init_commit <- get_init_qc_commit_from_issue_body(issue$body)
 
-  milestone_input_id <- generate_input_id("milestone", it)
-  commit_input_id    <- generate_input_id("commit",    it)
+  if (issue$comments == 0) {
+    return(init_commit)
+  }
+  comments <- get_imageless_comments(issue$comments_url)
+  commit_candidate <- NULL
+  unapproved <- FALSE
+  for (i in seq_along(comments)) {
+    comment <- comments[i, ]
+    if (grepl("# QC Unapproved", comment$body)) {
+      unapproved <- TRUE
+      next
+    }
 
-  df_item <- df_all %>% dplyr::filter(.data$title == it)
+    comment_metadata <- get_comment_metadata(comment$body)
+    if (length(comment_metadata) == 0) {
+      next
+    }
 
-  item_milestones <- df_item %>% dplyr::pull(.data$milestone_title) %>% unique() %>% sort()
-  item_commits    <- df_item %>% dplyr::pull(.data$commit)           %>% unique()
+    approved_qc_commit <- comment_metadata$`approved qc commit`
+    if (!is.null(approved_qc_commit)) {
+      if (!unapproved) {
+        return(
+          approved_qc_commit
+        )
+      }
+      # treat approved qc commit as normal notification if previously unapproved
+      if (is.null(commit_candidate)) {
+        commit_candidate <-
+          approved_qc_commit
+      }
+    }
 
-  global_milestone <- input$global_milestone %||% character(0)
-  matching_globals <- intersect(global_milestone, item_milestones)
+    current_qc_commit <- comment_metadata$`current commit`
+    if (!is.null(current_qc_commit) && is.null(commit_candidate)) {
+      commit_candidate <-
+        approved_qc_commit
+    }
+  }
 
-  current_sel <- input[[milestone_input_id]]
-
-  if (length(matching_globals) >= 1) {
-    # GLOBALS OVERRIDE: restrict to matching globals only
-    next_sel <- if (!is.null(current_sel) && current_sel %in% matching_globals) current_sel else matching_globals[[1]]
-
-    shiny::updateSelectizeInput(
-      session, milestone_input_id,
-      choices  = matching_globals,
-      selected = next_sel,
-      server   = TRUE,
-      options  = list(placeholder = 'Select a milestone…')
-    )
-
-    commits_filtered <- df_item %>%
-      dplyr::filter(.data$milestone_title == next_sel) %>%
-      dplyr::pull(.data$commit) %>%
-      unique()
-
-    shiny::updateSelectizeInput(
-      session, commit_input_id,
-      choices  = commits_filtered,
-      selected = if (length(commits_filtered)) commits_filtered[[1]] else NULL,
-      server   = TRUE
-    )
-
+  if (is.null(commit_candidate)) {
+    init_commit
   } else {
-    # No overlap with globals: restore full milestones
-    shiny::updateSelectizeInput(
-      session, milestone_input_id,
-      choices  = item_milestones,
-      selected = if (!is.null(current_sel) && current_sel %in% item_milestones) current_sel else NULL,
-      server   = TRUE,
-      options  = list(placeholder = 'Select a milestone…')
-    )
-
-    shiny::updateSelectizeInput(
-      session, commit_input_id,
-      choices  = item_commits,
-      selected = NULL,
-      server   = TRUE
-    )
+    commit_candidate
   }
 }
-
 
 
 archive_selected_items <- function(input,
@@ -151,17 +164,12 @@ archive_selected_items <- function(input,
                                    archive_items = character(0),
                                    milestone_df = NULL) {
 
-  # Collect milestone items, if provided (same logic you had)
-  milestone_items <- character(0)
-  if (!is.null(milestone_df)) {
-    if (is.data.frame(milestone_df) && nrow(milestone_df) > 0 && "title" %in% names(milestone_df)) {
-      milestone_items <- sort(unique(stats::na.omit(milestone_df$title)))
-    }
-  }
+  # Collect milestone items, if provided
+
 
   # Combine: explicit archive_items + milestone-derived items
-  items_all <- unique(c(archive_items, milestone_items))
-  items_all <- items_all[nzchar(items_all)]  # keep your “don’t worry about NA” stance; remove empties
+  archive_items <- unique(c(archive_items))
+  archive_items <- archive_items[nzchar(archive_items)]
 
   # Stage dir
   stage_dir <- file.path(tempdir(), "archive_stage")
@@ -169,11 +177,10 @@ archive_selected_items <- function(input,
 
   rel_files <- character(0)
 
-  # Top-level folder inside the zip = filename without extension
   zip_stem <- tools::file_path_sans_ext(basename(archive_name))
   top_dir  <- paste0(zip_stem, "/")
 
-  for (item in items_all) {
+  for (item in archive_items) {
     commit_input_id <- generate_input_id("commit", item)
     sel_commit      <- input[[commit_input_id]]
     if (is.null(sel_commit) || identical(sel_commit, "")) next
@@ -199,7 +206,6 @@ archive_selected_items <- function(input,
     return(invisible(NULL))
   }
 
-  ## Compute absolute output path BEFORE setwd()
   owd <- getwd()
   zip_file_abs <- normalizePath(
     if (grepl("^(?:/|[A-Za-z]:)", archive_name)) archive_name else file.path(owd, archive_name),
@@ -221,3 +227,5 @@ archive_selected_items <- function(input,
   showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
   invisible(zip_file_abs)
 }
+
+
