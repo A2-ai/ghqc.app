@@ -1,4 +1,3 @@
-
 #parsing for all commits change where this is in the app
 get_local_log <- function() {
   local_log_output <- system(

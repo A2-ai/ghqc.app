@@ -1,5 +1,4 @@
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
-
   observe({
     req(root_dir)
     waiter_hide()
@@ -125,8 +124,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       dplyr::distinct(milestone_name, issue_branch) |>
       dplyr::mutate(branch = issue_branch)
 
-    local_commits <- get_local_log() |>
-      dplyr::mutate(branch = local_branch, milestone_name = NA_character_)
+    local_commits <- get_local_log()
 
     issues <- issues_df %>%
       transmute(
@@ -336,7 +334,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                   return("Required")
                 }
 
-                return("You may be missing commits since this file is not on the correct branch")
+                return("You may be missing commits since the selected file is not on the correct branch")
               })
 
 
