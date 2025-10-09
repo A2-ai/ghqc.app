@@ -1,4 +1,9 @@
-#parsing for all commits change where this is in the app
+#' Get Local Log
+#'
+#' parsing function that finds all the commits for each file in the repo
+#'
+#' @return A data frame of commits files and messages in the repo
+#' @noRd
 get_local_log <- function() {
   local_log_output <- system(
     "git log --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S' --name-status",
@@ -65,6 +70,14 @@ get_local_log <- function() {
   out
 }
 
+#'create single item ui
+#'
+#'Renders initial ui  for each file selected
+#'
+#' @param name A list representing the files to be rendered in the ui.
+#' @param ns A namespace function used for handling Shiny modules.
+#' @return the initial ui elements for milestone and commit
+#' @noRd
 create_single_item_ui <- function(name, ns) {
   milestone_raw <- generate_input_id("milestone", name)
   commit_raw    <- generate_input_id("commit", name)
@@ -105,7 +118,13 @@ create_single_item_ui <- function(name, ns) {
   )
 }
 
-
+#'get qc approval or latest
+#'
+#' takes issues in the repo and finds the latest commit for that issue
+#'
+#' @param issue issue is each issue that is in the repo
+#' @return latest commits from issues
+#' @noRd
 get_qc_approval_or_latest <- function(issue) {
   init_commit <- get_init_qc_commit_from_issue_body(issue$body)
 
@@ -155,13 +174,23 @@ get_qc_approval_or_latest <- function(issue) {
   }
 }
 
-
+#'archive selected items
+#'
+#'Archives file into a zip in the the directory "archive"
+#'
+#' @param input The input of clicking the "create archive button"
+#' @param session
+#' @param archive_name name the the archive
+#' @param flatten The flatten button
+#' @param archive_items The rendered issues in the ui that will be archived
+#' @return zipped archive in the archive directory
+#' @noRd
 archive_selected_items <- function(input,
                                    session,
                                    archive_name,
                                    flatten = FALSE,
-                                   archive_items = character(0),
-                                   milestone_df = NULL) {
+                                   archive_items = character(0)
+                                ) {
 
   # Collect milestone items, if provided
 
