@@ -1,7 +1,7 @@
 #' @import shiny
-#' @importFrom shinyvalidate InputValidator
-#' @importFrom dplyr
-#' @importFrom tidyr
+#' @importFrom shinyvalidate InputValidator sv_required
+#' @importFrom dplyr filter pull select distinct mutate transmute
+#' @importFrom tidyr separate_rows
 #' @importFrom glue glue
 #' @importFrom log4r warn error info debug
 #' @importFrom shinyjs enable disable addClass removeClass delay
@@ -9,7 +9,10 @@
 #' @importFrom gert git_status
 #' @importFrom rprojroot find_rstudio_root_file
 #' @importFrom purrr map_dfr
+#' @importFrom tibble tibble
+#' @importFrom utils zip
 NULL
+
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
   observe({

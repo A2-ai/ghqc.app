@@ -2,6 +2,7 @@
 #' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel miniButtonBlock
 #' @importFrom shinyjs useShinyjs
 #' @importFrom waiter use_waiter waiter_show_on_load spin_1
+#' @importFrom htmltools HTML
 NULL
 
 ghqc_archive_ui <- function(id) {

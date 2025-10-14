@@ -1,3 +1,10 @@
+
+#' @import shiny
+#' @importFrom htmltools HTML htmlEscape
+#' @importFrom tools file_path_sans_ext
+#' @importFrom utils zip
+NULL
+
 #' Get Local Log
 #'
 #' parsing function that finds all the commits for each file in the repo
@@ -70,13 +77,22 @@ get_local_log <- function() {
   out
 }
 
-#'create single item ui
+#' Create Single Item UI
 #'
-#'Renders initial ui  for each file selected
+#' Generates UI elements for a single file item in the archive interface, including
+#' milestone and commit selection controls arranged in a grid layout.
 #'
-#' @param name A list representing the files to be rendered in the ui.
-#' @param ns A namespace function used for handling Shiny modules.
-#' @return the initial ui elements for milestone and commit
+#' @param name Character string. The file name/path to be displayed and processed.
+#' @param ns Function. Shiny namespace function for creating namespaced input IDs.
+#'
+#' @return A shiny.tag object containing the complete UI elements for the file item,
+#'   including the file display, milestone selector, and commit selector.
+#'
+#'
+#' The generated UI elements use unique IDs based on the file name and are properly
+#' namespaced for use within Shiny modules. Input validation and dynamic choices
+#' are handled by the server-side logic.
+#'
 #' @noRd
 create_single_item_ui <- function(name, ns) {
   milestone_raw <- generate_input_id("milestone", name)
@@ -118,12 +134,19 @@ create_single_item_ui <- function(name, ns) {
   )
 }
 
-#'get qc approval or latest
+#' Get QC Approval or Latest Commit
 #'
-#' takes issues in the repo and finds the latest commit for that issue
+#' Retrieves the most recent approved QC commit for a given issue, or falls back
+#' to the latest commit if no approval is found. Handles QC approval status and
+#' unapproval events from issue comments.
 #'
-#' @param issue issue is each issue that is in the repo
-#' @return latest commits from issues
+#' @param issue List. A GitHub issue object containing issue metadata including
+#'   body text, comments count, and comments URL.
+#'
+#' @return Character string. The commit hash of the approved QC commit or the
+#'   latest available commit if no approval is found.
+#'
+#'
 #' @noRd
 get_qc_approval_or_latest <- function(issue) {
   init_commit <- get_init_qc_commit_from_issue_body(issue$body)
@@ -174,16 +197,26 @@ get_qc_approval_or_latest <- function(issue) {
   }
 }
 
-#'archive selected items
+#' Archive Selected Items
 #'
-#'Archives file into a zip in the the directory "archive"
+#' Creates a ZIP archive containing selected files at specific commit versions.
+#' Handles file staging, directory structure options, and archive creation with
+#' proper error handling and user notifications.
 #'
-#' @param input The input of clicking the "create archive button"
-#' @param session
-#' @param archive_name name the the archive
-#' @param flatten The flatten button
-#' @param archive_items The rendered issues in the ui that will be archived
-#' @return zipped archive in the archive directory
+#' @param input Reactive input object from Shiny session containing user selections.
+#' @param session Shiny session object for accessing namespaced inputs and notifications.
+#' @param archive_name Character string. The desired name/path for the archive file.
+#' @param flatten Logical. If TRUE, removes directory structure and places all files
+#'   in the root of the archive. Default is FALSE.
+#' @param archive_items Character vector. File paths to be included in the archive.
+#'   Default is empty character vector.
+#'
+#' @return Character string (invisible). The absolute path to the created ZIP file,
+#'   or NULL if no files were archived.
+#'
+#' The archive is created with a top-level directory named after the archive file
+#' (without extension) to maintain organization when extracted.
+#'
 #' @noRd
 archive_selected_items <- function(input,
                                    session,
