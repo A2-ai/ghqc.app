@@ -262,7 +262,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               "Duplicate Files Found",
               style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
             ),
-            shiny::tags$div(style = "flex: 0 0 auto;") 
+            shiny::tags$div(style = "flex: 0 0 auto;")
           ),
           paste(
             "The following files are already in selected milestones:",
@@ -297,27 +297,27 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         items_to_add <- setdiff(archive_files(), rendered_items())
         items_to_remove <- setdiff(rendered_items(), archive_files())
         rendered_items(archive_files())
-      for (item in items_to_remove) {
-        if (length(items_to_remove) != 0) {
-          milestone_id <- generate_input_id("milestone", item)
-          row_id       <- generate_input_id("item_row", item)
+        for (item in items_to_remove) {
+          if (length(items_to_remove) != 0) {
+            milestone_id <- generate_input_id("milestone", item)
+            row_id       <- generate_input_id("item_row", item)
 
-          shiny::updateSelectizeInput(
-            session,
-            inputId  = milestone_id,
-            choices  = character(0),
-            selected = NULL,
-            server   = TRUE
-          )
+            shiny::updateSelectizeInput(
+              session,
+              inputId  = milestone_id,
+              choices  = character(0),
+              selected = NULL,
+              server   = TRUE
+            )
 
-          observeEvent(input[[milestone_id]], {
-            shiny::removeUI(selector = paste0("#", session$ns(row_id)))
-          }, once = TRUE, ignoreInit = FALSE)
+            observeEvent(input[[milestone_id]], {
+              shiny::removeUI(selector = paste0("#", session$ns(row_id)))
+            }, once = TRUE, ignoreInit = FALSE)
+          }
+          file_id <- session$ns(generate_input_id("item_row", item))
+          attr_selector <- paste0("[id='", file_id, "']")
+          shiny::removeUI(selector = attr_selector)
         }
-        file_id <- session$ns(generate_input_id("item_row", item))
-        attr_selector <- paste0("[id='", file_id, "']")
-        shiny::removeUI(selector = attr_selector)
-      }
 
         if (length(items_to_add) != 0) {
           for (item in items_to_add) {
@@ -391,15 +391,30 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     shiny::observeEvent(c(rendered_items(), input$selected_milestones, input$include_open_issues),
                         {
                           for (item in rendered_items()) {
-                             milestone_input <- input[[generate_input_id("milestone", item)]] %||% ""
-                             file_commits_df <- commit_df |> dplyr::filter(.data$file == item)
+                            milestone_input <- input[[generate_input_id("milestone", item)]] %||% ""
+                            file_commits_df <- commit_df |> dplyr::filter(.data$file == item)
 
-                             milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
-                             selected_globals <- input$selected_milestones %||% character(0)
-                             matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
-                             if (length(matching_milestones) != 0 && nzchar(milestone_input)) {
-                               next
-                             }
+                            milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
+                            selected_globals <- input$selected_milestones %||% character(0)
+                            matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
+
+                            # CHECK: If the current milestone_input is no longer in selected_milestones, clear it
+                            if (nzchar(milestone_input) && !milestone_input %in% selected_globals) {
+                              # Clear the selectize input and force rerender
+                              shiny::updateSelectizeInput(
+                                session,
+                                inputId = generate_input_id("milestone", item),
+                                choices = milestone_choices,
+                                selected = "",
+                                server = TRUE
+                              )
+                              milestone_input <- ""
+                            }
+                            # Don't rerender if milestone is not changing
+
+                            if (length(matching_milestones) != 0 && nzchar(milestone_input)) {
+                              next
+                            }
                             local({
                               this_item <- item
                               file_commits_df <- commit_df |> dplyr::filter(.data$file == this_item)
