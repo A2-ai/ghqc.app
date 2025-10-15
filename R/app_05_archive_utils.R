@@ -155,8 +155,9 @@ create_single_item_ui <- function(name, ns) {
 #' @param issue List. A GitHub issue object containing issue metadata including
 #'   body text, comments count, and comments URL.
 #'
-#' @return Character string. The commit hash of the approved QC commit or the
-#'   latest available commit if no approval is found.
+#' @return List with two elements: commit (character string) and approved (logical).
+#'   The commit hash of the approved QC commit or the latest available commit,
+#'   and whether it was explicitly approved.
 #'
 #'
 #' @noRd
@@ -164,15 +165,18 @@ get_qc_approval_or_latest <- function(issue) {
   init_commit <- get_init_qc_commit_from_issue_body(issue$body)
 
   if (issue$comments == 0) {
-    return(init_commit)
+    return(list(commit = init_commit, approved = FALSE))
   }
   comments <- get_imageless_comments(issue$comments_url)
   commit_candidate <- NULL
   unapproved <- FALSE
+  approved <- FALSE
+
   for (i in seq_along(comments)) {
     comment <- comments[i, ]
     if (grepl("# QC Unapproved", comment$body)) {
       unapproved <- TRUE
+      approved <- FALSE
       next
     }
 
@@ -184,29 +188,100 @@ get_qc_approval_or_latest <- function(issue) {
     approved_qc_commit <- comment_metadata$`approved qc commit`
     if (!is.null(approved_qc_commit)) {
       if (!unapproved) {
-        return(
-          approved_qc_commit
-        )
+        return(list(commit = approved_qc_commit, approved = TRUE))
       }
       # treat approved qc commit as normal notification if previously unapproved
       if (is.null(commit_candidate)) {
-        commit_candidate <-
-          approved_qc_commit
+        commit_candidate <- approved_qc_commit
+        approved <- FALSE  # not approved since it was unapproved
       }
     }
 
     current_qc_commit <- comment_metadata$`current commit`
     if (!is.null(current_qc_commit) && is.null(commit_candidate)) {
-      commit_candidate <-
-        approved_qc_commit
+      commit_candidate <- current_qc_commit
+      approved <- FALSE
     }
   }
 
   if (is.null(commit_candidate)) {
-    init_commit
+    list(commit = init_commit, approved = FALSE)
   } else {
-    commit_candidate
+    list(commit = commit_candidate, approved = approved)
   }
+}
+
+#' Generate Archive Metadata JSON
+#'
+#' Creates a JSON metadata file containing information about the archive creation,
+#' including creator, timestamp, and detailed file information with commit data.
+#'
+#' @param input Reactive input object from Shiny session containing user selections.
+#' @param archive_items Character vector. File paths included in the archive.
+#' @param commit_df Data frame containing commit information with columns:
+#'   commit, file, milestone_name, approved.
+#' @param flatten Logical. Whether the directory structure was flattened.
+#'
+#' @return Character string containing the JSON metadata.
+#'
+#' @noRd
+generate_archive_metadata <- function(input, archive_items, commit_df, flatten = FALSE) {
+
+  creator <- tryCatch({
+    get_user()
+  }, error = function(e) {
+    "unknown"
+  })
+
+  created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+
+
+  files_metadata <- list()
+
+  for (item in archive_items) {
+    commit_input_id <- generate_input_id("commit", item)
+    milestone_input_id <- generate_input_id("milestone", item)
+
+    sel_commit <- input[[commit_input_id]]
+    sel_milestone <- input[[milestone_input_id]]
+
+
+    if (is.null(sel_commit) || identical(sel_commit, "")) next
+
+    file_commit_info <- commit_df[commit_df$file == item & commit_df$commit == sel_commit, ]
+    approved <- if (nrow(file_commit_info) > 0) {
+      file_commit_info$approved[1]
+    } else {
+      FALSE
+    }
+
+
+    archive_file <- if (isTRUE(flatten)) {
+      basename(item)
+    } else {
+      gsub("\\\\", "/", item)
+    }
+
+    file_metadata <- list(
+      archive_file = archive_file,
+      repository_file = gsub("\\\\", "/", item),
+      commit = sel_commit,
+      milestone = if (is.null(sel_milestone) || sel_milestone == "") NULL else sel_milestone,
+      approved = approved
+    )
+
+    files_metadata <- append(files_metadata, list(file_metadata))
+  }
+
+  # Create complete metadata structure
+  metadata <- list(
+    creator = creator,
+    created_at = created_at,
+    files = files_metadata
+  )
+
+  # Convert to JSON with pretty formatting
+  jsonlite::toJSON(metadata, pretty = TRUE, auto_unbox = TRUE, null = "null")
 }
 
 #' Archive Selected Items
@@ -225,26 +300,18 @@ get_qc_approval_or_latest <- function(issue) {
 #'
 #' @return Character string (invisible). The absolute path to the created ZIP file,
 #'   or NULL if no files were archived.
-#'
-#' The archive is created with a top-level directory named after the archive file
-#' (without extension) to maintain organization when extracted.
-#'
-#' @noRd
 archive_selected_items <- function(input,
                                    session,
                                    archive_name,
                                    flatten = FALSE,
-                                   archive_items = character(0)
+                                   archive_items = character(0),
+                                   commit_df = NULL
 ) {
 
-  # Collect milestone items, if provided
 
-
-  # Combine: explicit archive_items + milestone-derived items
   archive_items <- unique(c(archive_items))
   archive_items <- archive_items[nzchar(archive_items)]
 
-  # Stage dir
   stage_dir <- file.path(tempdir(), "archive_stage")
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -273,6 +340,13 @@ archive_selected_items <- function(input,
     rel_files <- c(rel_files, gsub("\\\\", "/", rel_path))
   }
 
+  # Generate and add metadata JSON file
+  metadata_json <- generate_archive_metadata(input, archive_items, commit_df, flatten)
+  metadata_path <- paste0(top_dir, "ghqc_archive_metadata.json")
+  metadata_abs_path <- file.path(stage_dir, metadata_path)
+  writeLines(metadata_json, metadata_abs_path, useBytes = TRUE)
+  rel_files <- c(rel_files, gsub("\\\\", "/", metadata_path))
+
   if (!length(rel_files)) {
     showNotification("No files to archive.", type = "warning")
     unlink(stage_dir, recursive = TRUE, force = TRUE)
@@ -285,7 +359,7 @@ archive_selected_items <- function(input,
     mustWork = FALSE
   )
 
-  # Ensure directory exists, overwrite if exists
+
   out_dir <- dirname(zip_file_abs)
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   if (file.exists(zip_file_abs)) unlink(zip_file_abs, force = TRUE)
@@ -300,5 +374,6 @@ archive_selected_items <- function(input,
   showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
   invisible(zip_file_abs)
 }
+
 
 

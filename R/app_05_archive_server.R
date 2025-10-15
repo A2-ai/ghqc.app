@@ -1,4 +1,4 @@
-#' @import shiny
+#' @import shiny#' @import shiny
 #' @importFrom shinyvalidate InputValidator sv_required
 #' @importFrom dplyr filter pull select distinct mutate transmute
 #' @importFrom tidyr separate_rows
@@ -121,7 +121,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Collect Issues and Commits
     issues_df <- get_all_issues_in_repo() |>
       purrr::map_dfr(function(issue) {
-        qc_commit <- get_qc_approval_or_latest(issue)
+        qc_result <- get_qc_approval_or_latest(issue)
         issue_branch <- get_branch_from_issue_body(issue$body)
         relevant_files <- get_relevant_files(issue, issue$milestone$title) |>
           dplyr::pull(relevant_file_name) |>
@@ -132,7 +132,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           milestone_name = issue$milestone$title,
           title = issue$title,
           open = identical(issue$state, "open"),
-          qc_commit = qc_commit,
+          qc_commit = qc_result$commit,
+          approved = qc_result$approved,
           relevant_files = relevant_files,
           issue_branch = issue_branch
         )
@@ -149,17 +150,20 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       transmute(
         commit = qc_commit,
         milestone_name,
-        file = title
+        file = title,
+        approved = approved
       )
 
     local <- local_commits %>%
       transmute(
         commit,
-        file
+        file,
+        approved = FALSE  # local commits are not QC approved
       )
 
     commit_df <- full_join(local, issues, by = c("commit", "file")) %>%
-      select(commit, file, milestone_name)
+      mutate(approved = coalesce(approved.y, approved.x)) %>%
+      select(commit, file, milestone_name, approved)
 
     shiny::observeEvent(input$selected_milestones, {
       selected_milestones <- input$selected_milestones
@@ -324,6 +328,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
         if (length(items_to_add) != 0) {
           for (item in items_to_add) {
+            browser()
             shiny::insertUI(
               selector = paste0("#", session$ns("grid_container")),
               where = "beforeEnd",
@@ -472,12 +477,16 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                                   }
 
                                   # Create named choices: display format as names, long SHA as values
-                                  commit_choices <- setNames(
-                                    local_commits$commit[match(commits_shas, local_commits$commit)],
-                                    local_commits$commit_display[match(commits_shas, local_commits$commit)]
-                                  )
-
-                                  commit_choices <- commit_choices[!is.na(names(commit_choices)) & !is.na(commit_choices)]
+                                  if (length(commits_shas) > 0) {
+                                    commit_choices <- setNames(
+                                      commits_shas,
+                                      paste0(stringr::str_extract(commits_shas, "^.{1,7}"), " | ",
+                                             local_commits$message[match(commits_shas, local_commits$commit)])
+                                    )
+                                    commit_choices <- commit_choices[!is.na(names(commit_choices)) & !is.na(commit_choices)]
+                                  } else {
+                                    commit_choices <- character(0)
+                                  }
 
                                   shiny::updateSelectizeInput(
                                     session,
@@ -540,7 +549,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         session       = session,
         archive_name  = archive_name,
         flatten       = isTRUE(input$flatten),
-        archive_items = archive_items
+        archive_items = archive_items,
+        commit_df     = commit_df
       )
     })
 
@@ -594,3 +604,5 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
