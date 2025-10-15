@@ -13,6 +13,21 @@
 #' @importFrom utils zip
 NULL
 
+#' @import shiny
+#' @importFrom shinyvalidate InputValidator sv_required
+#' @importFrom dplyr filter pull select distinct mutate transmute
+#' @importFrom tidyr separate_rows
+#' @importFrom glue glue
+#' @importFrom log4r warn error info debug
+#' @importFrom shinyjs enable disable addClass removeClass delay
+#' @importFrom waiter Waiter spin_1 spin_2 waiter_hide
+#' @importFrom gert git_status
+#' @importFrom rprojroot find_rstudio_root_file
+#' @importFrom purrr map_dfr
+#' @importFrom tibble tibble
+#' @importFrom utils zip
+NULL
+
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
   observe({
@@ -38,6 +53,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
   }
 
   validator <- shinyvalidate::InputValidator$new()
+
+
 
   moduleServer(id, function(input, output, session) {
     reset_triggered <- reactiveVal(FALSE)
@@ -97,6 +114,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     })
     # Deriving outside to use when archiving files
     suggested_archive_name <- shiny::reactive({
+      validator$add_rule("archive_name", shinyvalidate::sv_required())
       name <- c(repo_name, input$selected_milestones) |>
         paste0(collapse = "-") |>
         gsub(pattern = " ", replacement = "-")
@@ -109,7 +127,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       shiny::updateTextInput(
         session,
         "archive_name",
-        placeholder = suggested_archive_name()
+        value = suggested_archive_name()
       )
     })
 
@@ -265,7 +283,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             shiny::tags$div(style = "flex: 0 0 auto;")
           ),
           paste(
-            "The following files are already in selected milestones:",
+            "The following files are in selected milestones:",
             paste(duplicated_files, collapse = ", ")
           ),
           easyClose = TRUE,
@@ -484,11 +502,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       # Warn if flattening would create basename collisions among the current items
       if (isTRUE(input$flatten) && length(archive_items) >= 2) {
-        bn <- basename(archive_items)
-        dup_bn <- unique(bn[duplicated(bn) & !is.na(bn)])
-        if (length(dup_bn) > 0) {
-          groups <- lapply(dup_bn, function(nm) {
-            paths <- archive_items[!is.na(bn) & bn == nm]
+        flatten_file <- basename(archive_items)
+        dup_flatten_file <- unique(flatten_file[duplicated(flatten_file) & !is.na(flatten_file)])
+        if (length(dup_flatten_file) > 0) {
+          groups <- lapply(dup_flatten_file, function(nm) {
+            paths <- archive_items[!is.na(flatten_file) & flatten_file == nm]
             tagList(
               lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
               tags$br()
@@ -509,15 +527,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         }
       }
 
-      # Use user's typed value if provided; otherwise fall back to the suggestion
-      archive_name <- input$archive_name
-      if (is.null(archive_name)) archive_name <- ""
-
-      archive_name <- suggested_archive_name()
-      if (is.null(archive_name)) archive_name <- ""   # fix: set the variable, not `fallback`
-
-      # Effective archive name = typed value or suggestion
-      archive_name <- trimws(if (nzchar(archive_name)) archive_name else archive_name)
+      # Use the archive name from the input field (validator ensures it's not empty)
+      archive_name <- trimws(input$archive_name)
 
       archive_selected_items(
         input         = input,
@@ -527,6 +538,42 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         archive_items = archive_items
       )
     })
+
+
+    #Checking for required errors
+    observe({
+      has_required_error <- FALSE
+
+
+      if (is.null(input$archive_name) || !nzchar(trimws(input$archive_name))) {
+        has_required_error <- TRUE
+      }
+
+      current_items <- rendered_items()
+      if (length(current_items) > 0) {
+        for (item in current_items) {
+          commit_id <- generate_input_id("commit", item)
+          commit_value <- input[[commit_id]]
+
+          selected_milestones <- input$selected_milestones
+          milestone_branch <- branch_df$branch[branch_df$milestone_name %in% selected_milestones]
+
+          if (is.null(commit_value) || !nzchar(commit_value)) {
+            if (length(selected_milestones) == 0 || local_branch %in% milestone_branch) {
+              has_required_error <- TRUE
+              break
+            }
+          }
+        }
+      }
+
+      if (has_required_error) {
+        shinyjs::disable("create_archive")
+      } else {
+        shinyjs::enable("create_archive")
+      }
+    })
+
 
     observeEvent(input$close, {
       debug(.le$logger, glue::glue("App was closed through the close button."))
