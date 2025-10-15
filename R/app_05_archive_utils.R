@@ -1,8 +1,9 @@
-
 #' @import shiny
 #' @importFrom htmltools HTML htmlEscape
 #' @importFrom tools file_path_sans_ext
 #' @importFrom utils zip
+#' @importFrom stringr str_extract
+#' @importFrom glue glue
 NULL
 
 #' Get Local Log
@@ -67,8 +68,19 @@ get_local_log <- function() {
     character(1)
   )
 
+  # Create short SHAs for display (using existing logic pattern from format_commit_shas.R)
+  short_shas <- stringr::str_extract(commits, "^.{1,7}")
+
+  commit_display <- ifelse(
+    !is.na(commits) & !is.na(commit_messages) & !is.na(short_shas),
+    glue::glue("{short_shas} | {commit_messages}"),
+    NA_character_
+  )
+
   out <- data.frame(
     commit = commits,
+    short_sha = short_shas,
+    commit_display = commit_display,
     file = files,
     message = commit_messages,
     stringsAsFactors = FALSE
@@ -128,8 +140,8 @@ create_single_item_ui <- function(name, ns) {
       multiple = FALSE,
       width = "100%",
       options = list(closeAfterSelect = TRUE,
-        placeholder      = "Select a commit (required)"
-        )
+                     placeholder      = "Select a commit (required)"
+      )
     )
   )
 }
@@ -223,7 +235,7 @@ archive_selected_items <- function(input,
                                    archive_name,
                                    flatten = FALSE,
                                    archive_items = character(0)
-                                ) {
+) {
 
   # Collect milestone items, if provided
 

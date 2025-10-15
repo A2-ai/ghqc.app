@@ -13,21 +13,6 @@
 #' @importFrom utils zip
 NULL
 
-#' @import shiny
-#' @importFrom shinyvalidate InputValidator sv_required
-#' @importFrom dplyr filter pull select distinct mutate transmute
-#' @importFrom tidyr separate_rows
-#' @importFrom glue glue
-#' @importFrom log4r warn error info debug
-#' @importFrom shinyjs enable disable addClass removeClass delay
-#' @importFrom waiter Waiter spin_1 spin_2 waiter_hide
-#' @importFrom gert git_status
-#' @importFrom rprojroot find_rstudio_root_file
-#' @importFrom purrr map_dfr
-#' @importFrom tibble tibble
-#' @importFrom utils zip
-NULL
-
 ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
   observe({
@@ -377,6 +362,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                   return(NULL)
                 }
 
+                if(length(file_commits_df$commit) == 0){
+                  return("No avalible commits")
+                }
+
                 if (length(selected_milestones) == 0 || local_branch %in% milestone_branch) {
                   return("Required")
                 }
@@ -393,10 +382,18 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                   choices = c("", file_commits_df$milestone_name |> Filter(f = Negate(is.na))),
                   selected = ""
                 )
+                # Create named choices: display format as names, long SHA as values
+                commit_choices <- setNames(
+                  local_commits$commit[match(file_commits_df$commit, local_commits$commit)],
+                  local_commits$commit_display[match(file_commits_df$commit, local_commits$commit)]
+                )
+                # Filter out any NA values
+                commit_choices <- commit_choices[!is.na(names(commit_choices)) & !is.na(commit_choices)]
+
                 shiny::updateSelectizeInput(
                   session,
                   generate_input_id("commit", this_item),
-                  choices = c(file_commits_df$commit),
+                  choices = commit_choices,
                   selected = ""
                 )
               }, once = TRUE)
@@ -462,24 +459,32 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                                 {
                                   milestone_selection <- input[[generate_input_id("milestone", this_item)]]
 
-                                  commits_choices <- commit_df |>
+                                  commits_shas <- commit_df |>
                                     dplyr::filter(.data$file == this_item) |>
                                     dplyr::pull(.data$commit) |>
                                     unique()
 
                                   if (!(milestone_selection %in% c(""))) {
-                                    commits_choices <- commit_df |>
+                                    commits_shas <- commit_df |>
                                       dplyr::filter(.data$file == this_item, .data$milestone_name %in% milestone_selection) |>
                                       dplyr::pull(.data$commit) |>
                                       unique()
                                   }
 
+                                  # Create named choices: display format as names, long SHA as values
+                                  commit_choices <- setNames(
+                                    local_commits$commit[match(commits_shas, local_commits$commit)],
+                                    local_commits$commit_display[match(commits_shas, local_commits$commit)]
+                                  )
+
+                                  commit_choices <- commit_choices[!is.na(names(commit_choices)) & !is.na(commit_choices)]
+
                                   shiny::updateSelectizeInput(
                                     session,
                                     generate_input_id("commit", this_item),
-                                    choices = commits_choices,
-                                    selected = if (!(milestone_selection %in% c("")) && length(commits_choices)) {
-                                      commits_choices[[1]]
+                                    choices = commit_choices,
+                                    selected = if (!(milestone_selection %in% c("")) && length(commit_choices)) {
+                                      commit_choices[[1]]
                                     } else {
                                       character(0)
                                     },
@@ -589,4 +594,3 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
-
