@@ -262,11 +262,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               "Duplicate Files Found",
               style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px;"
             ),
-            shiny::tags$div(style = "flex: 0 0 auto;") # Empty right side
+            shiny::tags$div(style = "flex: 0 0 auto;") 
           ),
           paste(
             "The following files are already in selected milestones:",
-            paste(duplicated_files, ", ")
+            paste(duplicated_files, collapse = ", ")
           ),
           easyClose = TRUE,
           footer = NULL
