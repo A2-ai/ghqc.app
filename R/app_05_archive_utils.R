@@ -194,7 +194,7 @@ get_qc_approval_or_latest <- function(issue) {
       # treat approved qc commit as normal notification if previously unapproved
       if (is.null(commit_candidate)) {
         commit_candidate <- approved_qc_commit
-        approved <- FALSE  # not approved since it was unapproved
+        approved <- FALSE
       }
     }
 
@@ -250,7 +250,9 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
     if (is.null(sel_commit) || identical(sel_commit, "")) next
 
     file_commit_info <- commit_df[commit_df$file == item & commit_df$commit == sel_commit, ]
-    approved <- if (nrow(file_commit_info) > 0) {
+    approved <- if (is.null(sel_milestone) || sel_milestone == "") {
+      "null"
+    } else if (nrow(file_commit_info) > 0) {
       any(file_commit_info$approved, na.rm = TRUE)
     } else {
       FALSE

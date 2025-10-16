@@ -42,12 +42,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
 
   moduleServer(id, function(input, output, session) {
-    info(.le$logger, "Archive server module initialized")
 
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
-        info(.le$logger, "Session ended - stopping app")
         stopApp()
       }
     })
@@ -80,6 +78,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         treeNavigatorUI(session$ns("treeNavigator"))
       )
     })
+
     # set milestone choices based on open milestones checkbox
     shiny::observeEvent(input$include_open_milestones, {
       milestone_choices <- if (input$include_open_milestones) {
@@ -122,7 +121,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Panel Setup End
 
     # Collect Issues and Commits
-    info(.le$logger, "Starting to collect issues and commits from repository")
     issues_df <- get_all_issues_in_repo() |>
       purrr::map_dfr(function(issue) {
         debug(.le$logger, glue::glue("Processing issue #{issue$number}: {issue$title}"))
@@ -149,9 +147,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       dplyr::distinct(milestone_name, issue_branch) |>
       dplyr::mutate(branch = issue_branch)
 
-    info(.le$logger, "Retrieving local commit log")
-    local_commits <- get_local_log()
-    info(.le$logger, glue::glue("Retrieved {nrow(local_commits)} local commits"))
+
+    local_commits <- get_local_log() %>%
+      dplyr::mutate(approved = FALSE)
+
 
     issues <- issues_df %>%
       transmute(
@@ -161,22 +160,19 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         approved = approved
       )
 
-    local <- local_commits %>%
-      transmute(
-        commit,
-        file,
-        approved = FALSE  # local commits are not QC approved
-      )
-
-    commit_df <- full_join(local, issues, by = c("commit", "file")) %>%
-      mutate(approved = coalesce(approved.y, approved.x)) %>%
-      select(commit, file, milestone_name, approved)
+    commit_df <- full_join(
+      local_commits
+        %>% dplyr::select(commit, file, approved),
+        issues, by = c("commit", "file")
+      ) %>%
+        mutate(approved = coalesce(approved.y, approved.x)) %>%
+        select(commit, file, milestone_name, approved)
 
     shiny::observeEvent(input$selected_milestones, {
       selected_milestones <- input$selected_milestones
       if (length(selected_milestones) <= 1) return()
 
-      info(.le$logger, glue::glue("Checking for duplicate files across milestones: {paste(selected_milestones, collapse = ', ')}"))
+      debug(.le$logger, glue::glue("Checking for duplicate files across milestones: {paste(selected_milestones, collapse = ', ')}"))
       subset_issues <- issues_df |>
         dplyr::filter(.data$milestone_name %in% selected_milestones)
 
@@ -218,6 +214,16 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     shiny::observeEvent(
       c(input$selected_milestones, selected_files(), input$include_open_issues, input$include_relevant_files),
       {
+
+        # Log include open issues checkbox changes
+        if (!is.null(input$include_open_issues)) {
+          debug(.le$logger, glue::glue("Include Open Issues: {input$include_open_issues}"))
+        }
+
+        # Log include relevant files checkbox changes
+        if (!is.null(input$include_relevant_files)) {
+          debug(.le$logger, glue::glue("Include Relevant Files: {input$include_relevant_files}"))
+        }
         issue_files <- issues_df |>
           dplyr::filter(milestone_name %in% input$selected_milestones)
 
@@ -313,6 +319,13 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         items_to_add <- setdiff(archive_files(), rendered_items())
         items_to_remove <- setdiff(rendered_items(), archive_files())
         rendered_items(archive_files())
+        # Log items being rendered
+        if (length(items_to_add) > 0) {
+          info(.le$logger, glue::glue("Rendering {length(items_to_add)} new items: {paste(items_to_add, collapse = ', ')}"))
+        }
+        if (length(items_to_remove) > 0) {
+          info(.le$logger, glue::glue("Removing {length(items_to_remove)} items from render: {paste(items_to_remove, collapse = ', ')}"))
+        }
         for (item in items_to_remove) {
           if (length(items_to_remove) != 0) {
             milestone_id <- generate_input_id("milestone", item)
@@ -426,8 +439,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                             selected_globals <- input$selected_milestones %||% character(0)
                             matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
 
-                            # CHECK: If the current milestone_input is no longer in selected_milestones, clear it
-                            if (nzchar(milestone_input) && !milestone_input %in% selected_globals) {
+                            # CHECK: If the current milestone_input is no longer in selected_milestones AND
+                            # the item has matching milestones in global selection, clear it
+                            if (nzchar(milestone_input) &&
+                                !milestone_input %in% selected_globals &&
+                                length(matching_milestones) > 0) {
                               # Clear the selectize input and force rerender
                               shiny::updateSelectizeInput(
                                 session,
@@ -438,6 +454,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                               )
                               milestone_input <- ""
                             }
+
                             # Don't rerender if milestone is not changing
 
                             if (length(matching_milestones) != 0 && nzchar(milestone_input)) {
@@ -526,7 +543,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       # Warn if flattening would create basename collisions among the current items
       if (isTRUE(input$flatten) && length(archive_items) >= 2) {
-        info(.le$logger, "Checking for filename conflicts when flattening directory structure")
         flatten_file <- basename(archive_items)
         dup_flatten_file <- unique(flatten_file[duplicated(flatten_file) & !is.na(flatten_file)])
         if (length(dup_flatten_file) > 0) {
@@ -583,14 +599,9 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           commit_id <- generate_input_id("commit", item)
           commit_value <- input[[commit_id]]
 
-          selected_milestones <- input$selected_milestones
-          milestone_branch <- branch_df$branch[branch_df$milestone_name %in% selected_milestones]
-
           if (is.null(commit_value) || !nzchar(commit_value)) {
-            if (length(selected_milestones) == 0 || local_branch %in% milestone_branch) {
-              has_required_error <- TRUE
-              break
-            }
+            has_required_error <- TRUE
+            break
           }
         }
       }
