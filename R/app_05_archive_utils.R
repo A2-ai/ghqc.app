@@ -4,6 +4,7 @@
 #' @importFrom utils zip
 #' @importFrom stringr str_extract
 #' @importFrom glue glue
+#' @importFrom log4r debug info warn error
 NULL
 
 #' Get Local Log
@@ -250,7 +251,7 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
 
     file_commit_info <- commit_df[commit_df$file == item & commit_df$commit == sel_commit, ]
     approved <- if (nrow(file_commit_info) > 0) {
-      file_commit_info$approved[1]
+      any(file_commit_info$approved, na.rm = TRUE)
     } else {
       FALSE
     }
@@ -374,6 +375,3 @@ archive_selected_items <- function(input,
   showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
   invisible(zip_file_abs)
 }
-
-
-

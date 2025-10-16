@@ -1,4 +1,4 @@
-#' @import shiny#' @import shiny
+#' @import shiny
 #' @importFrom shinyvalidate InputValidator sv_required
 #' @importFrom dplyr filter pull select distinct mutate transmute
 #' @importFrom tidyr separate_rows
@@ -42,9 +42,12 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
 
   moduleServer(id, function(input, output, session) {
+    info(.le$logger, "Archive server module initialized")
+
     reset_triggered <- reactiveVal(FALSE)
     session$onSessionEnded(function() {
       if (!isTRUE(isolate(reset_triggered()))) {
+        info(.le$logger, "Session ended - stopping app")
         stopApp()
       }
     })
@@ -119,8 +122,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Panel Setup End
 
     # Collect Issues and Commits
+    info(.le$logger, "Starting to collect issues and commits from repository")
     issues_df <- get_all_issues_in_repo() |>
       purrr::map_dfr(function(issue) {
+        debug(.le$logger, glue::glue("Processing issue #{issue$number}: {issue$title}"))
         qc_result <- get_qc_approval_or_latest(issue)
         issue_branch <- get_branch_from_issue_body(issue$body)
         relevant_files <- get_relevant_files(issue, issue$milestone$title) |>
@@ -144,7 +149,9 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       dplyr::distinct(milestone_name, issue_branch) |>
       dplyr::mutate(branch = issue_branch)
 
+    info(.le$logger, "Retrieving local commit log")
     local_commits <- get_local_log()
+    info(.le$logger, glue::glue("Retrieved {nrow(local_commits)} local commits"))
 
     issues <- issues_df %>%
       transmute(
@@ -169,6 +176,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       selected_milestones <- input$selected_milestones
       if (length(selected_milestones) <= 1) return()
 
+      info(.le$logger, glue::glue("Checking for duplicate files across milestones: {paste(selected_milestones, collapse = ', ')}"))
       subset_issues <- issues_df |>
         dplyr::filter(.data$milestone_name %in% selected_milestones)
 
@@ -179,6 +187,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       if (length(dup_titles) == 0) return()
 
+      warn(.le$logger, glue::glue("Duplicate files found across milestones: {paste(dup_titles, collapse = ', ')}"))
       shiny::showModal(
         shiny::modalDialog(
           title = shiny::tags$div(
@@ -328,7 +337,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
         if (length(items_to_add) != 0) {
           for (item in items_to_add) {
-            browser()
             shiny::insertUI(
               selector = paste0("#", session$ns("grid_container")),
               where = "beforeEnd",
@@ -509,6 +517,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     )
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
+      info(.le$logger, "Create archive button clicked - starting archive creation process")
+
       # pull from reactive and clean to a character vector
       items_raw <- archive_files() %||% character(0)
       archive_items <- as.character(unlist(items_raw, use.names = FALSE))
@@ -516,9 +526,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       # Warn if flattening would create basename collisions among the current items
       if (isTRUE(input$flatten) && length(archive_items) >= 2) {
+        info(.le$logger, "Checking for filename conflicts when flattening directory structure")
         flatten_file <- basename(archive_items)
         dup_flatten_file <- unique(flatten_file[duplicated(flatten_file) & !is.na(flatten_file)])
         if (length(dup_flatten_file) > 0) {
+          warn(.le$logger, glue::glue("Filename conflicts detected when flattening: {paste(dup_flatten_file, collapse = ', ')}"))
           groups <- lapply(dup_flatten_file, function(nm) {
             paths <- archive_items[!is.na(flatten_file) & flatten_file == nm]
             tagList(
@@ -543,6 +555,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       # Use the archive name from the input field (validator ensures it's not empty)
       archive_name <- trimws(input$archive_name)
+      info(.le$logger, glue::glue("Creating archive: {archive_name}"))
 
       archive_selected_items(
         input         = input,
