@@ -114,10 +114,11 @@ get_local_commits <- function() {
   return(local_commit_log$commit)
 }
 
-get_remote_commits <- function(current_branch, remote_name =.le$remote_name ) {
-  remote_log_output <- system(glue::glue("git log {remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
+get_remote_commits <- function(current_branch) {
+  remote_log_output <- system(glue::glue("git log {.le$remote_name}/{current_branch} --pretty=format:'%H|%an|%ae|%ad|%s'  --date=format:'%Y-%m-%d %H:%M:%S'"), , intern = TRUE)
   remote_commit_log <- parse_commit_log(remote_log_output)
   debug(.le$logger, glue::glue("Retrieved remote commit log"))
+
   return(remote_commit_log$commit)
 }
 

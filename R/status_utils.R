@@ -12,6 +12,7 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
             commit_range,
             "--",
             file)
+
   log_output <- tryCatch({
     result <- system2("git", args = args, stdout = TRUE, stderr = TRUE)
     status <- attr(result, "status")
@@ -33,6 +34,7 @@ last_commit_that_changed_file_after_latest_qc_commit <- function(file, latest_qc
     commit_time = commit_time
   ))
 }
+
 get_action_column <- function(qc_status, diagnostics, git_status, latest_qc_commit, comparator_commit, initial_qc_commit) {
   # The order in which buttons are added is important to influence user behavior
   # e.g. Notifying file changes is more important than reposting the last qc commit

@@ -186,14 +186,14 @@ get_qc_approval_or_latest <- function(issue) {
       next
     }
 
-    approved_qc_commit <- comment_metadata$`approved qc commit`
-    if (!is.null(approved_qc_commit)) {
+    approved_commit <- comment_metadata$`approved qc commit`
+    if (!is.null(approved_commit)) {
       if (!unapproved) {
-        return(list(commit = approved_qc_commit, approved = TRUE))
+        return(list(commit = approved_commit, approved = TRUE))
       }
       # treat approved qc commit as normal notification if previously unapproved
       if (is.null(commit_candidate)) {
-        commit_candidate <- approved_qc_commit
+        commit_candidate <- approved_commit
         approved <- FALSE
       }
     }
