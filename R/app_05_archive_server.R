@@ -252,11 +252,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         select(commit, file, milestone_name, approved)
     })
 
+    # Reactive to track if archive files are being updated (prevents UI triggers)
+    milestone_file_dups <- shiny::reactiveVal(FALSE)
 
     # Duplicate checker for milestone selection changes - handles duplicates from milestone conflicts
-    shiny::observeEvent(input$selected_milestones, {
+    shiny::observeEvent(c(input$selected_milestones, archive_files()), {
       selected_milestones <- input$selected_milestones
-      if (length(selected_milestones) <= 1) return()
+      if (length(selected_milestones) <= 1){     milestone_file_dups(FALSE)
+        return()
+        }
+
+
 
       debug(.le$logger, glue::glue("Checking for duplicate files across milestones: {paste(selected_milestones, collapse = ', ')}"))
       subset_issues <- issues_df() |>
@@ -267,10 +273,12 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         (\(x) x[!is.na(x) & nzchar(x)])()
       dup_titles <- unique(dup_titles[duplicated(dup_titles)])
 
-      if (length(dup_titles) == 0) return()
+      if (length(dup_titles) == 0) {
+        milestone_file_dups(FALSE)
+        return()
+      }
 
       warn(.le$logger, glue::glue("Duplicate files found across milestones: {paste(dup_titles, collapse = ', ')}"))
-
 
       shiny::showModal(
         shiny::modalDialog(
@@ -294,6 +302,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         "selected_milestones",
         selected = selected_milestones[-length(selected_milestones)]
       )
+
+      milestone_file_dups(TRUE)
     })
 
     # Duplicate checker for open issues checkbox - only uncheck if open issues INTRODUCES new duplicates
@@ -367,7 +377,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     shiny::observeEvent(
       c(input$selected_milestones, selected_files(), input$include_open_issues, input$include_relevant_files),
       {
-
         # Log include open issues checkbox changes
         if (!is.null(input$include_open_issues)) {
           debug(.le$logger, glue::glue("Include Open Issues: {input$include_open_issues}"))
@@ -472,6 +481,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     shiny::observeEvent(
       archive_files(),
       {
+        # Require milestone_file_dups to be FALSE to proceed
         items_to_add <- setdiff(archive_files(), rendered_items())
         items_to_remove <- setdiff(rendered_items(), archive_files())
 
@@ -604,13 +614,16 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       },
       ignoreInit = TRUE
     )
-    shiny::observeEvent(c(rendered_items(), input$selected_milestones, input$include_open_issues),
+    shiny::observeEvent(c(rendered_items(), input$selected_milestones, input$include_open_issues, milestone_file_dups()),
                         {
+                          # Require milestone_file_dups to be FALSE to proceed
+                          req(!milestone_file_dups())
                           for (item in rendered_items()) {
                             milestone_input <- input[[generate_input_id("milestone", item)]] %||% ""
                             selected_globals <- input$selected_milestones %||% character(0)
 
                             # FIRST: Check if we need to clear invalid selections
+                            # Skip clearing manual selections - let users keep their non-matching milestone choices
                             if (nzchar(milestone_input)) {
                               file_commits_df <- commit_df() |> dplyr::filter(.data$file == item)
                               milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
@@ -902,4 +915,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
 
