@@ -622,8 +622,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                             milestone_input <- input[[generate_input_id("milestone", item)]] %||% ""
                             selected_globals <- input$selected_milestones %||% character(0)
 
-                            # FIRST: Check if we need to clear invalid selections
-                            # Skip clearing manual selections - let users keep their non-matching milestone choices
+                          # Check if we need to clear invalid selections
                             if (nzchar(milestone_input)) {
                               file_commits_df <- commit_df() |> dplyr::filter(.data$file == item)
                               milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
@@ -664,8 +663,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                               milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
                               matching_milestones <- selected_globals[selected_globals %in% milestone_choices]
 
-                              # Always update milestone choices when include_open_issues changes for ALL items
-                              # Use immediate update instead of onFlushed to ensure all items get updated
                               shiny::updateSelectizeInput(
                                 session,
                                 inputId = generate_input_id("milestone", item),
