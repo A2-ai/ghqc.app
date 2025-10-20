@@ -211,6 +211,67 @@ get_qc_approval_or_latest <- function(issue) {
     list(commit = commit_candidate, approved = approved)
   }
 }
+#' Get Closed Issues in Repository
+#'
+#' Fetches only closed issues from the repository for faster loading.
+#'
+#' @return List of closed issues from the repository
+#' @noRd
+get_closed_issues_in_repo <- function() {
+  debug(.le$logger, glue::glue("Retrieving closed Issue(s) from repo: {.le$repo}..."))
+
+  closed_issues <- list()
+  page <- 1
+
+  repeat {
+    res <- gh::gh("GET /repos/:org/:repo/issues",
+                  .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
+                  state = "closed",
+                  per_page = 100,
+                  page = page)
+
+    if (length(res) == 0) break
+    closed_issues <- c(closed_issues, res)
+    page <- page + 1
+  }
+
+  issues <- get_only_ghqc_issues(closed_issues)
+  info(.le$logger, glue::glue("Retrieved {length(issues)} closed Issue(s) from repo: {.le$repo}"))
+  return(issues)
+}
+
+#' Get Open Issues in Repository
+#'
+#' Fetches only open issues from the repository for lazy loading.
+#'
+#' @return List of open issues from the repository
+#' @noRd
+get_open_issues_in_repo <- function() {
+  debug(.le$logger, glue::glue("Retrieving open Issue(s) from repo: {.le$repo}..."))
+
+  open_issues <- list()
+  page <- 1
+
+  repeat {
+    res <- gh::gh("GET /repos/:org/:repo/issues",
+                  .api_url = .le$github_api_url,
+                  org = .le$org,
+                  repo = .le$repo,
+                  state = "open",
+                  per_page = 100,
+                  page = page)
+
+    if (length(res) == 0) break
+    open_issues <- c(open_issues, res)
+    page <- page + 1
+  }
+
+  issues <- get_only_ghqc_issues(open_issues)
+  info(.le$logger, glue::glue("Retrieved {length(issues)} open Issue(s) from repo: {.le$repo}"))
+  return(issues)
+}
 
 #' Generate Archive Metadata JSON
 #'
@@ -328,7 +389,10 @@ archive_selected_items <- function(input,
     sel_commit      <- input[[commit_input_id]]
     if (is.null(sel_commit) || identical(sel_commit, "")) next
 
-    script_contents <- get_script_contents(item, sel_commit)
+    script_contents <- get_script_contents(item, reference = sel_commit, comparator = sel_commit)
+
+    # Extract the script content (both reference and comparator should be the same since we used the same commit)
+    script_lines <- script_contents$reference_script
 
     rel_path <- if (isTRUE(flatten)) {
       paste0(top_dir, basename(item))
@@ -338,7 +402,7 @@ archive_selected_items <- function(input,
 
     abs_path <- file.path(stage_dir, rel_path)
     dir.create(dirname(abs_path), recursive = TRUE, showWarnings = FALSE)
-    writeLines(script_contents, abs_path, useBytes = TRUE)
+    writeLines(script_lines, abs_path, useBytes = TRUE)
 
     rel_files <- c(rel_files, gsub("\\\\", "/", rel_path))
   }
@@ -377,66 +441,3 @@ archive_selected_items <- function(input,
   showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
   invisible(zip_file_abs)
 }
-
-#' Get Closed Issues in Repository
-#'
-#' Fetches only closed issues from the repository for faster loading.
-#'
-#' @return List of closed issues from the repository
-#' @noRd
-get_closed_issues_in_repo <- function() {
-  debug(.le$logger, glue::glue("Retrieving closed Issue(s) from repo: {.le$repo}..."))
-
-  closed_issues <- list()
-  page <- 1
-
-  repeat {
-    res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
-                  state = "closed",
-                  per_page = 100,
-                  page = page)
-
-    if (length(res) == 0) break
-    closed_issues <- c(closed_issues, res)
-    page <- page + 1
-  }
-
-  issues <- get_only_ghqc_issues(closed_issues)
-  info(.le$logger, glue::glue("Retrieved {length(issues)} closed Issue(s) from repo: {.le$repo}"))
-  return(issues)
-}
-
-#' Get Open Issues in Repository
-#'
-#' Fetches only open issues from the repository for lazy loading.
-#'
-#' @return List of open issues from the repository
-#' @noRd
-get_open_issues_in_repo <- function() {
-  debug(.le$logger, glue::glue("Retrieving open Issue(s) from repo: {.le$repo}..."))
-
-  open_issues <- list()
-  page <- 1
-
-  repeat {
-    res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
-                  state = "open",
-                  per_page = 100,
-                  page = page)
-
-    if (length(res) == 0) break
-    open_issues <- c(open_issues, res)
-    page <- page + 1
-  }
-
-  issues <- get_only_ghqc_issues(open_issues)
-  info(.le$logger, glue::glue("Retrieved {length(issues)} open Issue(s) from repo: {.le$repo}"))
-  return(issues)
-}
-
