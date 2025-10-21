@@ -8,6 +8,7 @@ archive_selected_items(
   input,
   session,
   archive_name,
+  root_dir,
   flatten = FALSE,
   archive_items = character(0),
   commit_df = NULL
@@ -19,6 +20,9 @@ archive_selected_items(
 \item{session}{Shiny session object for accessing namespaced inputs and notifications.}
 
 \item{archive_name}{Character string. The desired name/path for the archive file.}
+
+\item{root_dir}{Character string. The root directory path to use as the base for
+relative archive paths and working directory operations.}
 
 \item{flatten}{Logical. If TRUE, removes directory structure and places all files
 in the root of the archive. Default is FALSE.}

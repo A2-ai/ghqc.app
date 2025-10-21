@@ -311,10 +311,10 @@ get_open_issues_in_repo <- function() {
 #'
 #' @noRd
 generate_archive_metadata <- function(
-  input,
-  archive_items,
-  commit_df,
-  flatten = FALSE
+    input,
+    archive_items,
+    commit_df,
+    flatten = FALSE
 ) {
   creator <- tryCatch(
     {
@@ -392,6 +392,8 @@ generate_archive_metadata <- function(
 #' @param input Reactive input object from Shiny session containing user selections.
 #' @param session Shiny session object for accessing namespaced inputs and notifications.
 #' @param archive_name Character string. The desired name/path for the archive file.
+#' @param root_dir Character string. The root directory path to use as the base for
+#'   relative archive paths and working directory operations.
 #' @param flatten Logical. If TRUE, removes directory structure and places all files
 #'   in the root of the archive. Default is FALSE.
 #' @param archive_items Character vector. File paths to be included in the archive.
@@ -402,12 +404,13 @@ generate_archive_metadata <- function(
 #' @return Character string (invisible). The absolute path to the created ZIP file,
 #'   or NULL if no files were archived.
 archive_selected_items <- function(
-  input,
-  session,
-  archive_name,
-  flatten = FALSE,
-  archive_items = character(0),
-  commit_df = NULL
+    input,
+    session,
+    archive_name,
+    root_dir,
+    flatten = FALSE,
+    archive_items = character(0),
+    commit_df = NULL
 ) {
   archive_items <- unique(c(archive_items))
   archive_items <- archive_items[nzchar(archive_items)]
@@ -467,12 +470,12 @@ archive_selected_items <- function(
     return(invisible(NULL))
   }
 
-  owd <- getwd()
+  owd <- root_dir
   zip_file_abs <- normalizePath(
     if (grepl("^(?:/|[A-Za-z]:)", archive_name)) {
       archive_name
     } else {
-      file.path(owd, archive_name)
+      file.path(root_dir, archive_name)
     },
     mustWork = FALSE
   )
