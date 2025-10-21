@@ -40,7 +40,11 @@ Imports:
     gitcreds (>= 0.1.2),
     shinyvalidate,
     xml2,
-    DT
+    DT,
+    htmltools,
+    tibble,
+    tidyr,
+    jsonlite
 Suggests: 
     testthat (>= 3.0.0),
     httptest,

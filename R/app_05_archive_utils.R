@@ -361,7 +361,9 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
 #'   in the root of the archive. Default is FALSE.
 #' @param archive_items Character vector. File paths to be included in the archive.
 #'   Default is empty character vector.
-#'
+#' @param commit_df Data frame containing commit information with columns:
+#'   commit, file, and approved status. Used for generating archive metadata.
+#'   Default is NULL.
 #' @return Character string (invisible). The absolute path to the created ZIP file,
 #'   or NULL if no files were archived.
 archive_selected_items <- function(input,

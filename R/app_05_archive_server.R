@@ -260,7 +260,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       selected_milestones <- input$selected_milestones
       if (length(selected_milestones) <= 1){     milestone_file_dups(FALSE)
         return()
-        }
+      }
 
 
 
@@ -622,7 +622,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                             milestone_input <- input[[generate_input_id("milestone", item)]] %||% ""
                             selected_globals <- input$selected_milestones %||% character(0)
 
-                          # Check if we need to clear invalid selections
+                            # Check if we need to clear invalid selections
                             if (nzchar(milestone_input)) {
                               file_commits_df <- commit_df() |> dplyr::filter(.data$file == item)
                               milestone_choices <- file_commits_df$milestone_name |> Filter(f = Negate(is.na))
@@ -830,7 +830,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             groups <- lapply(dup_flatten_file, function(nm) {
               paths <- unique_archive_items[!is.na(basename(unique_archive_items)) & basename(unique_archive_items) == nm]
               tagList(
-                lapply(paths, function(p) tagList("• ", tags$code(p), tags$br())),
+                lapply(paths, function(p) tagList("\u2022", tags$code(p), tags$br())),
                 tags$br()
               )
             })
@@ -912,6 +912,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
 
 
 

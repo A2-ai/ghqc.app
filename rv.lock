@@ -438,7 +438,7 @@ dependencies = [
 
 [[packages]]
 name = "ghqc.app"
-version = "0.7.1"
+version = "0.8.0.9000"
 source = { path = "." }
 force_source = true
 dependencies = [
