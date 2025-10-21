@@ -307,8 +307,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Reactive to track if archive files are being updated (prevents UI triggers)
     milestone_file_dups <- shiny::reactiveVal(FALSE)
 
+    # Reactive to track if open issues handler has dealt with duplicates
+    open_issues_handled_dups <- shiny::reactiveVal(FALSE)
+
     # Duplicate checker for milestone selection changes - handles duplicates from milestone conflicts
-    shiny::observeEvent(c(input$selected_milestones, archive_files()), {
+    shiny::observeEvent(c(input$selected_milestones, archive_files(), input$include_open_issues), {
+      # Don't proceed if open issues handler has already dealt with duplicates
+      if (open_issues_handled_dups()) {
+        milestone_file_dups(FALSE)
+        return()
+      }
+
       selected_milestones <- input$selected_milestones
       if (length(selected_milestones) <= 1) {
         milestone_file_dups(FALSE)
@@ -456,6 +465,9 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           )
         )
 
+        # Set flag to prevent milestone handler from also acting
+        open_issues_handled_dups(TRUE)
+
         shiny::showModal(
           shiny::modalDialog(
             title = shiny::tags$div(
@@ -482,6 +494,11 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           "include_open_issues",
           value = FALSE
         )
+
+        # Reset flag after a brief delay to allow milestone handler to see it
+        shiny::observe({
+          open_issues_handled_dups(FALSE)
+        })
       },
       ignoreInit = TRUE
     )
@@ -1153,4 +1170,9 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
+
+
+
 
