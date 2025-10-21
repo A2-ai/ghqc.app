@@ -109,11 +109,11 @@ get_local_log <- function() {
 #' @noRd
 create_single_item_ui <- function(name, ns) {
   milestone_raw <- generate_input_id("milestone", name)
-  commit_raw    <- generate_input_id("commit", name)
+  commit_raw <- generate_input_id("commit", name)
 
   shiny::tags$div(
     id = ns(generate_input_id("item_row", name)),
-    style = "display: contents;",  # children participate in parent grid
+    style = "display: contents;", # children participate in parent grid
 
     # Files cell
     shiny::tags$div(
@@ -123,25 +123,26 @@ create_single_item_ui <- function(name, ns) {
     ),
 
     shiny::selectizeInput(
-      inputId  = ns(milestone_raw),
-      label    = NULL,
-      choices  = character(0),
+      inputId = ns(milestone_raw),
+      label = NULL,
+      choices = character(0),
       multiple = FALSE,
-      width    = "100%",
-      options  = list(
+      width = "100%",
+      options = list(
         closeAfterSelect = TRUE,
-        placeholder      = "Select a milestone (optional)"
+        placeholder = "Select a milestone (optional)"
       )
     ),
 
     shiny::selectizeInput(
       inputId = ns(commit_raw),
-      label   = NULL,
+      label = NULL,
       choices = character(0),
       multiple = FALSE,
       width = "100%",
-      options = list(closeAfterSelect = TRUE,
-                     placeholder      = "Select a commit (required)"
+      options = list(
+        closeAfterSelect = TRUE,
+        placeholder = "Select a commit (required)"
       )
     )
   )
@@ -218,27 +219,39 @@ get_qc_approval_or_latest <- function(issue) {
 #' @return List of closed issues from the repository
 #' @noRd
 get_closed_issues_in_repo <- function() {
-  debug(.le$logger, glue::glue("Retrieving closed Issue(s) from repo: {.le$repo}..."))
+  debug(
+    .le$logger,
+    glue::glue("Retrieving closed Issue(s) from repo: {.le$repo}...")
+  )
 
   closed_issues <- list()
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
-                  state = "closed",
-                  per_page = 100,
-                  page = page)
+    res <- gh::gh(
+      "GET /repos/:org/:repo/issues",
+      .api_url = .le$github_api_url,
+      org = .le$org,
+      repo = .le$repo,
+      state = "closed",
+      per_page = 100,
+      page = page
+    )
 
-    if (length(res) == 0) break
+    if (length(res) == 0) {
+      break
+    }
     closed_issues <- c(closed_issues, res)
     page <- page + 1
   }
 
   issues <- get_only_ghqc_issues(closed_issues)
-  info(.le$logger, glue::glue("Retrieved {length(issues)} closed Issue(s) from repo: {.le$repo}"))
+  info(
+    .le$logger,
+    glue::glue(
+      "Retrieved {length(issues)} closed Issue(s) from repo: {.le$repo}"
+    )
+  )
   return(issues)
 }
 
@@ -249,27 +262,37 @@ get_closed_issues_in_repo <- function() {
 #' @return List of open issues from the repository
 #' @noRd
 get_open_issues_in_repo <- function() {
-  debug(.le$logger, glue::glue("Retrieving open Issue(s) from repo: {.le$repo}..."))
+  debug(
+    .le$logger,
+    glue::glue("Retrieving open Issue(s) from repo: {.le$repo}...")
+  )
 
   open_issues <- list()
   page <- 1
 
   repeat {
-    res <- gh::gh("GET /repos/:org/:repo/issues",
-                  .api_url = .le$github_api_url,
-                  org = .le$org,
-                  repo = .le$repo,
-                  state = "open",
-                  per_page = 100,
-                  page = page)
+    res <- gh::gh(
+      "GET /repos/:org/:repo/issues",
+      .api_url = .le$github_api_url,
+      org = .le$org,
+      repo = .le$repo,
+      state = "open",
+      per_page = 100,
+      page = page
+    )
 
-    if (length(res) == 0) break
+    if (length(res) == 0) {
+      break
+    }
     open_issues <- c(open_issues, res)
     page <- page + 1
   }
 
   issues <- get_only_ghqc_issues(open_issues)
-  info(.le$logger, glue::glue("Retrieved {length(issues)} open Issue(s) from repo: {.le$repo}"))
+  info(
+    .le$logger,
+    glue::glue("Retrieved {length(issues)} open Issue(s) from repo: {.le$repo}")
+  )
   return(issues)
 }
 
@@ -287,16 +310,22 @@ get_open_issues_in_repo <- function() {
 #' @return Character string containing the JSON metadata.
 #'
 #' @noRd
-generate_archive_metadata <- function(input, archive_items, commit_df, flatten = FALSE) {
-
-  creator <- tryCatch({
-    get_user()
-  }, error = function(e) {
-    "unknown"
-  })
+generate_archive_metadata <- function(
+  input,
+  archive_items,
+  commit_df,
+  flatten = FALSE
+) {
+  creator <- tryCatch(
+    {
+      get_user()
+    },
+    error = function(e) {
+      "unknown"
+    }
+  )
 
   created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-
 
   files_metadata <- list()
 
@@ -307,10 +336,13 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
     sel_commit <- input[[commit_input_id]]
     sel_milestone <- input[[milestone_input_id]]
 
+    if (is.null(sel_commit) || identical(sel_commit, "")) {
+      next
+    }
 
-    if (is.null(sel_commit) || identical(sel_commit, "")) next
-
-    file_commit_info <- commit_df[commit_df$file == item & commit_df$commit == sel_commit, ]
+    file_commit_info <- commit_df[
+      commit_df$file == item & commit_df$commit == sel_commit,
+    ]
     approved <- if (is.null(sel_milestone) || sel_milestone == "") {
       "null"
     } else if (nrow(file_commit_info) > 0) {
@@ -318,7 +350,6 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
     } else {
       FALSE
     }
-
 
     archive_file <- if (isTRUE(flatten)) {
       basename(item)
@@ -330,7 +361,11 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
       archive_file = archive_file,
       repository_file = gsub("\\\\", "/", item),
       commit = sel_commit,
-      milestone = if (is.null(sel_milestone) || sel_milestone == "") NULL else sel_milestone,
+      milestone = if (is.null(sel_milestone) || sel_milestone == "") {
+        NULL
+      } else {
+        sel_milestone
+      },
       approved = approved
     )
 
@@ -366,15 +401,14 @@ generate_archive_metadata <- function(input, archive_items, commit_df, flatten =
 #'   Default is NULL.
 #' @return Character string (invisible). The absolute path to the created ZIP file,
 #'   or NULL if no files were archived.
-archive_selected_items <- function(input,
-                                   session,
-                                   archive_name,
-                                   flatten = FALSE,
-                                   archive_items = character(0),
-                                   commit_df = NULL
+archive_selected_items <- function(
+  input,
+  session,
+  archive_name,
+  flatten = FALSE,
+  archive_items = character(0),
+  commit_df = NULL
 ) {
-
-
   archive_items <- unique(c(archive_items))
   archive_items <- archive_items[nzchar(archive_items)]
 
@@ -384,14 +418,20 @@ archive_selected_items <- function(input,
   rel_files <- character(0)
 
   zip_stem <- tools::file_path_sans_ext(basename(archive_name))
-  top_dir  <- paste0(zip_stem, "/")
+  top_dir <- paste0(zip_stem, "/")
 
   for (item in archive_items) {
     commit_input_id <- generate_input_id("commit", item)
-    sel_commit      <- input[[commit_input_id]]
-    if (is.null(sel_commit) || identical(sel_commit, "")) next
+    sel_commit <- input[[commit_input_id]]
+    if (is.null(sel_commit) || identical(sel_commit, "")) {
+      next
+    }
 
-    script_contents <- get_script_contents(item, reference = sel_commit, comparator = sel_commit)
+    script_contents <- get_script_contents(
+      item,
+      reference = sel_commit,
+      comparator = sel_commit
+    )
 
     # Extract the script content (both reference and comparator should be the same since we used the same commit)
     script_lines <- script_contents$reference_script
@@ -410,7 +450,12 @@ archive_selected_items <- function(input,
   }
 
   # Generate and add metadata JSON file
-  metadata_json <- generate_archive_metadata(input, archive_items, commit_df, flatten)
+  metadata_json <- generate_archive_metadata(
+    input,
+    archive_items,
+    commit_df,
+    flatten
+  )
   metadata_path <- paste0(top_dir, "ghqc_archive_metadata.json")
   metadata_abs_path <- file.path(stage_dir, metadata_path)
   writeLines(metadata_json, metadata_abs_path, useBytes = TRUE)
@@ -424,14 +469,21 @@ archive_selected_items <- function(input,
 
   owd <- getwd()
   zip_file_abs <- normalizePath(
-    if (grepl("^(?:/|[A-Za-z]:)", archive_name)) archive_name else file.path(owd, archive_name),
+    if (grepl("^(?:/|[A-Za-z]:)", archive_name)) {
+      archive_name
+    } else {
+      file.path(owd, archive_name)
+    },
     mustWork = FALSE
   )
 
-
   out_dir <- dirname(zip_file_abs)
-  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  if (file.exists(zip_file_abs)) unlink(zip_file_abs, force = TRUE)
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  if (file.exists(zip_file_abs)) {
+    unlink(zip_file_abs, force = TRUE)
+  }
 
   on.exit(setwd(owd), add = TRUE)
   setwd(stage_dir)
@@ -440,6 +492,9 @@ archive_selected_items <- function(input,
 
   setwd(owd)
   unlink(stage_dir, recursive = TRUE, force = TRUE)
-  showNotification(paste("Archived and zipped to:", zip_file_abs), type = "message")
+  showNotification(
+    paste("Archived and zipped to:", zip_file_abs),
+    type = "message"
+  )
   invisible(zip_file_abs)
 }
