@@ -1,3 +1,14 @@
+#' @title Archive Files
+#'
+#' @description
+#' This function starts a Shiny application for archiving files.
+#'
+#' @return Starts a Shiny app and does not return any value.
+#' @import shiny
+#' @importFrom gert git_branch
+#' @importFrom purrr map_dfr
+#' @importFrom tibble tibble
+#' @export
 ghqc_archive_app <- function() {
   if (!exists("config_repo_path", .le)) {
     ghqc_set_config_repo()
