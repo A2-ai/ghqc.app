@@ -508,6 +508,59 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     previously_warned_duplicates <- shiny::reactiveVal()
     archive_files <- shiny::reactiveVal()
 
+    # Reactive value that tracks any changes on the right side of the archive app
+    right_side_changes <- shiny::reactive({
+      # Track files (left column of right side)
+      files_state <- archive_files()
+
+      # Track all milestone and commit selections for rendered items
+      current_items <- rendered_items()
+      selections_state <- list()
+
+      if (length(current_items) > 0) {
+        for (item in current_items) {
+          milestone_id <- generate_input_id("milestone", item)
+          commit_id <- generate_input_id("commit", item)
+
+          selections_state[[paste0("milestone_", item)]] <- input[[milestone_id]]
+          selections_state[[paste0("commit_", item)]] <- input[[commit_id]]
+        }
+      }
+
+      # Create a comprehensive state object that captures all right side changes
+      list(
+        files = files_state,
+        selections = selections_state,
+        rendered_items = current_items,
+        timestamp = Sys.time()
+      )
+    })
+
+    # Track waiter state to prevent multiple shows/hides
+    waiter_active <- reactiveVal(FALSE)
+
+    # Debounced reactive to detect when changes have stopped
+    right_side_stable <- shiny::debounce(right_side_changes, 300)
+
+    # Show waiter when right side starts changing (only if not already active)
+    shiny::observeEvent(right_side_changes(), {
+      if (!waiter_active()) {
+        # Hide the grid while waiting
+        shinyjs::hide("grid_container")
+        w_load_items$show()
+        waiter_active(TRUE)
+      }
+    }, ignoreInit = TRUE)
+
+    # Hide waiter only when changes have completely stopped and stabilized
+    shiny::observeEvent(right_side_stable(), {
+      if (waiter_active()) {
+        w_load_items$hide()
+        shinyjs::show("grid_container")
+        waiter_active(FALSE)
+      }
+    }, ignoreInit = TRUE)
+
     shiny::observeEvent(
       c(
         input$selected_milestones,
@@ -604,8 +657,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     )
 
     output$main_panel_dynamic <- renderUI({
-      # Show waiter initially to handle blank screen during initial load
-      w_load_items$show()
       session$sendCustomMessage("adjust_grid", id)
 
       shiny::tagList(
@@ -622,6 +673,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
     rendered_items <- shiny::reactiveVal(character(0))
 
+    # Timer for waiter after items change
+
     shiny::observeEvent(
       archive_files(),
       {
@@ -631,8 +684,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
         # Log items being rendered
         if (length(items_to_add) > 0) {
-          # Show waiter at the start of the entire process
-          w_load_items$show()
           info(
             .le$logger,
             glue::glue(
@@ -684,8 +735,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             where = "beforeEnd",
             ui = create_single_item_ui(item, session$ns)
           )
-          # Ensure grid container stays visible after insertUI
-          shinyjs::show("grid_container")
 
           local({
             this_item <- item
@@ -997,64 +1046,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       ignoreInit = FALSE
     )
 
-    observe({
-      current_items <- rendered_items()
-      if (length(current_items) == 0) {
-        shinyjs::show("grid_container")
-        w_load_items$hide()
-        return()
-      }
-
-      # Check which items have matching milestones that should auto-populate
-      items_needing_auto_population <- c()
-      items_ready <- c()
-
-      for (item in current_items) {
-        file_commits_df <- commit_df() |> dplyr::filter(.data$file == item)
-        milestone_choices <- file_commits_df$milestone_name |>
-          Filter(f = Negate(is.na))
-        selected_globals <- input$selected_milestones %||% character(0)
-        matching_milestones <- selected_globals[
-          selected_globals %in% milestone_choices
-        ]
-
-        milestone_id <- generate_input_id("milestone", item)
-        commit_id <- generate_input_id("commit", item)
-        milestone_value <- input[[milestone_id]]
-        commit_value <- input[[commit_id]]
-
-        if (length(matching_milestones) > 0) {
-          # This item should auto-populate
-          items_needing_auto_population <- c(
-            items_needing_auto_population,
-            item
-          )
-
-          # Check if it's actually populated
-          has_milestone <- !is.null(milestone_value) && nzchar(milestone_value)
-          has_commit <- !is.null(commit_value) && nzchar(commit_value)
-
-          if (has_milestone && has_commit) {
-            items_ready <- c(items_ready, item)
-          }
-        }
-      }
-
-      # Hide waiter only if:
-      # 1. No items need auto-population, OR
-      # 2. All items that need auto-population are ready
-      if (
-        length(items_needing_auto_population) == 0 ||
-        length(items_ready) == length(items_needing_auto_population)
-      ) {
-        w_load_items$hide()
-        # Show grid container when processing is complete
-        shinyjs::show("grid_container")
-      } else {
-        # Hide grid container only when waiter is actively processing milestones
-        shinyjs::hide("grid_container")
-      }
-    })
 
     observeEvent(input$create_archive, ignoreInit = TRUE, {
       info(
@@ -1176,33 +1167,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
