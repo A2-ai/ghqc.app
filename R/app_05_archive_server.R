@@ -311,7 +311,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     open_issues_handled_dups <- shiny::reactiveVal(FALSE)
 
     # Duplicate checker for milestone selection changes - handles duplicates from milestone conflicts
-    shiny::observeEvent(c(input$selected_milestones, archive_files(), input$include_open_issues), {
+    shiny::observeEvent(c(input$selected_milestones,input$include_open_issues), {
       # Don't proceed if open issues handler has already dealt with duplicates
       if (open_issues_handled_dups()) {
         milestone_file_dups(FALSE)
@@ -321,6 +321,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       selected_milestones <- input$selected_milestones
       if (length(selected_milestones) <= 1) {
         milestone_file_dups(FALSE)
+        open_issues_handled_dups(FALSE)
         return()
       }
 
@@ -340,6 +341,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
       if (length(dup_titles) == 0) {
         milestone_file_dups(FALSE)
+        open_issues_handled_dups(FALSE)
         return()
       }
 
@@ -408,11 +410,13 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       input$include_open_issues,
       {
         if (!input$include_open_issues) {
+          open_issues_handled_dups(FALSE)
           return()
         } # Only check when turning ON open issues
 
         selected_milestones <- input$selected_milestones
         if (length(selected_milestones) <= 1) {
+          open_issues_handled_dups(FALSE)
           return()
         }
 
@@ -440,6 +444,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             .le$logger,
             "Duplicates already exist without open issues - letting milestone observer handle it"
           )
+          open_issues_handled_dups(FALSE)
           return()
         }
 
@@ -454,6 +459,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
 
         # If no new duplicates were introduced by open issues, we're done
         if (length(all_dups) == 0) {
+          open_issues_handled_dups(FALSE)
           return()
         }
 
@@ -495,10 +501,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           value = FALSE
         )
 
-        # Reset flag after a brief delay to allow milestone handler to see it
-        shiny::observe({
-          open_issues_handled_dups(FALSE)
-        })
       },
       ignoreInit = TRUE
     )
@@ -801,11 +803,12 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         rendered_items(),
         input$selected_milestones,
         input$include_open_issues,
-        milestone_file_dups()
+        milestone_file_dups(),
+        open_issues_handled_dups()
       ),
       {
-        # Require milestone_file_dups to be FALSE to proceed
-        req(!milestone_file_dups())
+        # Require both milestone_file_dups and open_issues_handled_dups to be FALSE to proceed
+        req(!milestone_file_dups() && !open_issues_handled_dups())
         for (item in rendered_items()) {
           milestone_input <- input[[generate_input_id("milestone", item)]] %||%
             ""
@@ -842,7 +845,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           if (
             length(matching_milestones) > 0 &&
             nzchar(milestone_input) &&
-            milestone_input == matching_milestones[1]
+            milestone_input == matching_milestones[1]&&
+            length(milestone_choices) == 1
           ) {
             next
           }
@@ -878,7 +882,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             if (
               length(matching_milestones) > 0 &&
               nzchar(milestone_input) &&
-              milestone_input == matching_milestones[1]
+              milestone_input == matching_milestones[1] &&
+              length(milestone_choices) == 1
             ) {
               next
             }
@@ -888,7 +893,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           if (
             length(matching_milestones) != 0 &&
             nzchar(milestone_input) &&
-            milestone_input == matching_milestones[1]
+            milestone_input == matching_milestones[1] &&
+            length(milestone_choices) == 1
           ) {
             next
           }
@@ -1170,6 +1176,30 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
