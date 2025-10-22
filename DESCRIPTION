@@ -1,12 +1,13 @@
 Package: ghqc.app
 Title: Create QC Checklists in Github Issues
-Version: 0.7.1
+Version: 0.8.0.9000
 Authors@R: c(
-    person("Jenna", "Johnson", email = "jenna@a2-ai.com", role = c("aut", "cre")),
+    person("Wes", "Cummings", email = "wes@a2-ai.com", role = c("aut", "cre")),
+    person("Jenna", "Johnson", email = "jenna@a2-ai.com", role = c("aut")),
     person("Anne", "Zheng", email = "anne@a2-ai.com", role = c("aut")),
     person("Janelle", "Lennie", email = "janelle.l.lennie@gsk.com", role = c("ctb")),
     person("Devin", "Pastoor", email = "devin@a2-ai.com", role = c("aut")),
-    person("Wes", "Cummings", email = "wes@a2-ai.com", role = c("aut")))
+    person("Andrew", "Acker", email = "andrew@a2-ai.com", role = c("aut")))
 Description: A QC tool with 3 major functions: creation and management of QC log, creation and management of QC record, perform semi-automated QC tasks.
 License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
@@ -39,7 +40,11 @@ Imports:
     gitcreds (>= 0.1.2),
     shinyvalidate,
     xml2,
-    DT
+    DT,
+    htmltools,
+    tibble,
+    tidyr,
+    jsonlite
 Suggests: 
     testthat (>= 3.0.0),
     httptest,
