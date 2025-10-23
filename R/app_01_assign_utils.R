@@ -486,7 +486,7 @@ associate_relevant_files_button_event <- function(input, output, name, ns, root_
       # make paths relative, remove renv, remove selected file itself
       filter_files <- function(dir) {
         all_files <- list.files(dir, full.names = TRUE, recursive = TRUE)
-        filtered_files <- all_files[!grepl("renv", all_files)]
+        filtered_files <- all_files[!grepl("renv|rv", all_files)]
         relative_paths <- fs::path_rel(filtered_files, root_dir)
         files_without_qc_file <- relative_paths[relative_paths != clean_name]
         return(files_without_qc_file)
