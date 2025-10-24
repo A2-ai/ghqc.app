@@ -1,4 +1,4 @@
-# ghqc.app 0.8.1.9001
+# ghqc.app 0.8.1
 
 - fixes initial open issues bug in `ghqc_archive_app()`
 
