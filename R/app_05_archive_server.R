@@ -566,7 +566,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         input$selected_milestones,
         selected_files(),
         input$include_open_issues,
-        input$include_relevant_files
+        input$include_relevant_files,
+        issues_df()
       ),
       {
         # Log include open issues checkbox changes
@@ -586,8 +587,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         }
         issue_files <- issues_df() |>
           dplyr::filter(milestone_name %in% input$selected_milestones)
-
-        if (!input$include_open_issues) {
+        # isTRUE handles null
+        if (!isTRUE(input$include_open_issues)) {
           issue_files <- issue_files |> dplyr::filter(!open)
         }
 
@@ -1167,6 +1168,3 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
-
-
-

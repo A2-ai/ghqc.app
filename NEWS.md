@@ -1,3 +1,12 @@
+# ghqc.app 0.8.1.9001
+
+- fixes initial open issues bug in `ghqc_archive_app()`
+
+# ghqc.app 0.8.0
+
+- introduces `ghqc_archive_app()`
+- fixes performance in `ghqc_assign_app()` relevant files by ignoring rv directory
+
 # ghqc.app 0.7.1
 
 - `ghqc_status_app()`: fixes small bug in which windows style line breaks aren't normalized for parsing the Relevant files section
