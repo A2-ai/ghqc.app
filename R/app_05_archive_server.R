@@ -189,7 +189,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Cache for open issues to avoid refetching
     open_issues_cache <- shiny::reactiveVal(NULL)
 
-
     # Handle loading open issues when checkbox is checked
     shiny::observeEvent(
       input$include_open_issues,
@@ -588,7 +587,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         }
         issue_files <- issues_df() |>
           dplyr::filter(milestone_name %in% input$selected_milestones)
-
+        # isTRUE handles null
         if (!isTRUE(input$include_open_issues)) {
           issue_files <- issue_files |> dplyr::filter(!open)
         }
@@ -1169,7 +1168,3 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
-
-
-
-
