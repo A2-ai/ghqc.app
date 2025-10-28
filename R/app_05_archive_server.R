@@ -560,7 +560,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
         waiter_active(FALSE)
       }
     }, ignoreInit = TRUE)
-
     shiny::observeEvent(
       c(
         input$selected_milestones,
@@ -649,7 +648,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           ),
           paste(
             "The following files are in selected milestones:",
-            paste(duplicated_files, collapse = ", ")
+            paste(duplicated_files, collapse = ", "),
+            ". To avoid conflicts, please uncheck these files."
           ),
           easyClose = TRUE,
           footer = NULL
@@ -892,6 +892,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             selected_globals %in% milestone_choices
           ]
 
+          if (length(matching_milestones) > 0) {
+            milestone_choices <- matching_milestones
+          }
+
           if (
             length(matching_milestones) > 0 &&
             nzchar(milestone_input) &&
@@ -908,6 +912,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             selected_globals %in% milestone_choices
           ]
 
+          if (length(matching_milestones) > 0) {
+            milestone_choices <- matching_milestones
+          }
+
           # Handle include_open_issues toggle - update milestone choices but preserve selection logic
           include_open_issues_changed <- !is.null(input$include_open_issues)
 
@@ -919,6 +927,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             matching_milestones <- selected_globals[
               selected_globals %in% milestone_choices
             ]
+
+            if (length(matching_milestones) > 0) {
+              milestone_choices <- matching_milestones
+            }
 
             shiny::updateSelectizeInput(
               session,
@@ -964,9 +976,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               selected_globals %in% milestone_choices
             ]
 
-            # Duplicate files across milestones already checked
             if (length(matching_milestones) != 0) {
-              # Global milestones take priority - always use the first matching global milestone
+              # Global milestones take priority
               milestone_selected <- matching_milestones[1]
 
               session$onFlushed(
