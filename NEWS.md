@@ -1,5 +1,9 @@
 # ghqc.app 0.8.1
 
+- adds no rerendering for matching milestones with global milestones `ghqc_archive_app()`
+
+# ghqc.app 0.8.1
+
 - fixes initial open issues bug in `ghqc_archive_app()`
 
 # ghqc.app 0.8.0
