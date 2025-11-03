@@ -1036,17 +1036,24 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                   commit_choices <- character(0)
                 }
 
+                # Preserve existing commit selection if it's still valid
+                current_commit_selection <- input[[generate_input_id("commit", this_item)]]
+                new_selection <- if (!is.null(current_commit_selection) &&
+                                     current_commit_selection %in% commit_choices) {
+                  # Keep existing selection if it's still available
+                  current_commit_selection
+                } else if (!(milestone_selection %in% c("")) && length(commit_choices)) {
+                  # Only auto-select first commit if no previous selection exists
+                  commit_choices[[1]]
+                } else {
+                  character(0)
+                }
+
                 shiny::updateSelectizeInput(
                   session,
                   generate_input_id("commit", this_item),
                   choices = commit_choices,
-                  selected = if (
-                    !(milestone_selection %in% c("")) && length(commit_choices)
-                  ) {
-                    commit_choices[[1]]
-                  } else {
-                    character(0)
-                  },
+                  selected = new_selection,
                   server = TRUE
                 )
               },
@@ -1179,3 +1186,5 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
+
