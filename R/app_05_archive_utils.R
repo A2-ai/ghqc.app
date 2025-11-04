@@ -119,7 +119,11 @@ create_single_item_ui <- function(name, ns) {
     shiny::tags$div(
       class = "form-control",
       style = "word-wrap: break-word; white-space: normal; height: auto;",
-      HTML(htmltools::htmlEscape(name))
+      shiny::actionLink(
+        inputId = ns(generate_input_id("preview", name)),
+        label = HTML(htmltools::htmlEscape(name)),
+        style = "color: inherit; text-decoration: none; cursor: pointer;"
+      )
     ),
 
     shiny::selectizeInput(
@@ -295,6 +299,56 @@ get_open_issues_in_repo <- function() {
   )
   return(issues)
 }
+
+#' Show File Preview Modal
+#'
+#' @param file_name Character string. The name/path of the file to preview.
+#' @param commit_hash Character string. The git commit hash to retrieve the file from.
+#' @noRd
+show_file_preview_modal <- function(file_name, commit_hash) {
+  debug(.le$logger, glue::glue("Previewing file: {file_name} at commit: {substr(commit_hash, 1, 7)}"))
+
+  if (is.null(commit_hash) || commit_hash == "") {
+    shiny::showModal(
+      shiny::modalDialog(
+        title = glue::glue("Preview: {basename(file_name)}"),
+        glue::glue("There is no commit please select commit for {basename(file_name)}"),
+        easyClose = TRUE,
+        footer = shiny::modalButton("Close")
+      )
+    )
+    return()
+  }
+
+  # Get file content at specific commit
+  script_contents <- get_script_contents(file_name, reference = commit_hash, comparator = commit_hash)
+  file_content <- script_contents$reference_script
+
+  if (is.null(file_content) || length(file_content) == 0) {
+    preview_content <- ""
+  } else {
+    preview_content <- paste(file_content, collapse = "\n")
+  }
+
+  # Show modal with file preview
+  shiny::showModal(
+    shiny::modalDialog(
+      title = glue::glue("Preview: {basename(file_name)}"),
+      shiny::tags$div(
+        style = "margin-bottom: 10px; font-size: 0.9em; color: #666;",
+        glue::glue("Commit: {substr(commit_hash, 1, 7)}")
+      ),
+      shiny::tags$pre(
+        style = "max-height: 500px; overflow-y: auto; background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; font-family: monospace; font-size: 12px; white-space: pre-wrap;",
+        preview_content
+      ),
+      easyClose = TRUE,
+      footer = shiny::modalButton("Close"),
+      size = "l"
+    )
+  )
+}
+
 
 #' Generate Archive Metadata JSON
 #'

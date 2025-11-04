@@ -805,6 +805,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               }
             )
 
+            # Add preview click handler
+            shiny::observeEvent(
+              input[[generate_input_id("preview", this_item)]],
+              {
+                commit_value <- input[[generate_input_id("commit", this_item)]]
+                show_file_preview_modal(this_item, commit_value)
+              },
+              ignoreInit = TRUE
+            )
+
+
             file_commits_df <- commit_df() |> dplyr::filter(file == this_item)
             session$onFlushed(
               function() {
