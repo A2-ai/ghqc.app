@@ -52,6 +52,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       color = "white"
     )
 
+    w_full_screen <- waiter::Waiter$new(
+      id = NULL,
+      html = shiny::tagList(
+        waiter::spin_2(),
+        shiny::tags$br(),
+        shiny::tags$h4(
+        )
+      ),
+      color = "rgba(255, 255, 255, 0.9)"
+    )
+
     w_open_issues <- waiter::Waiter$new(
       id = NULL, # Full screen waiter
       html = shiny::tagList(
@@ -545,9 +556,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Show waiter when right side starts changing (only if not already active)
     shiny::observeEvent(right_side_changes(), {
       if (!waiter_active()) {
-        # Hide grid content with CSS visibility instead of display
+        # Hide right side content with CSS visibility to preserve scroll
         shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'hidden');"))
-        w_load_items$show()
+        # Show full-screen waiter (grays out everything, spinner in center of screen)
+        w_full_screen$show()
         waiter_active(TRUE)
       }
     }, ignoreInit = TRUE)
@@ -555,8 +567,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Hide waiter only when changes have completely stopped and stabilized
     shiny::observeEvent(right_side_stable(), {
       if (waiter_active()) {
-        w_load_items$hide()
-        # Show grid content with CSS visibility
+        w_full_screen$hide()
+        # Show right side content again
         shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'visible');"))
         waiter_active(FALSE)
       }
@@ -1198,6 +1210,3 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
-
-
-
