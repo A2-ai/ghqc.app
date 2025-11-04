@@ -545,8 +545,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Show waiter when right side starts changing (only if not already active)
     shiny::observeEvent(right_side_changes(), {
       if (!waiter_active()) {
-        # Hide the grid while waiting
-        shinyjs::hide("grid_container")
+        # Hide grid content with CSS visibility instead of display
+        shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'hidden');"))
         w_load_items$show()
         waiter_active(TRUE)
       }
@@ -556,7 +556,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     shiny::observeEvent(right_side_stable(), {
       if (waiter_active()) {
         w_load_items$hide()
-        shinyjs::show("grid_container")
+        # Show grid content with CSS visibility
+        shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'visible');"))
         waiter_active(FALSE)
       }
     }, ignoreInit = TRUE)
@@ -1197,5 +1198,6 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     validator$enable()
   })
 }
+
 
 
