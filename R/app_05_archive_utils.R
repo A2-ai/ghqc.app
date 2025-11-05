@@ -633,7 +633,7 @@ archive_selected_items <- function(
                 shiny::tags$strong("File: "), item, shiny::tags$br(),
                 shiny::tags$strong("Commit: "), substr(sel_commit, 1, 7), shiny::tags$br(),
                 shiny::tags$br(),
-                "The archive creation has been stopped. Please check the file path and commit, then try again."
+                "Binary file was not extracted correctly. The archive creation has been stopped."
               )
             ),
             easyClose = TRUE,
