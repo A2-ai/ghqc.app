@@ -9,7 +9,6 @@
 #' Note: Binary files (PDFs, images, etc.) are included in archives
 #' as their original binary format, not as text content.
 NULL
-
 #' Get Local Log
 #'
 #' parsing function that finds all the commits for each file in the repo
@@ -707,5 +706,3 @@ archive_selected_items <- function(
   )
   invisible(zip_file_abs)
 }
-
-
