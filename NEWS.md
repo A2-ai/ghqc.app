@@ -1,4 +1,4 @@
-0.8.1.9001
+# ghqc.app 0.8.2
 
 - adds no rerendering for individual milestones that match global milestones in `ghqc_archive_app()`
 
