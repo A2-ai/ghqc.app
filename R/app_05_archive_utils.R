@@ -649,7 +649,7 @@ archive_selected_items <- function(
       # Handle text files - write content as lines
       script_lines <- content_result$content
       if (is.null(script_lines) || length(script_lines) == 0) {
-        script_lines <- c("(empty file)")
+        script_lines <- c("")
       }
       writeLines(script_lines, abs_path, useBytes = TRUE)
     }
