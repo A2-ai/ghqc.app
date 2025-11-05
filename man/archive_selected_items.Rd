@@ -41,5 +41,5 @@ or NULL if no files were archived.
 \description{
 Creates a ZIP archive containing selected files at specific commit versions.
 Handles file staging, directory structure options, and archive creation with
-proper error handling and user notifications.
+proper error handling and user notifications. Now includes enhanced PDF support.
 }

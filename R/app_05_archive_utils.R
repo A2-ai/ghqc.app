@@ -5,10 +5,10 @@
 #' @importFrom stringr str_extract
 #' @importFrom glue glue
 #' @importFrom log4r debug info warn error
-#'
+NULL
+
 #' Note: Binary files (PDFs, images, etc.) are included in archives
 #' as their original binary format, not as text content.
-NULL
 #' Get Local Log
 #'
 #' parsing function that finds all the commits for each file in the repo

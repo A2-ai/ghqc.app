@@ -661,8 +661,7 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
           ),
           paste(
             "The following files are in selected milestones:",
-            paste(duplicated_files, collapse = ", "),
-            ". To avoid conflicts, please uncheck these files."
+            paste(duplicated_files, collapse = ", ")
           ),
           easyClose = TRUE,
           footer = NULL
