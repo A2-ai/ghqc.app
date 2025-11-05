@@ -327,19 +327,26 @@ show_file_preview_modal <- function(file_name, commit_hash) {
   content_result <- get_enhanced_file_contents(file_name, commit_hash)
 
   if (isTRUE(content_result$is_binary)) {
-    # Handle binary files with simple message
-    preview_content <- "Preview not available for binary files. File will be in archive."
-    extraction_info <- paste("Binary file -", content_result$extraction_method)
+    # Handle binary files with simple message like "no commit" preview
+    shiny::showModal(
+      shiny::modalDialog(
+        title = glue::glue("Preview: {basename(file_name)}"),
+        paste0("Preview not available for binary files. File will be included in archive at commit ", substr(commit_hash, 1, 7), "."),
+        easyClose = TRUE,
+        footer = shiny::modalButton("Close")
+      )
+    )
+    return()
+  }
+
+  # Handle empty files
+  file_content <- content_result$content
+  if (is.null(file_content) || length(file_content) == 0) {
+    preview_content <- ""
+    extraction_info <- ""
   } else {
-    # Handle text files
-    file_content <- content_result$content
-    if (is.null(file_content) || length(file_content) == 0) {
-      preview_content <- "(empty file)"
-      extraction_info <- "Empty file"
-    } else {
-      preview_content <- paste(file_content, collapse = "\n")
-      extraction_info <- paste("Text content extracted using", content_result$extraction_method)
-    }
+    preview_content <- paste(file_content, collapse = "\n")
+    extraction_info <- paste("Text content extracted using", content_result$extraction_method)
   }
 
   # Show modal with file preview
@@ -600,16 +607,44 @@ archive_selected_items <- function(
                               error_on_status = FALSE)
 
       if (result$status != 0) {
-        warn(.le$logger, glue::glue("Failed to extract binary file {item} at commit {substr(sel_commit, 1, 7)}"))
-        # Create a placeholder file instead
-        writeLines(c(
-          paste("BINARY FILE EXTRACTION FAILED:", basename(item)),
-          "",
-          paste("File:", item),
-          paste("Commit:", substr(sel_commit, 1, 7)),
-          "",
-          "Use 'git show [commit]:[path]' to manually extract this file."
-        ), abs_path, useBytes = TRUE)
+        error(.le$logger, glue::glue("Failed to extract binary file {item} at commit {substr(sel_commit, 1, 7)}"))
+
+        # Show modal popup for binary file extraction failure
+        shiny::showModal(
+          shiny::modalDialog(
+            title = shiny::tags$div(
+              style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
+              shiny::tags$div(
+                shiny::modalButton("Return"),
+                style = "flex: 0 0 auto;"
+              ),
+              shiny::tags$div(
+                "Binary File Extraction Failed",
+                style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px; color: #d32f2f;"
+              ),
+              shiny::tags$div(style = "flex: 0 0 auto;")
+            ),
+            shiny::tags$div(
+              shiny::tags$p(
+                style = "margin-bottom: 15px;",
+                paste0("Failed to extract binary file: ", basename(item))
+              ),
+              shiny::tags$div(
+                style = "background-color: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;",
+                shiny::tags$strong("File: "), item, shiny::tags$br(),
+                shiny::tags$strong("Commit: "), substr(sel_commit, 1, 7), shiny::tags$br(),
+                shiny::tags$br(),
+                "The archive creation has been stopped. Please check the file path and commit, then try again."
+              )
+            ),
+            easyClose = TRUE,
+            footer = shiny::modalButton("Close")
+          )
+        )
+
+        # Clean up and stop archive creation
+        unlink(stage_dir, recursive = TRUE, force = TRUE)
+        return(invisible(NULL))
       }
     } else {
       # Handle text files - write content as lines
@@ -672,4 +707,5 @@ archive_selected_items <- function(
   )
   invisible(zip_file_abs)
 }
+
 

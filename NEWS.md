@@ -4,6 +4,10 @@
 
 - adds previewing files in `ghqc_archive_app()`
 
+- adds different waiter in `ghqc_archive_app()`
+
+- fixes binary file archive problems in `ghqc_archive_app()`
+
 # ghqc.app 0.8.1
 
 - fixes initial open issues bug in `ghqc_archive_app()`
