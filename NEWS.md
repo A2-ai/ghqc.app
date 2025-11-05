@@ -1,3 +1,13 @@
+0.8.1.9001
+
+- adds no rerendering for individual milestones that match global milestones in `ghqc_archive_app()`
+
+- adds previewing files in `ghqc_archive_app()`
+
+- adds different waiter in `ghqc_archive_app()`
+
+- fixes binary file archive problems in `ghqc_archive_app()`
+
 # ghqc.app 0.8.1
 
 - fixes initial open issues bug in `ghqc_archive_app()`

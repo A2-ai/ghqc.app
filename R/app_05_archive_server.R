@@ -52,6 +52,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
       color = "white"
     )
 
+    w_full_screen <- waiter::Waiter$new(
+      id = NULL,
+      html = shiny::tagList(
+        waiter::spin_2(),
+        shiny::tags$br(),
+        shiny::tags$h4(
+        )
+      ),
+      color = "rgba(255, 255, 255, 0.9)"
+    )
+
     w_open_issues <- waiter::Waiter$new(
       id = NULL, # Full screen waiter
       html = shiny::tagList(
@@ -545,9 +556,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Show waiter when right side starts changing (only if not already active)
     shiny::observeEvent(right_side_changes(), {
       if (!waiter_active()) {
-        # Hide the grid while waiting
-        shinyjs::hide("grid_container")
-        w_load_items$show()
+        # Hide right side content with CSS visibility to preserve scroll
+        shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'hidden');"))
+        # Show full-screen waiter (grays out everything, spinner in center of screen)
+        w_full_screen$show()
         waiter_active(TRUE)
       }
     }, ignoreInit = TRUE)
@@ -555,12 +567,12 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
     # Hide waiter only when changes have completely stopped and stabilized
     shiny::observeEvent(right_side_stable(), {
       if (waiter_active()) {
-        w_load_items$hide()
-        shinyjs::show("grid_container")
+        w_full_screen$hide()
+        # Show right side content again
+        shinyjs::runjs(glue::glue("$('#{session$ns('grid_container')}').css('visibility', 'visible');"))
         waiter_active(FALSE)
       }
     }, ignoreInit = TRUE)
-
     shiny::observeEvent(
       c(
         input$selected_milestones,
@@ -805,6 +817,17 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               }
             )
 
+            # Add preview click handler
+            shiny::observeEvent(
+              input[[generate_input_id("preview", this_item)]],
+              {
+                commit_value <- input[[generate_input_id("commit", this_item)]]
+                show_file_preview_modal(this_item, commit_value)
+              },
+              ignoreInit = TRUE
+            )
+
+
             file_commits_df <- commit_df() |> dplyr::filter(file == this_item)
             session$onFlushed(
               function() {
@@ -892,6 +915,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             selected_globals %in% milestone_choices
           ]
 
+          if (length(matching_milestones) > 0) {
+            milestone_choices <- matching_milestones
+          }
+
           if (
             length(matching_milestones) > 0 &&
             nzchar(milestone_input) &&
@@ -908,6 +935,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             selected_globals %in% milestone_choices
           ]
 
+          if (length(matching_milestones) > 0) {
+            milestone_choices <- matching_milestones
+          }
+
           # Handle include_open_issues toggle - update milestone choices but preserve selection logic
           include_open_issues_changed <- !is.null(input$include_open_issues)
 
@@ -919,6 +950,10 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
             matching_milestones <- selected_globals[
               selected_globals %in% milestone_choices
             ]
+
+            if (length(matching_milestones) > 0) {
+              milestone_choices <- matching_milestones
+            }
 
             shiny::updateSelectizeInput(
               session,
@@ -964,9 +999,8 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
               selected_globals %in% milestone_choices
             ]
 
-            # Duplicate files across milestones already checked
             if (length(matching_milestones) != 0) {
-              # Global milestones take priority - always use the first matching global milestone
+              # Global milestones take priority
               milestone_selected <- matching_milestones[1]
 
               session$onFlushed(
@@ -1025,17 +1059,24 @@ ghqc_archive_server <- function(id, root_dir, milestone_df, local_branch) {
                   commit_choices <- character(0)
                 }
 
+                # Preserve existing commit selection if it's still valid
+                current_commit_selection <- input[[generate_input_id("commit", this_item)]]
+                new_selection <- if (!is.null(current_commit_selection) &&
+                                     current_commit_selection %in% commit_choices) {
+                  # Keep existing selection if it's still available
+                  current_commit_selection
+                } else if (!(milestone_selection %in% c("")) && length(commit_choices)) {
+                  # Only auto-select first commit if no previous selection exists
+                  commit_choices[[1]]
+                } else {
+                  character(0)
+                }
+
                 shiny::updateSelectizeInput(
                   session,
                   generate_input_id("commit", this_item),
                   choices = commit_choices,
-                  selected = if (
-                    !(milestone_selection %in% c("")) && length(commit_choices)
-                  ) {
-                    commit_choices[[1]]
-                  } else {
-                    character(0)
-                  },
+                  selected = new_selection,
                   server = TRUE
                 )
               },

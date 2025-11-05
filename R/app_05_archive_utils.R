@@ -7,6 +7,8 @@
 #' @importFrom log4r debug info warn error
 NULL
 
+#' Note: Binary files (PDFs, images, etc.) are included in archives
+#' as their original binary format, not as text content.
 #' Get Local Log
 #'
 #' parsing function that finds all the commits for each file in the repo
@@ -119,7 +121,11 @@ create_single_item_ui <- function(name, ns) {
     shiny::tags$div(
       class = "form-control",
       style = "word-wrap: break-word; white-space: normal; height: auto;",
-      HTML(htmltools::htmlEscape(name))
+      shiny::actionLink(
+        inputId = ns(generate_input_id("preview", name)),
+        label = HTML(htmltools::htmlEscape(name)),
+        style = "color: inherit; text-decoration: none; cursor: pointer;"
+      )
     ),
 
     shiny::selectizeInput(
@@ -296,6 +302,76 @@ get_open_issues_in_repo <- function() {
   return(issues)
 }
 
+#' Show File Preview Modal
+#'
+#' @param file_name Character string. The name/path of the file to preview.
+#' @param commit_hash Character string. The git commit hash to retrieve the file from.
+#' @noRd
+show_file_preview_modal <- function(file_name, commit_hash) {
+  debug(.le$logger, glue::glue("Previewing file: {file_name} at commit: {substr(commit_hash, 1, 7)}"))
+
+  if (is.null(commit_hash) || commit_hash == "") {
+    shiny::showModal(
+      shiny::modalDialog(
+        title = glue::glue("Preview: {basename(file_name)}"),
+        glue::glue("There is no commit please select commit for {basename(file_name)}"),
+        easyClose = TRUE,
+        footer = shiny::modalButton("Close")
+      )
+    )
+    return()
+  }
+
+  # Get file content at specific commit with enhanced extraction
+  content_result <- get_enhanced_file_contents(file_name, commit_hash)
+
+  if (isTRUE(content_result$is_binary)) {
+    # Handle binary files with simple message like "no commit" preview
+    shiny::showModal(
+      shiny::modalDialog(
+        title = glue::glue("Preview: {basename(file_name)}"),
+        paste0("Preview not available for binary files. File will be included in archive at commit ", substr(commit_hash, 1, 7), "."),
+        easyClose = TRUE,
+        footer = shiny::modalButton("Close")
+      )
+    )
+    return()
+  }
+
+  # Handle empty files
+  file_content <- content_result$content
+  if (is.null(file_content) || length(file_content) == 0) {
+    preview_content <- ""
+    extraction_info <- ""
+  } else {
+    preview_content <- paste(file_content, collapse = "\n")
+    extraction_info <- paste("Text content extracted using", content_result$extraction_method)
+  }
+
+  # Show modal with file preview
+  shiny::showModal(
+    shiny::modalDialog(
+      title = glue::glue("Preview: {basename(file_name)}"),
+      shiny::tags$div(
+        style = "margin-bottom: 10px; font-size: 0.9em; color: #666;",
+        glue::glue("Commit: {substr(commit_hash, 1, 7)}")
+      ),
+      shiny::tags$div(
+        style = "margin-bottom: 10px; font-size: 0.85em; color: #888; font-style: italic;",
+        extraction_info
+      ),
+      shiny::tags$pre(
+        style = "max-height: 500px; overflow-y: auto; background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; font-family: monospace; font-size: 12px; white-space: pre-wrap;",
+        preview_content
+      ),
+      easyClose = TRUE,
+      footer = shiny::modalButton("Close"),
+      size = "l"
+    )
+  )
+}
+
+
 #' Generate Archive Metadata JSON
 #'
 #' Creates a JSON metadata file containing information about the archive creation,
@@ -383,11 +459,89 @@ generate_archive_metadata <- function(
   jsonlite::toJSON(metadata, pretty = TRUE, auto_unbox = TRUE, null = "null")
 }
 
+#' Get Enhanced File Contents
+#'
+#' Extracts file contents at a specific commit, with special handling for binary files.
+#' Binary files (PDFs, images, etc.) are marked for binary extraction.
+#' Text files are extracted as readable content.
+#'
+#' @param file_path Character string. Path to the file in the repository.
+#' @param commit_hash Character string. Git commit hash to retrieve the file from.
+#'
+#' @return List with elements:
+#'   - content: Character vector of file content lines (NULL for binary files)
+#'   - is_binary: Logical indicating if file is binary
+#'   - is_pdf: Logical indicating if file is a PDF
+#'   - extraction_method: Character describing the method used
+#'
+#' @noRd
+get_enhanced_file_contents <- function(file_path, commit_hash) {
+  # Check if file is a binary type (PDF, images, etc.)
+  is_binary_file <- grepl("\\.(pdf|png|jpg|jpeg|gif|bmp|tiff|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz)$",
+                          file_path, ignore.case = TRUE)
+
+  if (is_binary_file) {
+    # Handle binary files - return metadata for binary extraction
+    info(.le$logger, glue::glue("Marking {file_path} for binary extraction at commit {substr(commit_hash, 1, 7)}"))
+
+    return(list(
+      content = NULL,  # No text content for binary files
+      is_binary = TRUE,
+      is_pdf = grepl("\\.(pdf)$", file_path, ignore.case = TRUE),
+      extraction_method = "binary_file",
+      file_path = file_path,
+      commit_hash = commit_hash
+    ))
+  } else {
+    # Handle text files with regular extraction
+    result <- get_fallback_contents(file_path, commit_hash)
+    result$is_binary <- FALSE
+    return(result)
+  }
+}
+
+#' Get Fallback File Contents
+#'
+#' Fallback method for file content extraction using the original approach.
+#'
+#' @param file_path Character string. Path to the file in the repository.
+#' @param commit_hash Character string. Git commit hash to retrieve the file from.
+#'
+#' @return List with content extraction results.
+#'
+#' @noRd
+get_fallback_contents <- function(file_path, commit_hash) {
+  # Use existing get_script_contents logic but for single commit
+  temp_dir <- tempdir()
+  temp_file <- tempfile(tmpdir = temp_dir)
+
+  command <- glue::glue("git show {commit_hash}:\"{file_path}\" > {temp_file}")
+  result <- processx::run("sh", c("-c", command), error_on_status = FALSE)
+
+  if (result$status != 0) {
+    return(list(
+      content = character(0),
+      is_pdf = FALSE,
+      extraction_method = "failed"
+    ))
+  }
+
+  # Read file contents
+  content_lines <- suppressWarnings(readLines(temp_file))
+  unlink(temp_file)
+
+  list(
+    content = content_lines,
+    is_pdf = FALSE,
+    extraction_method = "readLines"
+  )
+}
+
 #' Archive Selected Items
 #'
 #' Creates a ZIP archive containing selected files at specific commit versions.
 #' Handles file staging, directory structure options, and archive creation with
-#' proper error handling and user notifications.
+#' proper error handling and user notifications. Now includes enhanced PDF support.
 #'
 #' @param input Reactive input object from Shiny session containing user selections.
 #' @param session Shiny session object for accessing namespaced inputs and notifications.
@@ -430,14 +584,8 @@ archive_selected_items <- function(
       next
     }
 
-    script_contents <- get_script_contents(
-      item,
-      reference = sel_commit,
-      comparator = sel_commit
-    )
-
-    # Extract the script content (both reference and comparator should be the same since we used the same commit)
-    script_lines <- script_contents$reference_script
+    # Use enhanced file content extraction with binary support
+    content_result <- get_enhanced_file_contents(item, sel_commit)
 
     rel_path <- if (isTRUE(flatten)) {
       paste0(top_dir, basename(item))
@@ -447,7 +595,64 @@ archive_selected_items <- function(
 
     abs_path <- file.path(stage_dir, rel_path)
     dir.create(dirname(abs_path), recursive = TRUE, showWarnings = FALSE)
-    writeLines(script_lines, abs_path, useBytes = TRUE)
+
+    if (isTRUE(content_result$is_binary)) {
+      # Handle binary files (PDFs, images, etc.) - extract directly from git
+      info(.le$logger, glue::glue("Extracting binary file {item} using {content_result$extraction_method}"))
+
+      # Use git show to extract binary file directly
+      result <- processx::run("git", c("show", paste0(sel_commit, ":", item)),
+                              stdout = abs_path,
+                              error_on_status = FALSE)
+
+      if (result$status != 0) {
+        error(.le$logger, glue::glue("Failed to extract binary file {item} at commit {substr(sel_commit, 1, 7)}"))
+
+        # Show modal popup for binary file extraction failure
+        shiny::showModal(
+          shiny::modalDialog(
+            title = shiny::tags$div(
+              style = "display: flex; justify-content: space-between; align-items: center; width: 100%;",
+              shiny::tags$div(
+                shiny::modalButton("Return"),
+                style = "flex: 0 0 auto;"
+              ),
+              shiny::tags$div(
+                "Binary File Extraction Failed",
+                style = "flex: 1 1 auto; text-align: center; font-weight: bold; font-size: 20px; color: #d32f2f;"
+              ),
+              shiny::tags$div(style = "flex: 0 0 auto;")
+            ),
+            shiny::tags$div(
+              shiny::tags$p(
+                style = "margin-bottom: 15px;",
+                paste0("Failed to extract binary file: ", basename(item))
+              ),
+              shiny::tags$div(
+                style = "background-color: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;",
+                shiny::tags$strong("File: "), item, shiny::tags$br(),
+                shiny::tags$strong("Commit: "), substr(sel_commit, 1, 7), shiny::tags$br(),
+                shiny::tags$br(),
+                "Binary file was not extracted correctly. The archive creation has been stopped."
+              )
+            ),
+            easyClose = TRUE,
+            footer = shiny::modalButton("Close")
+          )
+        )
+
+        # Clean up and stop archive creation
+        unlink(stage_dir, recursive = TRUE, force = TRUE)
+        return(invisible(NULL))
+      }
+    } else {
+      # Handle text files - write content as lines
+      script_lines <- content_result$content
+      if (is.null(script_lines) || length(script_lines) == 0) {
+        script_lines <- c("")
+      }
+      writeLines(script_lines, abs_path, useBytes = TRUE)
+    }
 
     rel_files <- c(rel_files, gsub("\\\\", "/", rel_path))
   }
