@@ -1,4 +1,6 @@
 
+> **Deprecated:** This package has been deprecated in favor of [ghqctoolkit](https://github.com/a2-ai/ghqctoolkit). Refer to the new version of the [ghqc](https://github.com/a2-ai/ghqc) R package for details on how to use ghqctoolkit in new R projects.
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # ghqc.app <a href="https://github.com/a2-ai/ghqc.app/"><img src="man/figures/logo.png" align="right" height="139" alt="ghqc.app website" /></a>

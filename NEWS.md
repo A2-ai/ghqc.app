@@ -1,3 +1,6 @@
+# March 2026
+This package has been depricated in favor of a rust backed version, [ghqctoolkit](https://github.com/a2-ai/ghqctoolkit).
+
 # ghqc.app 0.8.2
 
 - adds no rerendering for individual milestones that match global milestones in `ghqc_archive_app()`
